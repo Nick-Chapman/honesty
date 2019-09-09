@@ -1,0 +1,33 @@
+name:                six-five-oh-two
+version:             0.1.0.0
+description:         Dissembler/Emulator for 6502 cpu
+author:              Nick Chapman
+maintainer:          nic@amadido.co.uk
+github:              https://github.com/Nick-Chapman/six-five-oh-two.git
+
+extra-source-files:
+- README.md
+
+dependencies:
+- base >= 4.7 && < 5
+- containers
+- extra
+
+library:
+  source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Wno-name-shadowing
+
+executables:
+  xxx-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -Wall
+    - -Wno-name-shadowing
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - six-five-oh-two
