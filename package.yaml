@@ -10,8 +10,9 @@ extra-source-files:
 
 dependencies:
 - base >= 4.7 && < 5
-- containers
-- extra
+- bytestring
+#- word16
+- word8
 
 library:
   source-dirs: src

@@ -1,9 +1,7 @@
 
 module Main (main) where
 
-import Lib
+import qualified Lib
 
 main :: IO ()
-main = do
-    print "6502"
-    Lib.someFunc
+main = Lib.main
