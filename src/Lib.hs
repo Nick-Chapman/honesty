@@ -21,10 +21,10 @@ main :: IO ()
 main = do
     bytesIncHeaderAndJunk <- loadFile "data/nestest.nes"
     let bytes = drop topSkip $ take sizeCode $ drop headerSize bytesIncHeaderAndJunk
-    let ops = dis bytes
+    let ops :: [Op] = dis bytes
     let bytes' = reAssemble ops
     when (bytes /= bytes') $ fail "re-assemble failed"
-    mapM_ putStrLn $ displayInstrLines (startAddr `addAddr` topSkip) ops
+    mapM_ putStrLn $ displayOpLines (startAddr `addAddr` topSkip) ops
 
 startAddr :: Addr
 startAddr = 0xC000
@@ -44,33 +44,33 @@ loadFile path = do
     let ws :: [Word8] = BS.unpack bs
     return $ map Byte ws
 
-reAssemble :: [Instr] -> [Byte]
-reAssemble = join . map instrBytes
+reAssemble :: [Op] -> [Byte]
+reAssemble = join . map opBytes
 
-displayInstrLines :: Addr -> [Instr] -> [String]
-displayInstrLines a = \case
+displayOpLines :: Addr -> [Op] -> [String]
+displayOpLines a = \case
     [] -> []
-    instr:instrs ->
-        displayInstrLine a instr : displayInstrLines (a `addAddr` size instr) instrs
+    op:ops ->
+        displayOpLine a op : displayOpLines (a `addAddr` size op) ops
 
-displayInstrLine :: Addr -> Instr -> String
-displayInstrLine at instr = show at <> "  " <> case instr of
+displayOpLine :: Addr -> Op -> String
+displayOpLine at op = show at <> "  " <> case op of
     Unknown bytes ->
-        ljust 8 (showInstrBytes instr)
-        <> " ??? " <> show (map (Char.chr . fromIntegral . unByte) bytes) <> " ???"
-    Instr op mode rand ->
-        ljust 8 (showInstrBytes instr)
-        <> (if unofficial op then " *" else "  ")
-        <> showOp op
+        ljust 8 (showOpBytes op)
+        <> "  ??? " <> show (map (Char.chr . fromIntegral . unByte) bytes)
+    Op instruction mode rand ->
+        ljust 8 (showOpBytes op)
+        <> (if unofficial instruction then " *" else "  ")
+        <> showInstruction instruction
         <> displayRand at (mode,rand)
 
 ljust :: Int -> String -> String
 ljust n s = s <> take (max 0 (n - length s)) (repeat ' ')
 
-showInstrBytes :: Instr -> String
-showInstrBytes instr = unwords $ map show $ instrBytes instr
+showOpBytes :: Op -> String
+showOpBytes op = unwords $ map show $ opBytes op
 
-data Op
+data Instruction
     = ADC | AND | ASL | BCC | BCS | BEQ | BIT | BMI
     | BNE | BPL | BRK | BVC | BVS | CLC | CLD | CLI
     | CLV | CMP | CPX | CPY | DEC | DEX | DEY | EOR
@@ -92,8 +92,8 @@ data Op
 
     deriving (Eq,Show)
 
-unofficalNop :: Op -> Bool
-unofficalNop op = op `elem`
+unofficalNop :: Instruction -> Bool
+unofficalNop i = i `elem`
     [NOP_04,NOP_44,NOP_64
     ,NOP_0C
     ,NOP_14,NOP_34,NOP_54,NOP_74,NOP_D4,NOP_F4
@@ -102,15 +102,15 @@ unofficalNop op = op `elem`
     ,NOP_1C,NOP_3C,NOP_5C,NOP_7C,NOP_DC,NOP_FC
     ]
 
-unofficial :: Op -> Bool
-unofficial op = op `elem` [DCP,ISB,LAX,RLA,RRA,SAX,SLO,SRE,SBC_extra] || unofficalNop op
+unofficial :: Instruction -> Bool
+unofficial i = i `elem` [DCP,ISB,LAX,RLA,RRA,SAX,SLO,SRE,SBC_extra] || unofficalNop i
 
-showOp :: Op -> String
-showOp = \case
+showInstruction :: Instruction -> String
+showInstruction = \case
     SBC_extra -> "SBC"
-    op -> if unofficalNop op then "NOP" else show op
+    instruction -> if unofficalNop instruction then "NOP" else show instruction
 
-table :: [(Op,Mode,Byte)]
+table :: [(Instruction,Mode,Byte)]
 table =
     [ (ADC, Immediate, 0x69)
     , (ADC, Absolute, 0x6d)
@@ -345,49 +345,50 @@ table =
 
     ]
 
-decodeViaTable :: Byte -> Maybe (Op,Mode)
+decodeViaTable :: Byte -> Maybe (Instruction,Mode)
 decodeViaTable byte = -- TODO: be more efficient!
-    case mapMaybe (\(o,m,b) -> if byte==b then Just (o,m) else Nothing) table of
+    case mapMaybe (\(i,m,b) -> if byte==b then Just (i,m) else Nothing) table of
         [] -> Nothing
-        [om] -> Just om
-        oms -> error $ "decodeViaTable:" <> show byte <> " -> " <> show oms
+        [im] -> Just im
+        ims -> error $ "decodeViaTable:" <> show byte <> " -> " <> show ims
 
-encodeViaTable :: (Op,Mode) -> Byte
-encodeViaTable (op,mode) = -- TODO: be more efficient!
-    case mapMaybe (\(o,m,b) -> if op==o && mode==m then Just b else Nothing) table of
-        [] -> error $ "encodeViaTable" <> show (op,mode)
+encodeViaTable :: (Instruction,Mode) -> Byte
+encodeViaTable (instruction,mode) = -- TODO: be more efficient!
+    case mapMaybe (\(i,m,b) -> if instruction==i && mode==m then Just b else Nothing) table of
+        [] -> error $ "encodeViaTable" <> show (instruction,mode)
         [b] -> b
-        bs -> error $ "encodeViaTable:" <> show (op,mode) <> " -> " <> show bs
+        bs -> error $ "encodeViaTable:" <> show (instruction,mode) <> " -> " <> show bs
 
-data Instr
+data Op
     = Unknown [Byte]
-    | Instr Op Mode Rand
+    | Op Instruction Mode Rand
 
-size :: Instr -> Int
+size :: Op -> Int
 size = \case
     Unknown xs -> length xs
-    Instr _ mode _ -> 1 + sizeMode mode
+    Op _ mode _ -> 1 + sizeMode mode
 
-instrBytes :: Instr -> [Byte]
-instrBytes = \case
+opBytes :: Op -> [Byte]
+opBytes = \case
     Unknown bs -> bs
-    Instr op mode rand -> encodeViaTable (op,mode) : randBytes rand
+    Op instruction mode rand -> encodeViaTable (instruction,mode) : randBytes rand
 
-dis :: [Byte] -> [Instr]
+dis :: [Byte] -> [Op]
 dis = disJ []
 
-disJ :: [Byte] -> [Byte] -> [Instr]
+disJ :: [Byte] -> [Byte] -> [Op]
 disJ junk = \case
     [] -> flush []
     b:bs ->
         case decodeViaTable b of
             Nothing -> disJ (b:junk) bs
-            Just (op,mode) -> flush $ Instr op mode rand : dis bs' where (rand,bs') = takeMode mode bs
+            Just (instruction,mode) ->
+                flush $ Op instruction mode rand : dis bs' where (rand,bs') = takeMode mode bs
     where
-        flush :: [Instr] -> [Instr]
-        flush instrs = case junk of
-            [] -> instrs
-            _ -> Unknown (reverse junk) : instrs
+        flush :: [Op] -> [Op]
+        flush ops = case junk of
+            [] -> ops
+            _ -> Unknown (reverse junk) : ops
 
 data Rand = RandByte Byte | RandAddr Addr | RandNull
     deriving (Show)

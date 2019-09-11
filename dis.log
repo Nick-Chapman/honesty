@@ -280,7 +280,7 @@ C249  A9 72     LDA #$72
 C24B  8D 07 20  STA $2007
 C24E  4C 94 C2  JMP $C294
 C251  30 31     BMI $C284
-C253  32       ??? "2" ???
+C253  32        ??? "2"
 C254  33 34    *RLA ($34),Y
 C256  35 36     AND $36,X
 C258  37 38    *RLA $38,X
@@ -379,7 +379,7 @@ C31D  74 73    *NOP $73,X
 C31F  FF 20 20 *ISB $2020,X
 C322  20 20 2D  JSR $2D20
 C325  2D 20 42  AND $4220
-C328  72       ??? "r" ???
+C328  72        ??? "r"
 C329  61 6E     ADC ($6E,X)
 C32B  63 68    *RRA ($68,X)
 C32D  20 74 65  JSR $6574
@@ -414,7 +414,7 @@ C372  20 20 20  JSR $2020
 C375  20 2D 2D  JSR $2D2D
 C378  20 53 74  JSR $7453
 C37B  61 63     ADC ($63,X)
-C37D  6B       ??? "k" ???
+C37D  6B        ??? "k"
 C37E  20 74 65  JSR $6574
 C381  73 74    *RRA ($74),Y
 C383  73 FF    *RRA ($FF),Y
@@ -432,7 +432,7 @@ C39E  20 20 20  JSR $2020
 C3A1  20 2D 2D  JSR $2D2D
 C3A4  20 28 49  JSR $4928
 C3A7  6E 64 69  ROR $6964
-C3AA  72       ??? "r" ???
+C3AA  72        ??? "r"
 C3AB  65 63     ADC $63
 C3AD  74 2C    *NOP $2C,X
 C3AF  58        CLI
@@ -443,7 +443,7 @@ C3B6  73 FF    *RRA ($FF),Y
 C3B8  20 20 20  JSR $2020
 C3BB  20 2D 2D  JSR $2D2D
 C3BE  20 5A 65  JSR $655A
-C3C1  72       ??? "r" ???
+C3C1  72        ??? "r"
 C3C2  6F 70 61 *RRA $6170
 C3C5  67 65    *RRA $65
 C3C7  20 74 65  JSR $6574
@@ -462,7 +462,7 @@ C3E4  20 20 20  JSR $2020
 C3E7  20 2D 2D  JSR $2D2D
 C3EA  20 28 49  JSR $4928
 C3ED  6E 64 69  ROR $6964
-C3F0  72       ??? "r" ???
+C3F0  72        ??? "r"
 C3F1  65 63     ADC $63
 C3F3  74 29    *NOP $29,X
 C3F5  2C 59 20  BIT $2059
@@ -569,7 +569,7 @@ C4ED  20 28 6F  JSR $6F28
 C4F0  70 63     BVS $C555
 C4F2  6F 64 65 *RRA $6564
 C4F5  20 30 45  JSR $4530
-C4F8  42       ??? "B" ???
+C4F8  42        ??? "B"
 C4F9  68        PLA
 C4FA  29 FF     AND #$FF
 C4FC  20 20 20  JSR $2020
@@ -582,7 +582,7 @@ C50B  73 FF    *RRA ($FF),Y
 C50D  20 20 20  JSR $2020
 C510  20 2D 2D  JSR $2D2D
 C513  20 49 53  JSR $5349
-C516  42       ??? "B" ???
+C516  42        ??? "B"
 C517  20 74 65  JSR $6574
 C51A  73 74    *RRA ($74),Y
 C51C  73 FF    *RRA ($FF),Y
@@ -640,7 +640,7 @@ C59C  65 6C     ADC $6C
 C59E  65 63     ADC $63
 C5A0  74 3A    *NOP $3A,X
 C5A2  20 4E 6F  JSR $6F4E
-C5A5  72       ??? "r" ???
+C5A5  72        ??? "r"
 C5A6  6D 61 6C  ADC $6C61
 C5A9  20 6F 70  JSR $706F
 C5AC  73 FF    *RRA ($FF),Y
