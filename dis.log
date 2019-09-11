@@ -5,9 +5,9 @@ C005  D8        CLD
 C006  A2 FF     LDX #$FF
 C008  9A        TXS
 C009  AD 02 20  LDA $2002
-C00C  10 FB     BPL $C109
+C00C  10 FB     BPL $C009
 C00E  AD 02 20  LDA $2002
-C011  10 FB     BPL $C10E
+C011  10 FB     BPL $C00E
 C013  A9 00     LDA #$00
 C015  8D 00 20  STA $2000
 C018  8D 01 20  STA $2001
@@ -23,9 +23,9 @@ C030  A0 0F     LDY #$0F
 C032  A9 00     LDA #$00
 C034  8D 07 20  STA $2007
 C037  CA        DEX
-C038  D0 FA     BNE $C134
+C038  D0 FA     BNE $C034
 C03A  88        DEY
-C03B  D0 F7     BNE $C134
+C03B  D0 F7     BNE $C034
 C03D  A9 3F     LDA #$3F
 C03F  8D 06 20  STA $2006
 C042  A9 00     LDA #$00
@@ -35,7 +35,7 @@ C049  BD 78 FF  LDA $FF78,X
 C04C  8D 07 20  STA $2007
 C04F  E8        INX
 C050  E0 20     CPX #$20
-C052  D0 F5     BNE $C149
+C052  D0 F5     BNE $C049
 C054  A9 C0     LDA #$C0
 C056  8D 17 40  STA $4017
 C059  A9 00     LDA #$00
@@ -74,18 +74,18 @@ C099  4C 81 C0  JMP $C081
 C09C  4C 26 C1  JMP $C126
 C09F  20 6F C6  JSR $C66F
 C0A2  C6 D7     DEC $D7
-C0A4  10 DB     BPL $C181
+C0A4  10 DB     BPL $C081
 C0A6  A9 0D     LDA #$0D
 C0A8  85 D7     STA $D7
-C0AA  D0 D5     BNE $C181
+C0AA  D0 D5     BNE $C081
 C0AC  20 6F C6  JSR $C66F
 C0AF  E6 D7     INC $D7
 C0B1  A5 D7     LDA $D7
 C0B3  C9 0E     CMP #$0E
-C0B5  90 CA     BCC $C181
+C0B5  90 CA     BCC $C081
 C0B7  A9 00     LDA #$00
 C0B9  85 D7     STA $D7
-C0BB  F0 C4     BEQ $C181
+C0BB  F0 C4     BEQ $C081
 C0BD  20 89 C6  JSR $C689
 C0C0  A5 D7     LDA $D7
 C0C2  F0 06     BEQ $C0CA
@@ -98,7 +98,7 @@ C0D0  20 ED C0  JSR $C0ED
 C0D3  E6 D7     INC $D7
 C0D5  A5 D7     LDA $D7
 C0D7  C9 0E     CMP #$0E
-C0D9  D0 F5     BNE $C1D0
+C0D9  D0 F5     BNE $C0D0
 C0DB  A9 00     LDA #$00
 C0DD  85 D7     STA $D7
 C0DF  A5 D8     LDA $D8
@@ -122,18 +122,16 @@ C103  A9 00     LDA #$00
 C105  85 00     STA $00
 C107  6C 00 02  JMP ($0200)
 C10A  2D C7 2D  AND $2DC7
-C10D  C7 DB C7 ??? "\199\219\199" ???
-C110  85 C8     STA $C8
+C10D  C7 DB    *DCP $DB
+C10F  C7 85    *DCP $85
+C111  C8        INY
 C112  DE CB F8  DEC $F8CB,X
 C115  CD EE CE  CMP $CEEE
 C118  A2 CF     LDX #$CF
-C11A  74       ??? "t" ???
-C11B  D1 FB     CMP ($FB),Y
-C11D  D4 D4    ??? "\212\212" ???
+C11A  74 D1    *NOP $D1,X
+C11C  FB D4 D4 *ISB $D4D4,Y
 C11F  C1 4A     CMP ($4A,X)
-C121  DF       ??? "\223" ???
-C122  B8        CLV
-C123  DB       ??? "\219" ???
+C121  DF B8 DB *DCP $DBB8,X
 C124  AA        TAX
 C125  E1 A9     SBC ($A9,X)
 C127  00        BRK
@@ -161,18 +159,18 @@ C14D  4C 35 C1  JMP $C135
 C150  4C 72 C0  JMP $C072
 C153  20 6F C6  JSR $C66F
 C156  C6 D7     DEC $D7
-C158  10 DB     BPL $C235
+C158  10 DB     BPL $C135
 C15A  A9 0A     LDA #$0A
 C15C  85 D7     STA $D7
-C15E  D0 D5     BNE $C235
+C15E  D0 D5     BNE $C135
 C160  20 6F C6  JSR $C66F
 C163  E6 D7     INC $D7
 C165  A5 D7     LDA $D7
 C167  C9 0B     CMP #$0B
-C169  90 CA     BCC $C235
+C169  90 CA     BCC $C135
 C16B  A9 00     LDA #$00
 C16D  85 D7     STA $D7
-C16F  F0 C4     BEQ $C235
+C16F  F0 C4     BEQ $C135
 C171  20 89 C6  JSR $C689
 C174  A5 D7     LDA $D7
 C176  F0 06     BEQ $C17E
@@ -185,7 +183,7 @@ C184  20 A1 C1  JSR $C1A1
 C187  E6 D7     INC $D7
 C189  A5 D7     LDA $D7
 C18B  C9 0B     CMP #$0B
-C18D  D0 F5     BNE $C284
+C18D  D0 F5     BNE $C184
 C18F  A9 00     LDA #$00
 C191  85 D7     STA $D7
 C193  A5 D8     LDA $D8
@@ -211,7 +209,7 @@ C1BB  6C 00 02  JMP ($0200)
 C1BE  A3 C6    *LAX ($C6,X)
 C1C0  A3 C6    *LAX ($C6,X)
 C1C2  1E E5 3D  ASL $3DE5,X
-C1C5  E7 D3    ??? "\231\211" ???
+C1C5  E7 D3    *ISB $D3
 C1C7  E8        INX
 C1C8  16 E9     ASL $E9,X
 C1CA  86 EB     STX $EB
@@ -282,12 +280,12 @@ C249  A9 72     LDA #$72
 C24B  8D 07 20  STA $2007
 C24E  4C 94 C2  JMP $C294
 C251  30 31     BMI $C284
-C253  32 33 34 ??? "234" ???
+C253  32       ??? "2" ???
+C254  33 34    *RLA ($34),Y
 C256  35 36     AND $36,X
-C258  37       ??? "7" ???
-C259  38        SEC
+C258  37 38    *RLA $38,X
 C25A  39 41 42  AND $4241,Y
-C25D  43 44    ??? "CD" ???
+C25D  43 44    *SRE ($44,X)
 C25F  45 46     EOR $46
 C261  A5 D7     LDA $D7
 C263  18        CLC
@@ -307,13 +305,13 @@ C27C  A9 2A     LDA #$2A
 C27E  8D 07 20  STA $2007
 C281  88        DEY
 C282  CA        DEX
-C283  D0 F1     BNE $C376
+C283  D0 F1     BNE $C276
 C285  A9 80     LDA #$80
 C287  8D 00 20  STA $2000
 C28A  4C 94 C2  JMP $C294
 C28D  A5 D2     LDA $D2
 C28F  C5 D2     CMP $D2
-C291  F0 FC     BEQ $C38F
+C291  F0 FC     BEQ $C28F
 C293  60        RTS
 C294  A9 00     LDA #$00
 C296  8D 05 20  STA $2005
@@ -341,16 +339,16 @@ C2C9  C8        INY
 C2CA  D0 02     BNE $C2CE
 C2CC  E6 D1     INC $D1
 C2CE  CA        DEX
-C2CF  D0 ED     BNE $C3BE
-C2D1  F0 E9     BEQ $C3BC
+C2CF  D0 ED     BNE $C2BE
+C2D1  F0 E9     BEQ $C2BC
 C2D3  C8        INY
 C2D4  D0 02     BNE $C2D8
 C2D6  E6 D1     INC $D1
 C2D8  A9 20     LDA #$20
 C2DA  8D 07 20  STA $2007
 C2DD  CA        DEX
-C2DE  D0 F8     BNE $C3D8
-C2E0  F0 DA     BEQ $C3BC
+C2DE  D0 F8     BNE $C2D8
+C2E0  F0 DA     BEQ $C2BC
 C2E2  A9 80     LDA #$80
 C2E4  8D 00 20  STA $2000
 C2E7  A9 0E     LDA #$0E
@@ -365,206 +363,212 @@ C2F9  A9 20     LDA #$20
 C2FB  A0 20     LDY #$20
 C2FD  8D 07 20  STA $2007
 C300  88        DEY
-C301  D0 FA     BNE $C3FD
+C301  D0 FA     BNE $C2FD
 C303  CA        DEX
-C304  D0 F5     BNE $C3FB
+C304  D0 F5     BNE $C2FB
 C306  60        RTS
-C307  FF FF FF FF ??? "\255\255\255\255" ???
-C30B  20 20 20  JSR $2020
-C30E  20 2D 2D  JSR $2D2D
-C311  20 52 75  JSR $7552
-C314  6E 20 61  ROR $6120
-C317  6C 6C 20  JMP ($206C)
-C31A  74       ??? "t" ???
+C307  FF FF FF *ISB $FFFF,X
+C30A  FF 20 20 *ISB $2020,X
+C30D  20 20 2D  JSR $2D20
+C310  2D 20 52  AND $5220
+C313  75 6E     ADC $6E,X
+C315  20 61 6C  JSR $6C61
+C318  6C 20 74  JMP ($7420)
 C31B  65 73     ADC $73
-C31D  74 73 FF ??? "ts\255" ???
-C320  20 20 20  JSR $2020
-C323  20 2D 2D  JSR $2D2D
-C326  20 42 72  JSR $7242
+C31D  74 73    *NOP $73,X
+C31F  FF 20 20 *ISB $2020,X
+C322  20 20 2D  JSR $2D20
+C325  2D 20 42  AND $4220
+C328  72       ??? "r" ???
 C329  61 6E     ADC ($6E,X)
-C32B  63       ??? "c" ???
-C32C  68        PLA
+C32B  63 68    *RRA ($68,X)
 C32D  20 74 65  JSR $6574
-C330  73 74 73 FF ??? "sts\255" ???
+C330  73 74    *RRA ($74),Y
+C332  73 FF    *RRA ($FF),Y
 C334  20 20 20  JSR $2020
 C337  20 2D 2D  JSR $2D2D
 C33A  20 46 6C  JSR $6C46
 C33D  61 67     ADC ($67,X)
 C33F  20 74 65  JSR $6574
-C342  73 74 73 FF ??? "sts\255" ???
+C342  73 74    *RRA ($74),Y
+C344  73 FF    *RRA ($FF),Y
 C346  20 20 20  JSR $2020
 C349  20 2D 2D  JSR $2D2D
 C34C  20 49 6D  JSR $6D49
 C34F  6D 65 64  ADC $6465
 C352  69 61     ADC #$61
-C354  74       ??? "t" ???
-C355  65 20     ADC $20
-C357  74       ??? "t" ???
-C358  65 73     ADC $73
-C35A  74 73 FF ??? "ts\255" ???
+C354  74 65    *NOP $65,X
+C356  20 74 65  JSR $6574
+C359  73 74    *RRA ($74),Y
+C35B  73 FF    *RRA ($FF),Y
 C35D  20 20 20  JSR $2020
 C360  20 2D 2D  JSR $2D2D
 C363  20 49 6D  JSR $6D49
 C366  70 6C     BVS $C3D4
 C368  69 65     ADC #$65
-C36A  64       ??? "d" ???
-C36B  20 74 65  JSR $6574
-C36E  73 74 73 FF ??? "sts\255" ???
+C36A  64 20    *NOP $20
+C36C  74 65    *NOP $65,X
+C36E  73 74    *RRA ($74),Y
+C370  73 FF    *RRA ($FF),Y
 C372  20 20 20  JSR $2020
 C375  20 2D 2D  JSR $2D2D
 C378  20 53 74  JSR $7453
 C37B  61 63     ADC ($63,X)
 C37D  6B       ??? "k" ???
 C37E  20 74 65  JSR $6574
-C381  73 74 73 FF ??? "sts\255" ???
+C381  73 74    *RRA ($74),Y
+C383  73 FF    *RRA ($FF),Y
 C385  20 20 20  JSR $2020
 C388  20 2D 2D  JSR $2D2D
 C38B  20 41 63  JSR $6341
-C38E  63       ??? "c" ???
-C38F  75 6D     ADC $6D,X
-C391  75 6C     ADC $6C,X
+C38E  63 75    *RRA ($75,X)
+C390  6D 75 6C  ADC $6C75
 C393  61 74     ADC ($74,X)
-C395  6F 72    ??? "or" ???
-C397  20 74 65  JSR $6574
-C39A  73 74 73 FF ??? "sts\255" ???
+C395  6F 72 20 *RRA $2072
+C398  74 65    *NOP $65,X
+C39A  73 74    *RRA ($74),Y
+C39C  73 FF    *RRA ($FF),Y
 C39E  20 20 20  JSR $2020
 C3A1  20 2D 2D  JSR $2D2D
 C3A4  20 28 49  JSR $4928
 C3A7  6E 64 69  ROR $6964
 C3AA  72       ??? "r" ???
 C3AB  65 63     ADC $63
-C3AD  74       ??? "t" ???
-C3AE  2C 58 29  BIT $2958
-C3B1  20 74 65  JSR $6574
-C3B4  73 74 73 FF ??? "sts\255" ???
+C3AD  74 2C    *NOP $2C,X
+C3AF  58        CLI
+C3B0  29 20     AND #$20
+C3B2  74 65    *NOP $65,X
+C3B4  73 74    *RRA ($74),Y
+C3B6  73 FF    *RRA ($FF),Y
 C3B8  20 20 20  JSR $2020
 C3BB  20 2D 2D  JSR $2D2D
 C3BE  20 5A 65  JSR $655A
-C3C1  72 6F    ??? "ro" ???
-C3C3  70 61     BVS $C426
-C3C5  67       ??? "g" ???
-C3C6  65 20     ADC $20
-C3C8  74       ??? "t" ???
-C3C9  65 73     ADC $73
-C3CB  74 73 FF ??? "ts\255" ???
+C3C1  72       ??? "r" ???
+C3C2  6F 70 61 *RRA $6170
+C3C5  67 65    *RRA $65
+C3C7  20 74 65  JSR $6574
+C3CA  73 74    *RRA ($74),Y
+C3CC  73 FF    *RRA ($FF),Y
 C3CE  20 20 20  JSR $2020
 C3D1  20 2D 2D  JSR $2D2D
 C3D4  20 41 62  JSR $6241
-C3D7  73 6F    ??? "so" ???
+C3D7  73 6F    *RRA ($6F),Y
 C3D9  6C 75 74  JMP ($7475)
 C3DC  65 20     ADC $20
-C3DE  74       ??? "t" ???
-C3DF  65 73     ADC $73
-C3E1  74 73 FF ??? "ts\255" ???
+C3DE  74 65    *NOP $65,X
+C3E0  73 74    *RRA ($74),Y
+C3E2  73 FF    *RRA ($FF),Y
 C3E4  20 20 20  JSR $2020
 C3E7  20 2D 2D  JSR $2D2D
 C3EA  20 28 49  JSR $4928
 C3ED  6E 64 69  ROR $6964
 C3F0  72       ??? "r" ???
 C3F1  65 63     ADC $63
-C3F3  74       ??? "t" ???
-C3F4  29 2C     AND #$2C
-C3F6  59 20 74  EOR $7420,Y
-C3F9  65 73     ADC $73
-C3FB  74 73 FF ??? "ts\255" ???
+C3F3  74 29    *NOP $29,X
+C3F5  2C 59 20  BIT $2059
+C3F8  74 65    *NOP $65,X
+C3FA  73 74    *RRA ($74),Y
+C3FC  73 FF    *RRA ($FF),Y
 C3FE  20 20 20  JSR $2020
 C401  20 2D 2D  JSR $2D2D
 C404  20 41 62  JSR $6241
-C407  73 6F    ??? "so" ???
+C407  73 6F    *RRA ($6F),Y
 C409  6C 75 74  JMP ($7475)
 C40C  65 2C     ADC $2C
 C40E  59 20 74  EOR $7420,Y
 C411  65 73     ADC $73
-C413  74 73 FF ??? "ts\255" ???
-C416  20 20 20  JSR $2020
-C419  20 2D 2D  JSR $2D2D
-C41C  20 5A 65  JSR $655A
-C41F  72 6F    ??? "ro" ???
-C421  70 61     BVS $C484
-C423  67       ??? "g" ???
-C424  65 2C     ADC $2C
-C426  58        CLI
-C427  20 74 65  JSR $6574
-C42A  73 74 73 FF ??? "sts\255" ???
+C413  74 73    *NOP $73,X
+C415  FF 20 20 *ISB $2020,X
+C418  20 20 2D  JSR $2D20
+C41B  2D 20 5A  AND $5A20
+C41E  65 72     ADC $72
+C420  6F 70 61 *RRA $6170
+C423  67 65    *RRA $65
+C425  2C 58 20  BIT $2058
+C428  74 65    *NOP $65,X
+C42A  73 74    *RRA ($74),Y
+C42C  73 FF    *RRA ($FF),Y
 C42E  20 20 20  JSR $2020
 C431  20 2D 2D  JSR $2D2D
 C434  20 41 62  JSR $6241
-C437  73 6F    ??? "so" ???
+C437  73 6F    *RRA ($6F),Y
 C439  6C 75 74  JMP ($7475)
 C43C  65 2C     ADC $2C
 C43E  58        CLI
 C43F  20 74 65  JSR $6574
-C442  73 74 73 FF FF FF ??? "sts\255\255\255" ???
-C448  20 20 20  JSR $2020
-C44B  20 55 70  JSR $7055
-C44E  2F 44 6F 77 ??? "/Dow" ???
-C452  6E 3A 20  ROR $203A
-C455  73       ??? "s" ???
-C456  65 6C     ADC $6C
-C458  65 63     ADC $63
-C45A  74       ??? "t" ???
-C45B  20 74 65  JSR $6574
-C45E  73 74 FF ??? "st\255" ???
-C461  20 20 20  JSR $2020
-C464  20 20 20  JSR $2020
-C467  53 74    ??? "St" ???
+C442  73 74    *RRA ($74),Y
+C444  73 FF    *RRA ($FF),Y
+C446  FF FF 20 *ISB $20FF,X
+C449  20 20 20  JSR $2020
+C44C  55 70     EOR $70,X
+C44E  2F 44 6F *RLA $6F44
+C451  77 6E    *RRA $6E,X
+C453  3A       *NOP
+C454  20 73 65  JSR $6573
+C457  6C 65 63  JMP ($6365)
+C45A  74 20    *NOP $20,X
+C45C  74 65    *NOP $65,X
+C45E  73 74    *RRA ($74),Y
+C460  FF 20 20 *ISB $2020,X
+C463  20 20 20  JSR $2020
+C466  20 53 74  JSR $7453
 C469  61 72     ADC ($72,X)
-C46B  74 3A    ??? "t:" ???
+C46B  74 3A    *NOP $3A,X
 C46D  20 72 75  JSR $7572
 C470  6E 20 74  ROR $7420
 C473  65 73     ADC $73
-C475  74 FF    ??? "t\255" ???
+C475  74 FF    *NOP $FF,X
 C477  20 20 20  JSR $2020
 C47A  20 20 53  JSR $5320
 C47D  65 6C     ADC $6C
 C47F  65 63     ADC $63
-C481  74 3A    ??? "t:" ???
+C481  74 3A    *NOP $3A,X
 C483  20 49 6E  JSR $6E49
 C486  76 61     ROR $61,X
 C488  6C 69 64  JMP ($6469)
 C48B  20 6F 70  JSR $706F
-C48E  73       ??? "s" ???
-C48F  21 FF     AND ($FF,X)
-C491  00        BRK
-C492  FF FF FF FF ??? "\255\255\255\255" ???
+C48E  73 21    *RRA ($21),Y
+C490  FF 00 FF *ISB $FF00,X
+C493  FF FF FF *ISB $FFFF,X
 C496  20 20 20  JSR $2020
 C499  20 2D 2D  JSR $2D2D
 C49C  20 52 75  JSR $7552
 C49F  6E 20 61  ROR $6120
 C4A2  6C 6C 20  JMP ($206C)
-C4A5  74       ??? "t" ???
-C4A6  65 73     ADC $73
-C4A8  74 73 FF ??? "ts\255" ???
+C4A5  74 65    *NOP $65,X
+C4A7  73 74    *RRA ($74),Y
+C4A9  73 FF    *RRA ($FF),Y
 C4AB  20 20 20  JSR $2020
 C4AE  20 2D 2D  JSR $2D2D
 C4B1  20 4E 4F  JSR $4F4E
 C4B4  50 20     BVC $C4D6
-C4B6  74       ??? "t" ???
-C4B7  65 73     ADC $73
-C4B9  74 73 FF ??? "ts\255" ???
+C4B6  74 65    *NOP $65,X
+C4B8  73 74    *RRA ($74),Y
+C4BA  73 FF    *RRA ($FF),Y
 C4BC  20 20 20  JSR $2020
 C4BF  20 2D 2D  JSR $2D2D
 C4C2  20 4C 41  JSR $414C
 C4C5  58        CLI
 C4C6  20 74 65  JSR $6574
-C4C9  73 74 73 FF ??? "sts\255" ???
+C4C9  73 74    *RRA ($74),Y
+C4CB  73 FF    *RRA ($FF),Y
 C4CD  20 20 20  JSR $2020
 C4D0  20 2D 2D  JSR $2D2D
 C4D3  20 53 41  JSR $4153
 C4D6  58        CLI
 C4D7  20 74 65  JSR $6574
-C4DA  73 74 73 FF ??? "sts\255" ???
+C4DA  73 74    *RRA ($74),Y
+C4DC  73 FF    *RRA ($FF),Y
 C4DE  20 20 20  JSR $2020
 C4E1  20 2D 2D  JSR $2D2D
 C4E4  20 53 42  JSR $4253
-C4E7  43       ??? "C" ???
-C4E8  20 74 65  JSR $6574
-C4EB  73 74    ??? "st" ???
+C4E7  43 20    *SRE ($20,X)
+C4E9  74 65    *NOP $65,X
+C4EB  73 74    *RRA ($74),Y
 C4ED  20 28 6F  JSR $6F28
 C4F0  70 63     BVS $C555
-C4F2  6F 64    ??? "od" ???
-C4F4  65 20     ADC $20
-C4F6  30 45     BMI $C53D
+C4F2  6F 64 65 *RRA $6564
+C4F5  20 30 45  JSR $4530
 C4F8  42       ??? "B" ???
 C4F9  68        PLA
 C4FA  29 FF     AND #$FF
@@ -572,71 +576,74 @@ C4FC  20 20 20  JSR $2020
 C4FF  20 2D 2D  JSR $2D2D
 C502  20 44 43  JSR $4344
 C505  50 20     BVC $C527
-C507  74       ??? "t" ???
-C508  65 73     ADC $73
-C50A  74 73 FF ??? "ts\255" ???
+C507  74 65    *NOP $65,X
+C509  73 74    *RRA ($74),Y
+C50B  73 FF    *RRA ($FF),Y
 C50D  20 20 20  JSR $2020
 C510  20 2D 2D  JSR $2D2D
 C513  20 49 53  JSR $5349
 C516  42       ??? "B" ???
 C517  20 74 65  JSR $6574
-C51A  73 74 73 FF ??? "sts\255" ???
+C51A  73 74    *RRA ($74),Y
+C51C  73 FF    *RRA ($FF),Y
 C51E  20 20 20  JSR $2020
 C521  20 2D 2D  JSR $2D2D
 C524  20 53 4C  JSR $4C53
-C527  4F       ??? "O" ???
-C528  20 74 65  JSR $6574
-C52B  73 74 73 FF ??? "sts\255" ???
-C52F  20 20 20  JSR $2020
-C532  20 2D 2D  JSR $2D2D
-C535  20 52 4C  JSR $4C52
-C538  41 20     EOR ($20,X)
-C53A  74       ??? "t" ???
-C53B  65 73     ADC $73
-C53D  74 73 FF ??? "ts\255" ???
+C527  4F 20 74 *SRE $7420
+C52A  65 73     ADC $73
+C52C  74 73    *NOP $73,X
+C52E  FF 20 20 *ISB $2020,X
+C531  20 20 2D  JSR $2D20
+C534  2D 20 52  AND $5220
+C537  4C 41 20  JMP $2041
+C53A  74 65    *NOP $65,X
+C53C  73 74    *RRA ($74),Y
+C53E  73 FF    *RRA ($FF),Y
 C540  20 20 20  JSR $2020
 C543  20 2D 2D  JSR $2D2D
 C546  20 53 52  JSR $5253
 C549  45 20     EOR $20
-C54B  74       ??? "t" ???
-C54C  65 73     ADC $73
-C54E  74 73 FF ??? "ts\255" ???
+C54B  74 65    *NOP $65,X
+C54D  73 74    *RRA ($74),Y
+C54F  73 FF    *RRA ($FF),Y
 C551  20 20 20  JSR $2020
 C554  20 2D 2D  JSR $2D2D
 C557  20 52 52  JSR $5252
 C55A  41 20     EOR ($20,X)
-C55C  74       ??? "t" ???
-C55D  65 73     ADC $73
-C55F  74 73 FF FF FF FF FF FF ??? "ts\255\255\255\255\255\255" ???
-C567  20 20 20  JSR $2020
-C56A  20 55 70  JSR $7055
-C56D  2F 44 6F 77 ??? "/Dow" ???
-C571  6E 3A 20  ROR $203A
-C574  73       ??? "s" ???
-C575  65 6C     ADC $6C
-C577  65 63     ADC $63
-C579  74       ??? "t" ???
-C57A  20 74 65  JSR $6574
-C57D  73 74 FF ??? "st\255" ???
-C580  20 20 20  JSR $2020
-C583  20 20 20  JSR $2020
-C586  53 74    ??? "St" ???
+C55C  74 65    *NOP $65,X
+C55E  73 74    *RRA ($74),Y
+C560  73 FF    *RRA ($FF),Y
+C562  FF FF FF *ISB $FFFF,X
+C565  FF FF 20 *ISB $20FF,X
+C568  20 20 20  JSR $2020
+C56B  55 70     EOR $70,X
+C56D  2F 44 6F *RLA $6F44
+C570  77 6E    *RRA $6E,X
+C572  3A       *NOP
+C573  20 73 65  JSR $6573
+C576  6C 65 63  JMP ($6365)
+C579  74 20    *NOP $20,X
+C57B  74 65    *NOP $65,X
+C57D  73 74    *RRA ($74),Y
+C57F  FF 20 20 *ISB $2020,X
+C582  20 20 20  JSR $2020
+C585  20 53 74  JSR $7453
 C588  61 72     ADC ($72,X)
-C58A  74 3A    ??? "t:" ???
+C58A  74 3A    *NOP $3A,X
 C58C  20 72 75  JSR $7572
 C58F  6E 20 74  ROR $7420
 C592  65 73     ADC $73
-C594  74 FF    ??? "t\255" ???
+C594  74 FF    *NOP $FF,X
 C596  20 20 20  JSR $2020
 C599  20 20 53  JSR $5320
 C59C  65 6C     ADC $6C
 C59E  65 63     ADC $63
-C5A0  74 3A    ??? "t:" ???
+C5A0  74 3A    *NOP $3A,X
 C5A2  20 4E 6F  JSR $6F4E
 C5A5  72       ??? "r" ???
 C5A6  6D 61 6C  ADC $6C61
 C5A9  20 6F 70  JSR $706F
-C5AC  73 FF    ??? "s\255" ???
+C5AC  73 FF    *RRA ($FF),Y
 C5AE  00        BRK
 C5AF  48        PHA
 C5B0  8A        TXA
@@ -662,7 +669,7 @@ C5DC  AD 16 40  LDA $4016
 C5DF  4A        LSR A
 C5E0  26 D4     ROL $D4
 C5E2  CA        DEX
-C5E3  D0 F7     BNE $C6DC
+C5E3  D0 F7     BNE $C5DC
 C5E5  A5 D4     LDA $D4
 C5E7  AA        TAX
 C5E8  45 D6     EOR $D6
@@ -758,54 +765,53 @@ C6B7  A9 34     LDA #$34
 C6B9  48        PHA
 C6BA  A9 55     LDA #$55
 C6BC  28        PLP
-C6BD  04       ??? "\EOT" ???
-C6BE  A9 44     LDA #$44
-C6C0  A9 64     LDA #$64
-C6C2  A9 EA     LDA #$EA
+C6BD  04 A9    *NOP $A9
+C6BF  44 A9    *NOP $A9
+C6C1  64 A9    *NOP $A9
+C6C3  EA        NOP
 C6C4  EA        NOP
 C6C5  EA        NOP
 C6C6  EA        NOP
 C6C7  08        PHP
 C6C8  48        PHA
-C6C9  0C       ??? "\f" ???
-C6CA  A9 A9     LDA #$A9
+C6C9  0C A9 A9 *NOP $A9A9
 C6CC  EA        NOP
 C6CD  EA        NOP
 C6CE  EA        NOP
 C6CF  EA        NOP
 C6D0  08        PHP
 C6D1  48        PHA
-C6D2  14       ??? "\DC4" ???
-C6D3  A9 34     LDA #$34
-C6D5  A9 54     LDA #$54
-C6D7  A9 74     LDA #$74
-C6D9  A9 D4     LDA #$D4
-C6DB  A9 F4     LDA #$F4
-C6DD  A9 EA     LDA #$EA
+C6D2  14 A9    *NOP $A9,X
+C6D4  34 A9    *NOP $A9,X
+C6D6  54 A9    *NOP $A9,X
+C6D8  74 A9    *NOP $A9,X
+C6DA  D4 A9    *NOP $A9,X
+C6DC  F4 A9    *NOP $A9,X
+C6DE  EA        NOP
 C6DF  EA        NOP
 C6E0  EA        NOP
 C6E1  EA        NOP
 C6E2  08        PHP
 C6E3  48        PHA
-C6E4  1A 3A 5A 7A DA FA 80 89 ??? "\SUB:Zz\218\250\128\137" ???
+C6E4  1A       *NOP
+C6E5  3A       *NOP
+C6E6  5A       *NOP
+C6E7  7A       *NOP
+C6E8  DA       *NOP
+C6E9  FA       *NOP
+C6EA  80 89    *NOP #$89
 C6EC  EA        NOP
 C6ED  EA        NOP
 C6EE  EA        NOP
 C6EF  EA        NOP
 C6F0  08        PHP
 C6F1  48        PHA
-C6F2  1C       ??? "\FS" ???
-C6F3  A9 A9     LDA #$A9
-C6F5  3C       ??? "<" ???
-C6F6  A9 A9     LDA #$A9
-C6F8  5C       ??? "\\" ???
-C6F9  A9 A9     LDA #$A9
-C6FB  7C       ??? "|" ???
-C6FC  A9 A9     LDA #$A9
-C6FE  DC       ??? "\220" ???
-C6FF  A9 A9     LDA #$A9
-C701  FC       ??? "\252" ???
-C702  A9 A9     LDA #$A9
+C6F2  1C A9 A9 *NOP $A9A9,X
+C6F5  3C A9 A9 *NOP $A9A9,X
+C6F8  5C A9 A9 *NOP $A9A9,X
+C6FB  7C A9 A9 *NOP $A9A9,X
+C6FE  DC A9 A9 *NOP $A9A9,X
+C701  FC A9 A9 *NOP $A9A9,X
 C704  EA        NOP
 C705  EA        NOP
 C706  EA        NOP
@@ -830,7 +836,7 @@ C724  F0 02     BEQ $C728
 C726  84 00     STY $00
 C728  C8        INY
 C729  CA        DEX
-C72A  D0 E0     BNE $C80C
+C72A  D0 E0     BNE $C70C
 C72C  60        RTS
 C72D  EA        NOP
 C72E  38        SEC
@@ -4691,7 +4697,7 @@ E591  A0 57     LDY #$57
 E593  24 01     BIT $01
 E595  38        SEC
 E596  A9 00     LDA #$00
-E598  A7 67    ??? "\167g" ???
+E598  A7 67    *LAX $67
 E59A  EA        NOP
 E59B  EA        NOP
 E59C  EA        NOP
@@ -4712,8 +4718,7 @@ E5B6  A0 53     LDY #$53
 E5B8  B8        CLV
 E5B9  18        CLC
 E5BA  A9 00     LDA #$00
-E5BC  A7       ??? "\167" ???
-E5BD  68        PLA
+E5BC  A7 68    *LAX $68
 E5BE  EA        NOP
 E5BF  EA        NOP
 E5C0  EA        NOP
@@ -4738,8 +4743,8 @@ E5E4  A0 57     LDY #$57
 E5E6  24 01     BIT $01
 E5E8  38        SEC
 E5E9  A9 00     LDA #$00
-E5EB  AF 77    ??? "\175w" ???
-E5ED  05 EA     ORA $EA
+E5EB  AF 77 05 *LAX $0577
+E5EE  EA        NOP
 E5EF  EA        NOP
 E5F0  EA        NOP
 E5F1  EA        NOP
@@ -4759,9 +4764,8 @@ E60A  A0 53     LDY #$53
 E60C  B8        CLV
 E60D  18        CLC
 E60E  A9 00     LDA #$00
-E610  AF       ??? "\175" ???
-E611  78        SEI
-E612  05 EA     ORA $EA
+E610  AF 78 05 *LAX $0578
+E613  EA        NOP
 E614  EA        NOP
 E615  EA        NOP
 E616  EA        NOP
@@ -4794,7 +4798,7 @@ E64B  A0 81     LDY #$81
 E64D  24 01     BIT $01
 E64F  38        SEC
 E650  A9 00     LDA #$00
-E652  B3 43    ??? "\179C" ???
+E652  B3 43    *LAX ($43),Y
 E654  EA        NOP
 E655  EA        NOP
 E656  EA        NOP
@@ -4816,8 +4820,8 @@ E672  A0 00     LDY #$00
 E674  B8        CLV
 E675  18        CLC
 E676  A9 00     LDA #$00
-E678  B3       ??? "\179" ???
-E679  45 EA     EOR $EA
+E678  B3 45    *LAX ($45),Y
+E67A  EA        NOP
 E67B  EA        NOP
 E67C  EA        NOP
 E67D  EA        NOP
@@ -4841,8 +4845,8 @@ E69E  A0 57     LDY #$57
 E6A0  24 01     BIT $01
 E6A2  38        SEC
 E6A3  A9 00     LDA #$00
-E6A5  B7       ??? "\183" ???
-E6A6  10 EA     BPL $E792
+E6A5  B7 10    *LAX $10,Y
+E6A7  EA        NOP
 E6A8  EA        NOP
 E6A9  EA        NOP
 E6AA  EA        NOP
@@ -4862,8 +4866,8 @@ E6C3  A0 FF     LDY #$FF
 E6C5  B8        CLV
 E6C6  18        CLC
 E6C7  A9 00     LDA #$00
-E6C9  B7       ??? "\183" ???
-E6CA  69 EA     ADC #$EA
+E6C9  B7 69    *LAX $69,Y
+E6CB  EA        NOP
 E6CC  EA        NOP
 E6CD  EA        NOP
 E6CE  EA        NOP
@@ -4887,8 +4891,8 @@ E6F1  A0 30     LDY #$30
 E6F3  24 01     BIT $01
 E6F5  38        SEC
 E6F6  A9 00     LDA #$00
-E6F8  BF 57    ??? "\191W" ???
-E6FA  05 EA     ORA $EA
+E6F8  BF 57 05 *LAX $0557,Y
+E6FB  EA        NOP
 E6FC  EA        NOP
 E6FD  EA        NOP
 E6FE  EA        NOP
@@ -4908,9 +4912,8 @@ E717  A0 40     LDY #$40
 E719  B8        CLV
 E71A  18        CLC
 E71B  A9 00     LDA #$00
-E71D  BF       ??? "\191" ???
-E71E  48        PHA
-E71F  05 EA     ORA $EA
+E71D  BF 48 05 *LAX $0548,Y
+E720  EA        NOP
 E721  EA        NOP
 E722  EA        NOP
 E723  EA        NOP
@@ -4940,8 +4943,8 @@ E750  A2 17     LDX #$17
 E752  A9 3E     LDA #$3E
 E754  24 01     BIT $01
 E756  18        CLC
-E757  83       ??? "\131" ???
-E758  49 EA     EOR #$EA
+E757  83 49    *SAX ($49,X)
+E759  EA        NOP
 E75A  EA        NOP
 E75B  EA        NOP
 E75C  EA        NOP
@@ -4965,8 +4968,8 @@ E77E  A2 7A     LDX #$7A
 E780  A9 66     LDA #$66
 E782  38        SEC
 E783  B8        CLV
-E784  83       ??? "\131" ???
-E785  E6 EA     INC $EA
+E784  83 E6    *SAX ($E6,X)
+E786  EA        NOP
 E787  EA        NOP
 E788  EA        NOP
 E789  EA        NOP
@@ -4992,8 +4995,8 @@ E7AF  A2 AA     LDX #$AA
 E7B1  A9 55     LDA #$55
 E7B3  24 01     BIT $01
 E7B5  18        CLC
-E7B6  87       ??? "\135" ???
-E7B7  49 EA     EOR #$EA
+E7B6  87 49    *SAX $49
+E7B8  EA        NOP
 E7B9  EA        NOP
 E7BA  EA        NOP
 E7BB  EA        NOP
@@ -5019,8 +5022,8 @@ E7E0  A2 EF     LDX #$EF
 E7E2  A9 66     LDA #$66
 E7E4  38        SEC
 E7E5  B8        CLV
-E7E6  87       ??? "\135" ???
-E7E7  56 EA     LSR $EA,X
+E7E6  87 56    *SAX $56
+E7E8  EA        NOP
 E7E9  EA        NOP
 E7EA  EA        NOP
 E7EB  EA        NOP
@@ -5046,8 +5049,7 @@ E811  A2 AF     LDX #$AF
 E813  A9 F5     LDA #$F5
 E815  24 01     BIT $01
 E817  18        CLC
-E818  8F       ??? "\143" ???
-E819  49 05     EOR #$05
+E818  8F 49 05 *SAX $0549
 E81B  EA        NOP
 E81C  EA        NOP
 E81D  EA        NOP
@@ -5074,8 +5076,7 @@ E845  A2 B3     LDX #$B3
 E847  A9 97     LDA #$97
 E849  38        SEC
 E84A  B8        CLV
-E84B  8F       ??? "\143" ???
-E84C  56 05     LSR $05,X
+E84B  8F 56 05 *SAX $0556
 E84E  EA        NOP
 E84F  EA        NOP
 E850  EA        NOP
@@ -5102,8 +5103,7 @@ E877  A2 AA     LDX #$AA
 E879  A9 55     LDA #$55
 E87B  24 01     BIT $01
 E87D  18        CLC
-E87E  97       ??? "\151" ???
-E87F  4A        LSR A
+E87E  97 4A    *SAX $4A,Y
 E880  EA        NOP
 E881  EA        NOP
 E882  EA        NOP
@@ -5130,8 +5130,8 @@ E8A8  A2 EF     LDX #$EF
 E8AA  A9 66     LDA #$66
 E8AC  38        SEC
 E8AD  B8        CLV
-E8AE  97       ??? "\151" ???
-E8AF  50 EA     BVC $E99B
+E8AE  97 50    *SAX $50,Y
+E8B0  EA        NOP
 E8B1  EA        NOP
 E8B2  EA        NOP
 E8B3  EA        NOP
@@ -5153,8 +5153,7 @@ E8D0  85 00     STA $00
 E8D2  60        RTS
 E8D3  A0 90     LDY #$90
 E8D5  20 31 F9  JSR $F931
-E8D8  EB       ??? "\235" ???
-E8D9  40        RTI
+E8D8  EB 40    *SBC #$40
 E8DA  EA        NOP
 E8DB  EA        NOP
 E8DC  EA        NOP
@@ -5162,7 +5161,7 @@ E8DD  EA        NOP
 E8DE  20 37 F9  JSR $F937
 E8E1  C8        INY
 E8E2  20 47 F9  JSR $F947
-E8E5  EB 3F    ??? "\235?" ???
+E8E5  EB 3F    *SBC #$3F
 E8E7  EA        NOP
 E8E8  EA        NOP
 E8E9  EA        NOP
@@ -5170,16 +5169,15 @@ E8EA  EA        NOP
 E8EB  20 4C F9  JSR $F94C
 E8EE  C8        INY
 E8EF  20 5C F9  JSR $F95C
-E8F2  EB       ??? "\235" ???
-E8F3  41 EA     EOR ($EA,X)
+E8F2  EB 41    *SBC #$41
+E8F4  EA        NOP
 E8F5  EA        NOP
 E8F6  EA        NOP
 E8F7  EA        NOP
 E8F8  20 62 F9  JSR $F962
 E8FB  C8        INY
 E8FC  20 72 F9  JSR $F972
-E8FF  EB       ??? "\235" ???
-E900  00        BRK
+E8FF  EB 00    *SBC #$00
 E901  EA        NOP
 E902  EA        NOP
 E903  EA        NOP
@@ -5187,7 +5185,7 @@ E904  EA        NOP
 E905  20 76 F9  JSR $F976
 E908  C8        INY
 E909  20 80 F9  JSR $F980
-E90C  EB 7F    ??? "\235\DEL" ???
+E90C  EB 7F    *SBC #$7F
 E90E  EA        NOP
 E90F  EA        NOP
 E910  EA        NOP
@@ -5205,8 +5203,8 @@ E924  85 48     STA $48
 E926  A9 EB     LDA #$EB
 E928  8D 47 06  STA $0647
 E92B  20 31 FA  JSR $FA31
-E92E  C3       ??? "\195" ???
-E92F  45 EA     EOR $EA
+E92E  C3 45    *DCP ($45,X)
+E930  EA        NOP
 E931  EA        NOP
 E932  EA        NOP
 E933  EA        NOP
@@ -5219,8 +5217,8 @@ E940  C8        INY
 E941  A9 00     LDA #$00
 E943  8D 47 06  STA $0647
 E946  20 42 FA  JSR $FA42
-E949  C3       ??? "\195" ???
-E94A  45 EA     EOR $EA
+E949  C3 45    *DCP ($45,X)
+E94B  EA        NOP
 E94C  EA        NOP
 E94D  EA        NOP
 E94E  EA        NOP
@@ -5233,8 +5231,8 @@ E95B  C8        INY
 E95C  A9 37     LDA #$37
 E95E  8D 47 06  STA $0647
 E961  20 54 FA  JSR $FA54
-E964  C3       ??? "\195" ???
-E965  45 EA     EOR $EA
+E964  C3 45    *DCP ($45,X)
+E966  EA        NOP
 E967  EA        NOP
 E968  EA        NOP
 E969  EA        NOP
@@ -5247,7 +5245,7 @@ E976  C8        INY
 E977  A9 EB     LDA #$EB
 E979  85 47     STA $47
 E97B  20 31 FA  JSR $FA31
-E97E  C7 47    ??? "\199G" ???
+E97E  C7 47    *DCP $47
 E980  EA        NOP
 E981  EA        NOP
 E982  EA        NOP
@@ -5261,7 +5259,7 @@ E98F  C8        INY
 E990  A9 00     LDA #$00
 E992  85 47     STA $47
 E994  20 42 FA  JSR $FA42
-E997  C7 47    ??? "\199G" ???
+E997  C7 47    *DCP $47
 E999  EA        NOP
 E99A  EA        NOP
 E99B  EA        NOP
@@ -5275,7 +5273,7 @@ E9A8  C8        INY
 E9A9  A9 37     LDA #$37
 E9AB  85 47     STA $47
 E9AD  20 54 FA  JSR $FA54
-E9B0  C7 47    ??? "\199G" ???
+E9B0  C7 47    *DCP $47
 E9B2  EA        NOP
 E9B3  EA        NOP
 E9B4  EA        NOP
@@ -5289,8 +5287,8 @@ E9C1  C8        INY
 E9C2  A9 EB     LDA #$EB
 E9C4  8D 47 06  STA $0647
 E9C7  20 31 FA  JSR $FA31
-E9CA  CF 47    ??? "\207G" ???
-E9CC  06 EA     ASL $EA
+E9CA  CF 47 06 *DCP $0647
+E9CD  EA        NOP
 E9CE  EA        NOP
 E9CF  EA        NOP
 E9D0  EA        NOP
@@ -5303,8 +5301,8 @@ E9DD  C8        INY
 E9DE  A9 00     LDA #$00
 E9E0  8D 47 06  STA $0647
 E9E3  20 42 FA  JSR $FA42
-E9E6  CF 47    ??? "\207G" ???
-E9E8  06 EA     ASL $EA
+E9E6  CF 47 06 *DCP $0647
+E9E9  EA        NOP
 E9EA  EA        NOP
 E9EB  EA        NOP
 E9EC  EA        NOP
@@ -5317,8 +5315,8 @@ E9F9  C8        INY
 E9FA  A9 37     LDA #$37
 E9FC  8D 47 06  STA $0647
 E9FF  20 54 FA  JSR $FA54
-EA02  CF 47    ??? "\207G" ???
-EA04  06 EA     ASL $EA
+EA02  CF 47 06 *DCP $0647
+EA05  EA        NOP
 EA06  EA        NOP
 EA07  EA        NOP
 EA08  EA        NOP
@@ -5335,8 +5333,8 @@ EA1E  A9 05     LDA #$05
 EA20  85 46     STA $46
 EA22  A0 FF     LDY #$FF
 EA24  20 31 FA  JSR $FA31
-EA27  D3       ??? "\211" ???
-EA28  45 EA     EOR $EA
+EA27  D3 45    *DCP ($45),Y
+EA29  EA        NOP
 EA2A  EA        NOP
 EA2B  08        PHP
 EA2C  48        PHA
@@ -5352,8 +5350,8 @@ EA3D  A0 FF     LDY #$FF
 EA3F  A9 00     LDA #$00
 EA41  8D 47 06  STA $0647
 EA44  20 42 FA  JSR $FA42
-EA47  D3       ??? "\211" ???
-EA48  45 EA     EOR $EA
+EA47  D3 45    *DCP ($45),Y
+EA49  EA        NOP
 EA4A  EA        NOP
 EA4B  08        PHP
 EA4C  48        PHA
@@ -5369,8 +5367,8 @@ EA5D  A0 FF     LDY #$FF
 EA5F  A9 37     LDA #$37
 EA61  8D 47 06  STA $0647
 EA64  20 54 FA  JSR $FA54
-EA67  D3       ??? "\211" ???
-EA68  45 EA     EOR $EA
+EA67  D3 45    *DCP ($45),Y
+EA69  EA        NOP
 EA6A  EA        NOP
 EA6B  08        PHP
 EA6C  48        PHA
@@ -5387,8 +5385,7 @@ EA7F  A2 FF     LDX #$FF
 EA81  A9 EB     LDA #$EB
 EA83  85 47     STA $47
 EA85  20 31 FA  JSR $FA31
-EA88  D7       ??? "\215" ???
-EA89  48        PHA
+EA88  D7 48    *DCP $48,X
 EA8A  EA        NOP
 EA8B  EA        NOP
 EA8C  EA        NOP
@@ -5402,8 +5399,7 @@ EA99  C8        INY
 EA9A  A9 00     LDA #$00
 EA9C  85 47     STA $47
 EA9E  20 42 FA  JSR $FA42
-EAA1  D7       ??? "\215" ???
-EAA2  48        PHA
+EAA1  D7 48    *DCP $48,X
 EAA3  EA        NOP
 EAA4  EA        NOP
 EAA5  EA        NOP
@@ -5417,8 +5413,7 @@ EAB2  C8        INY
 EAB3  A9 37     LDA #$37
 EAB5  85 47     STA $47
 EAB7  20 54 FA  JSR $FA54
-EABA  D7       ??? "\215" ???
-EABB  48        PHA
+EABA  D7 48    *DCP $48,X
 EABC  EA        NOP
 EABD  EA        NOP
 EABE  EA        NOP
@@ -5432,9 +5427,8 @@ EACB  A9 EB     LDA #$EB
 EACD  8D 47 06  STA $0647
 EAD0  A0 FF     LDY #$FF
 EAD2  20 31 FA  JSR $FA31
-EAD5  DB       ??? "\219" ???
-EAD6  48        PHA
-EAD7  05 EA     ORA $EA
+EAD5  DB 48 05 *DCP $0548,Y
+EAD8  EA        NOP
 EAD9  EA        NOP
 EADA  08        PHP
 EADB  48        PHA
@@ -5450,9 +5444,8 @@ EAEC  A0 FF     LDY #$FF
 EAEE  A9 00     LDA #$00
 EAF0  8D 47 06  STA $0647
 EAF3  20 42 FA  JSR $FA42
-EAF6  DB       ??? "\219" ???
-EAF7  48        PHA
-EAF8  05 EA     ORA $EA
+EAF6  DB 48 05 *DCP $0548,Y
+EAF9  EA        NOP
 EAFA  EA        NOP
 EAFB  08        PHP
 EAFC  48        PHA
@@ -5468,9 +5461,8 @@ EB0D  A0 FF     LDY #$FF
 EB0F  A9 37     LDA #$37
 EB11  8D 47 06  STA $0647
 EB14  20 54 FA  JSR $FA54
-EB17  DB       ??? "\219" ???
-EB18  48        PHA
-EB19  05 EA     ORA $EA
+EB17  DB 48 05 *DCP $0548,Y
+EB1A  EA        NOP
 EB1B  EA        NOP
 EB1C  08        PHP
 EB1D  48        PHA
@@ -5487,9 +5479,8 @@ EB30  A2 FF     LDX #$FF
 EB32  A9 EB     LDA #$EB
 EB34  8D 47 06  STA $0647
 EB37  20 31 FA  JSR $FA31
-EB3A  DF       ??? "\223" ???
-EB3B  48        PHA
-EB3C  05 EA     ORA $EA
+EB3A  DF 48 05 *DCP $0548,X
+EB3D  EA        NOP
 EB3E  EA        NOP
 EB3F  EA        NOP
 EB40  EA        NOP
@@ -5502,9 +5493,8 @@ EB4D  C8        INY
 EB4E  A9 00     LDA #$00
 EB50  8D 47 06  STA $0647
 EB53  20 42 FA  JSR $FA42
-EB56  DF       ??? "\223" ???
-EB57  48        PHA
-EB58  05 EA     ORA $EA
+EB56  DF 48 05 *DCP $0548,X
+EB59  EA        NOP
 EB5A  EA        NOP
 EB5B  EA        NOP
 EB5C  EA        NOP
@@ -5517,9 +5507,8 @@ EB69  C8        INY
 EB6A  A9 37     LDA #$37
 EB6C  8D 47 06  STA $0647
 EB6F  20 54 FA  JSR $FA54
-EB72  DF       ??? "\223" ???
-EB73  48        PHA
-EB74  05 EA     ORA $EA
+EB72  DF 48 05 *DCP $0548,X
+EB75  EA        NOP
 EB76  EA        NOP
 EB77  EA        NOP
 EB78  EA        NOP
@@ -5540,8 +5529,8 @@ EB94  85 48     STA $48
 EB96  A9 EB     LDA #$EB
 EB98  8D 47 06  STA $0647
 EB9B  20 B1 FA  JSR $FAB1
-EB9E  E3       ??? "\227" ???
-EB9F  45 EA     EOR $EA
+EB9E  E3 45    *ISB ($45,X)
+EBA0  EA        NOP
 EBA1  EA        NOP
 EBA2  EA        NOP
 EBA3  EA        NOP
@@ -5554,8 +5543,8 @@ EBB0  C8        INY
 EBB1  A9 FF     LDA #$FF
 EBB3  8D 47 06  STA $0647
 EBB6  20 C2 FA  JSR $FAC2
-EBB9  E3       ??? "\227" ???
-EBBA  45 EA     EOR $EA
+EBB9  E3 45    *ISB ($45,X)
+EBBB  EA        NOP
 EBBC  EA        NOP
 EBBD  EA        NOP
 EBBE  EA        NOP
@@ -5568,8 +5557,8 @@ EBCB  C8        INY
 EBCC  A9 37     LDA #$37
 EBCE  8D 47 06  STA $0647
 EBD1  20 D4 FA  JSR $FAD4
-EBD4  E3       ??? "\227" ???
-EBD5  45 EA     EOR $EA
+EBD4  E3 45    *ISB ($45,X)
+EBD6  EA        NOP
 EBD7  EA        NOP
 EBD8  EA        NOP
 EBD9  EA        NOP
@@ -5582,7 +5571,7 @@ EBE6  C8        INY
 EBE7  A9 EB     LDA #$EB
 EBE9  85 47     STA $47
 EBEB  20 B1 FA  JSR $FAB1
-EBEE  E7 47    ??? "\231G" ???
+EBEE  E7 47    *ISB $47
 EBF0  EA        NOP
 EBF1  EA        NOP
 EBF2  EA        NOP
@@ -5596,7 +5585,7 @@ EBFF  C8        INY
 EC00  A9 FF     LDA #$FF
 EC02  85 47     STA $47
 EC04  20 C2 FA  JSR $FAC2
-EC07  E7 47    ??? "\231G" ???
+EC07  E7 47    *ISB $47
 EC09  EA        NOP
 EC0A  EA        NOP
 EC0B  EA        NOP
@@ -5610,7 +5599,7 @@ EC18  C8        INY
 EC19  A9 37     LDA #$37
 EC1B  85 47     STA $47
 EC1D  20 D4 FA  JSR $FAD4
-EC20  E7 47    ??? "\231G" ???
+EC20  E7 47    *ISB $47
 EC22  EA        NOP
 EC23  EA        NOP
 EC24  EA        NOP
@@ -5624,8 +5613,8 @@ EC31  C8        INY
 EC32  A9 EB     LDA #$EB
 EC34  8D 47 06  STA $0647
 EC37  20 B1 FA  JSR $FAB1
-EC3A  EF 47    ??? "\239G" ???
-EC3C  06 EA     ASL $EA
+EC3A  EF 47 06 *ISB $0647
+EC3D  EA        NOP
 EC3E  EA        NOP
 EC3F  EA        NOP
 EC40  EA        NOP
@@ -5638,8 +5627,8 @@ EC4D  C8        INY
 EC4E  A9 FF     LDA #$FF
 EC50  8D 47 06  STA $0647
 EC53  20 C2 FA  JSR $FAC2
-EC56  EF 47    ??? "\239G" ???
-EC58  06 EA     ASL $EA
+EC56  EF 47 06 *ISB $0647
+EC59  EA        NOP
 EC5A  EA        NOP
 EC5B  EA        NOP
 EC5C  EA        NOP
@@ -5652,8 +5641,8 @@ EC69  C8        INY
 EC6A  A9 37     LDA #$37
 EC6C  8D 47 06  STA $0647
 EC6F  20 D4 FA  JSR $FAD4
-EC72  EF 47    ??? "\239G" ???
-EC74  06 EA     ASL $EA
+EC72  EF 47 06 *ISB $0647
+EC75  EA        NOP
 EC76  EA        NOP
 EC77  EA        NOP
 EC78  EA        NOP
@@ -5670,8 +5659,8 @@ EC8E  A9 05     LDA #$05
 EC90  85 46     STA $46
 EC92  A0 FF     LDY #$FF
 EC94  20 B1 FA  JSR $FAB1
-EC97  F3       ??? "\243" ???
-EC98  45 EA     EOR $EA
+EC97  F3 45    *ISB ($45),Y
+EC99  EA        NOP
 EC9A  EA        NOP
 EC9B  08        PHP
 EC9C  48        PHA
@@ -5687,8 +5676,8 @@ ECAD  A0 FF     LDY #$FF
 ECAF  A9 FF     LDA #$FF
 ECB1  8D 47 06  STA $0647
 ECB4  20 C2 FA  JSR $FAC2
-ECB7  F3       ??? "\243" ???
-ECB8  45 EA     EOR $EA
+ECB7  F3 45    *ISB ($45),Y
+ECB9  EA        NOP
 ECBA  EA        NOP
 ECBB  08        PHP
 ECBC  48        PHA
@@ -5704,8 +5693,8 @@ ECCD  A0 FF     LDY #$FF
 ECCF  A9 37     LDA #$37
 ECD1  8D 47 06  STA $0647
 ECD4  20 D4 FA  JSR $FAD4
-ECD7  F3       ??? "\243" ???
-ECD8  45 EA     EOR $EA
+ECD7  F3 45    *ISB ($45),Y
+ECD9  EA        NOP
 ECDA  EA        NOP
 ECDB  08        PHP
 ECDC  48        PHA
@@ -5722,8 +5711,7 @@ ECEF  A2 FF     LDX #$FF
 ECF1  A9 EB     LDA #$EB
 ECF3  85 47     STA $47
 ECF5  20 B1 FA  JSR $FAB1
-ECF8  F7       ??? "\247" ???
-ECF9  48        PHA
+ECF8  F7 48    *ISB $48,X
 ECFA  EA        NOP
 ECFB  EA        NOP
 ECFC  EA        NOP
@@ -5737,8 +5725,7 @@ ED09  C8        INY
 ED0A  A9 FF     LDA #$FF
 ED0C  85 47     STA $47
 ED0E  20 C2 FA  JSR $FAC2
-ED11  F7       ??? "\247" ???
-ED12  48        PHA
+ED11  F7 48    *ISB $48,X
 ED13  EA        NOP
 ED14  EA        NOP
 ED15  EA        NOP
@@ -5752,8 +5739,7 @@ ED22  C8        INY
 ED23  A9 37     LDA #$37
 ED25  85 47     STA $47
 ED27  20 D4 FA  JSR $FAD4
-ED2A  F7       ??? "\247" ???
-ED2B  48        PHA
+ED2A  F7 48    *ISB $48,X
 ED2C  EA        NOP
 ED2D  EA        NOP
 ED2E  EA        NOP
@@ -5767,9 +5753,8 @@ ED3B  A9 EB     LDA #$EB
 ED3D  8D 47 06  STA $0647
 ED40  A0 FF     LDY #$FF
 ED42  20 B1 FA  JSR $FAB1
-ED45  FB       ??? "\251" ???
-ED46  48        PHA
-ED47  05 EA     ORA $EA
+ED45  FB 48 05 *ISB $0548,Y
+ED48  EA        NOP
 ED49  EA        NOP
 ED4A  08        PHP
 ED4B  48        PHA
@@ -5785,9 +5770,8 @@ ED5C  A0 FF     LDY #$FF
 ED5E  A9 FF     LDA #$FF
 ED60  8D 47 06  STA $0647
 ED63  20 C2 FA  JSR $FAC2
-ED66  FB       ??? "\251" ???
-ED67  48        PHA
-ED68  05 EA     ORA $EA
+ED66  FB 48 05 *ISB $0548,Y
+ED69  EA        NOP
 ED6A  EA        NOP
 ED6B  08        PHP
 ED6C  48        PHA
@@ -5803,9 +5787,8 @@ ED7D  A0 FF     LDY #$FF
 ED7F  A9 37     LDA #$37
 ED81  8D 47 06  STA $0647
 ED84  20 D4 FA  JSR $FAD4
-ED87  FB       ??? "\251" ???
-ED88  48        PHA
-ED89  05 EA     ORA $EA
+ED87  FB 48 05 *ISB $0548,Y
+ED8A  EA        NOP
 ED8B  EA        NOP
 ED8C  08        PHP
 ED8D  48        PHA
@@ -5822,9 +5805,8 @@ EDA0  A2 FF     LDX #$FF
 EDA2  A9 EB     LDA #$EB
 EDA4  8D 47 06  STA $0647
 EDA7  20 B1 FA  JSR $FAB1
-EDAA  FF       ??? "\255" ???
-EDAB  48        PHA
-EDAC  05 EA     ORA $EA
+EDAA  FF 48 05 *ISB $0548,X
+EDAD  EA        NOP
 EDAE  EA        NOP
 EDAF  EA        NOP
 EDB0  EA        NOP
@@ -5837,9 +5819,8 @@ EDBD  C8        INY
 EDBE  A9 FF     LDA #$FF
 EDC0  8D 47 06  STA $0647
 EDC3  20 C2 FA  JSR $FAC2
-EDC6  FF       ??? "\255" ???
-EDC7  48        PHA
-EDC8  05 EA     ORA $EA
+EDC6  FF 48 05 *ISB $0548,X
+EDC9  EA        NOP
 EDCA  EA        NOP
 EDCB  EA        NOP
 EDCC  EA        NOP
@@ -5852,9 +5833,8 @@ EDD9  C8        INY
 EDDA  A9 37     LDA #$37
 EDDC  8D 47 06  STA $0647
 EDDF  20 D4 FA  JSR $FAD4
-EDE2  FF       ??? "\255" ???
-EDE3  48        PHA
-EDE4  05 EA     ORA $EA
+EDE2  FF 48 05 *ISB $0548,X
+EDE5  EA        NOP
 EDE6  EA        NOP
 EDE7  EA        NOP
 EDE8  EA        NOP
@@ -5875,8 +5855,8 @@ EE04  85 48     STA $48
 EE06  A9 A5     LDA #$A5
 EE08  8D 47 06  STA $0647
 EE0B  20 7B FA  JSR $FA7B
-EE0E  03       ??? "\ETX" ???
-EE0F  45 EA     EOR $EA
+EE0E  03 45    *SLO ($45,X)
+EE10  EA        NOP
 EE11  EA        NOP
 EE12  EA        NOP
 EE13  EA        NOP
@@ -5889,8 +5869,8 @@ EE20  C8        INY
 EE21  A9 29     LDA #$29
 EE23  8D 47 06  STA $0647
 EE26  20 8C FA  JSR $FA8C
-EE29  03       ??? "\ETX" ???
-EE2A  45 EA     EOR $EA
+EE29  03 45    *SLO ($45,X)
+EE2B  EA        NOP
 EE2C  EA        NOP
 EE2D  EA        NOP
 EE2E  EA        NOP
@@ -5903,8 +5883,8 @@ EE3B  C8        INY
 EE3C  A9 37     LDA #$37
 EE3E  8D 47 06  STA $0647
 EE41  20 9E FA  JSR $FA9E
-EE44  03       ??? "\ETX" ???
-EE45  45 EA     EOR $EA
+EE44  03 45    *SLO ($45,X)
+EE46  EA        NOP
 EE47  EA        NOP
 EE48  EA        NOP
 EE49  EA        NOP
@@ -5917,7 +5897,7 @@ EE56  C8        INY
 EE57  A9 A5     LDA #$A5
 EE59  85 47     STA $47
 EE5B  20 7B FA  JSR $FA7B
-EE5E  07 47    ??? "\aG" ???
+EE5E  07 47    *SLO $47
 EE60  EA        NOP
 EE61  EA        NOP
 EE62  EA        NOP
@@ -5931,7 +5911,7 @@ EE6F  C8        INY
 EE70  A9 29     LDA #$29
 EE72  85 47     STA $47
 EE74  20 8C FA  JSR $FA8C
-EE77  07 47    ??? "\aG" ???
+EE77  07 47    *SLO $47
 EE79  EA        NOP
 EE7A  EA        NOP
 EE7B  EA        NOP
@@ -5945,7 +5925,7 @@ EE88  C8        INY
 EE89  A9 37     LDA #$37
 EE8B  85 47     STA $47
 EE8D  20 9E FA  JSR $FA9E
-EE90  07 47    ??? "\aG" ???
+EE90  07 47    *SLO $47
 EE92  EA        NOP
 EE93  EA        NOP
 EE94  EA        NOP
@@ -5959,8 +5939,8 @@ EEA1  C8        INY
 EEA2  A9 A5     LDA #$A5
 EEA4  8D 47 06  STA $0647
 EEA7  20 7B FA  JSR $FA7B
-EEAA  0F 47    ??? "\SIG" ???
-EEAC  06 EA     ASL $EA
+EEAA  0F 47 06 *SLO $0647
+EEAD  EA        NOP
 EEAE  EA        NOP
 EEAF  EA        NOP
 EEB0  EA        NOP
@@ -5973,8 +5953,8 @@ EEBD  C8        INY
 EEBE  A9 29     LDA #$29
 EEC0  8D 47 06  STA $0647
 EEC3  20 8C FA  JSR $FA8C
-EEC6  0F 47    ??? "\SIG" ???
-EEC8  06 EA     ASL $EA
+EEC6  0F 47 06 *SLO $0647
+EEC9  EA        NOP
 EECA  EA        NOP
 EECB  EA        NOP
 EECC  EA        NOP
@@ -5987,8 +5967,8 @@ EED9  C8        INY
 EEDA  A9 37     LDA #$37
 EEDC  8D 47 06  STA $0647
 EEDF  20 9E FA  JSR $FA9E
-EEE2  0F 47    ??? "\SIG" ???
-EEE4  06 EA     ASL $EA
+EEE2  0F 47 06 *SLO $0647
+EEE5  EA        NOP
 EEE6  EA        NOP
 EEE7  EA        NOP
 EEE8  EA        NOP
@@ -6005,8 +5985,8 @@ EEFE  A9 05     LDA #$05
 EF00  85 46     STA $46
 EF02  A0 FF     LDY #$FF
 EF04  20 7B FA  JSR $FA7B
-EF07  13       ??? "\DC3" ???
-EF08  45 EA     EOR $EA
+EF07  13 45    *SLO ($45),Y
+EF09  EA        NOP
 EF0A  EA        NOP
 EF0B  08        PHP
 EF0C  48        PHA
@@ -6022,8 +6002,8 @@ EF1D  A0 FF     LDY #$FF
 EF1F  A9 29     LDA #$29
 EF21  8D 47 06  STA $0647
 EF24  20 8C FA  JSR $FA8C
-EF27  13       ??? "\DC3" ???
-EF28  45 EA     EOR $EA
+EF27  13 45    *SLO ($45),Y
+EF29  EA        NOP
 EF2A  EA        NOP
 EF2B  08        PHP
 EF2C  48        PHA
@@ -6039,8 +6019,8 @@ EF3D  A0 FF     LDY #$FF
 EF3F  A9 37     LDA #$37
 EF41  8D 47 06  STA $0647
 EF44  20 9E FA  JSR $FA9E
-EF47  13       ??? "\DC3" ???
-EF48  45 EA     EOR $EA
+EF47  13 45    *SLO ($45),Y
+EF49  EA        NOP
 EF4A  EA        NOP
 EF4B  08        PHP
 EF4C  48        PHA
@@ -6057,8 +6037,7 @@ EF5F  A2 FF     LDX #$FF
 EF61  A9 A5     LDA #$A5
 EF63  85 47     STA $47
 EF65  20 7B FA  JSR $FA7B
-EF68  17       ??? "\ETB" ???
-EF69  48        PHA
+EF68  17 48    *SLO $48,X
 EF6A  EA        NOP
 EF6B  EA        NOP
 EF6C  EA        NOP
@@ -6072,8 +6051,7 @@ EF79  C8        INY
 EF7A  A9 29     LDA #$29
 EF7C  85 47     STA $47
 EF7E  20 8C FA  JSR $FA8C
-EF81  17       ??? "\ETB" ???
-EF82  48        PHA
+EF81  17 48    *SLO $48,X
 EF83  EA        NOP
 EF84  EA        NOP
 EF85  EA        NOP
@@ -6087,8 +6065,7 @@ EF92  C8        INY
 EF93  A9 37     LDA #$37
 EF95  85 47     STA $47
 EF97  20 9E FA  JSR $FA9E
-EF9A  17       ??? "\ETB" ???
-EF9B  48        PHA
+EF9A  17 48    *SLO $48,X
 EF9C  EA        NOP
 EF9D  EA        NOP
 EF9E  EA        NOP
@@ -6102,9 +6079,8 @@ EFAB  A9 A5     LDA #$A5
 EFAD  8D 47 06  STA $0647
 EFB0  A0 FF     LDY #$FF
 EFB2  20 7B FA  JSR $FA7B
-EFB5  1B       ??? "\ESC" ???
-EFB6  48        PHA
-EFB7  05 EA     ORA $EA
+EFB5  1B 48 05 *SLO $0548,Y
+EFB8  EA        NOP
 EFB9  EA        NOP
 EFBA  08        PHP
 EFBB  48        PHA
@@ -6120,9 +6096,8 @@ EFCC  A0 FF     LDY #$FF
 EFCE  A9 29     LDA #$29
 EFD0  8D 47 06  STA $0647
 EFD3  20 8C FA  JSR $FA8C
-EFD6  1B       ??? "\ESC" ???
-EFD7  48        PHA
-EFD8  05 EA     ORA $EA
+EFD6  1B 48 05 *SLO $0548,Y
+EFD9  EA        NOP
 EFDA  EA        NOP
 EFDB  08        PHP
 EFDC  48        PHA
@@ -6138,9 +6113,8 @@ EFED  A0 FF     LDY #$FF
 EFEF  A9 37     LDA #$37
 EFF1  8D 47 06  STA $0647
 EFF4  20 9E FA  JSR $FA9E
-EFF7  1B       ??? "\ESC" ???
-EFF8  48        PHA
-EFF9  05 EA     ORA $EA
+EFF7  1B 48 05 *SLO $0548,Y
+EFFA  EA        NOP
 EFFB  EA        NOP
 EFFC  08        PHP
 EFFD  48        PHA
@@ -6157,9 +6131,8 @@ F010  A2 FF     LDX #$FF
 F012  A9 A5     LDA #$A5
 F014  8D 47 06  STA $0647
 F017  20 7B FA  JSR $FA7B
-F01A  1F       ??? "\US" ???
-F01B  48        PHA
-F01C  05 EA     ORA $EA
+F01A  1F 48 05 *SLO $0548,X
+F01D  EA        NOP
 F01E  EA        NOP
 F01F  EA        NOP
 F020  EA        NOP
@@ -6172,9 +6145,8 @@ F02D  C8        INY
 F02E  A9 29     LDA #$29
 F030  8D 47 06  STA $0647
 F033  20 8C FA  JSR $FA8C
-F036  1F       ??? "\US" ???
-F037  48        PHA
-F038  05 EA     ORA $EA
+F036  1F 48 05 *SLO $0548,X
+F039  EA        NOP
 F03A  EA        NOP
 F03B  EA        NOP
 F03C  EA        NOP
@@ -6187,9 +6159,8 @@ F049  C8        INY
 F04A  A9 37     LDA #$37
 F04C  8D 47 06  STA $0647
 F04F  20 9E FA  JSR $FA9E
-F052  1F       ??? "\US" ???
-F053  48        PHA
-F054  05 EA     ORA $EA
+F052  1F 48 05 *SLO $0548,X
+F055  EA        NOP
 F056  EA        NOP
 F057  EA        NOP
 F058  EA        NOP
@@ -6210,8 +6181,8 @@ F074  85 48     STA $48
 F076  A9 A5     LDA #$A5
 F078  8D 47 06  STA $0647
 F07B  20 53 FB  JSR $FB53
-F07E  23       ??? "#" ???
-F07F  45 EA     EOR $EA
+F07E  23 45    *RLA ($45,X)
+F080  EA        NOP
 F081  EA        NOP
 F082  EA        NOP
 F083  EA        NOP
@@ -6224,8 +6195,8 @@ F090  C8        INY
 F091  A9 29     LDA #$29
 F093  8D 47 06  STA $0647
 F096  20 64 FB  JSR $FB64
-F099  23       ??? "#" ???
-F09A  45 EA     EOR $EA
+F099  23 45    *RLA ($45,X)
+F09B  EA        NOP
 F09C  EA        NOP
 F09D  EA        NOP
 F09E  EA        NOP
@@ -6238,8 +6209,8 @@ F0AB  C8        INY
 F0AC  A9 37     LDA #$37
 F0AE  8D 47 06  STA $0647
 F0B1  20 68 FA  JSR $FA68
-F0B4  23       ??? "#" ???
-F0B5  45 EA     EOR $EA
+F0B4  23 45    *RLA ($45,X)
+F0B6  EA        NOP
 F0B7  EA        NOP
 F0B8  EA        NOP
 F0B9  EA        NOP
@@ -6252,7 +6223,7 @@ F0C6  C8        INY
 F0C7  A9 A5     LDA #$A5
 F0C9  85 47     STA $47
 F0CB  20 53 FB  JSR $FB53
-F0CE  27 47    ??? "'G" ???
+F0CE  27 47    *RLA $47
 F0D0  EA        NOP
 F0D1  EA        NOP
 F0D2  EA        NOP
@@ -6266,7 +6237,7 @@ F0DF  C8        INY
 F0E0  A9 29     LDA #$29
 F0E2  85 47     STA $47
 F0E4  20 64 FB  JSR $FB64
-F0E7  27 47    ??? "'G" ???
+F0E7  27 47    *RLA $47
 F0E9  EA        NOP
 F0EA  EA        NOP
 F0EB  EA        NOP
@@ -6280,7 +6251,7 @@ F0F8  C8        INY
 F0F9  A9 37     LDA #$37
 F0FB  85 47     STA $47
 F0FD  20 68 FA  JSR $FA68
-F100  27 47    ??? "'G" ???
+F100  27 47    *RLA $47
 F102  EA        NOP
 F103  EA        NOP
 F104  EA        NOP
@@ -6294,8 +6265,8 @@ F111  C8        INY
 F112  A9 A5     LDA #$A5
 F114  8D 47 06  STA $0647
 F117  20 53 FB  JSR $FB53
-F11A  2F 47    ??? "/G" ???
-F11C  06 EA     ASL $EA
+F11A  2F 47 06 *RLA $0647
+F11D  EA        NOP
 F11E  EA        NOP
 F11F  EA        NOP
 F120  EA        NOP
@@ -6308,8 +6279,8 @@ F12D  C8        INY
 F12E  A9 29     LDA #$29
 F130  8D 47 06  STA $0647
 F133  20 64 FB  JSR $FB64
-F136  2F 47    ??? "/G" ???
-F138  06 EA     ASL $EA
+F136  2F 47 06 *RLA $0647
+F139  EA        NOP
 F13A  EA        NOP
 F13B  EA        NOP
 F13C  EA        NOP
@@ -6322,8 +6293,8 @@ F149  C8        INY
 F14A  A9 37     LDA #$37
 F14C  8D 47 06  STA $0647
 F14F  20 68 FA  JSR $FA68
-F152  2F 47    ??? "/G" ???
-F154  06 EA     ASL $EA
+F152  2F 47 06 *RLA $0647
+F155  EA        NOP
 F156  EA        NOP
 F157  EA        NOP
 F158  EA        NOP
@@ -6340,8 +6311,8 @@ F16E  A9 05     LDA #$05
 F170  85 46     STA $46
 F172  A0 FF     LDY #$FF
 F174  20 53 FB  JSR $FB53
-F177  33       ??? "3" ???
-F178  45 EA     EOR $EA
+F177  33 45    *RLA ($45),Y
+F179  EA        NOP
 F17A  EA        NOP
 F17B  08        PHP
 F17C  48        PHA
@@ -6357,8 +6328,8 @@ F18D  A0 FF     LDY #$FF
 F18F  A9 29     LDA #$29
 F191  8D 47 06  STA $0647
 F194  20 64 FB  JSR $FB64
-F197  33       ??? "3" ???
-F198  45 EA     EOR $EA
+F197  33 45    *RLA ($45),Y
+F199  EA        NOP
 F19A  EA        NOP
 F19B  08        PHP
 F19C  48        PHA
@@ -6374,8 +6345,8 @@ F1AD  A0 FF     LDY #$FF
 F1AF  A9 37     LDA #$37
 F1B1  8D 47 06  STA $0647
 F1B4  20 68 FA  JSR $FA68
-F1B7  33       ??? "3" ???
-F1B8  45 EA     EOR $EA
+F1B7  33 45    *RLA ($45),Y
+F1B9  EA        NOP
 F1BA  EA        NOP
 F1BB  08        PHP
 F1BC  48        PHA
@@ -6392,8 +6363,7 @@ F1CF  A2 FF     LDX #$FF
 F1D1  A9 A5     LDA #$A5
 F1D3  85 47     STA $47
 F1D5  20 53 FB  JSR $FB53
-F1D8  37       ??? "7" ???
-F1D9  48        PHA
+F1D8  37 48    *RLA $48,X
 F1DA  EA        NOP
 F1DB  EA        NOP
 F1DC  EA        NOP
@@ -6407,8 +6377,7 @@ F1E9  C8        INY
 F1EA  A9 29     LDA #$29
 F1EC  85 47     STA $47
 F1EE  20 64 FB  JSR $FB64
-F1F1  37       ??? "7" ???
-F1F2  48        PHA
+F1F1  37 48    *RLA $48,X
 F1F3  EA        NOP
 F1F4  EA        NOP
 F1F5  EA        NOP
@@ -6422,8 +6391,7 @@ F202  C8        INY
 F203  A9 37     LDA #$37
 F205  85 47     STA $47
 F207  20 68 FA  JSR $FA68
-F20A  37       ??? "7" ???
-F20B  48        PHA
+F20A  37 48    *RLA $48,X
 F20C  EA        NOP
 F20D  EA        NOP
 F20E  EA        NOP
@@ -6437,9 +6405,8 @@ F21B  A9 A5     LDA #$A5
 F21D  8D 47 06  STA $0647
 F220  A0 FF     LDY #$FF
 F222  20 53 FB  JSR $FB53
-F225  3B       ??? ";" ???
-F226  48        PHA
-F227  05 EA     ORA $EA
+F225  3B 48 05 *RLA $0548,Y
+F228  EA        NOP
 F229  EA        NOP
 F22A  08        PHP
 F22B  48        PHA
@@ -6455,9 +6422,8 @@ F23C  A0 FF     LDY #$FF
 F23E  A9 29     LDA #$29
 F240  8D 47 06  STA $0647
 F243  20 64 FB  JSR $FB64
-F246  3B       ??? ";" ???
-F247  48        PHA
-F248  05 EA     ORA $EA
+F246  3B 48 05 *RLA $0548,Y
+F249  EA        NOP
 F24A  EA        NOP
 F24B  08        PHP
 F24C  48        PHA
@@ -6473,9 +6439,8 @@ F25D  A0 FF     LDY #$FF
 F25F  A9 37     LDA #$37
 F261  8D 47 06  STA $0647
 F264  20 68 FA  JSR $FA68
-F267  3B       ??? ";" ???
-F268  48        PHA
-F269  05 EA     ORA $EA
+F267  3B 48 05 *RLA $0548,Y
+F26A  EA        NOP
 F26B  EA        NOP
 F26C  08        PHP
 F26D  48        PHA
@@ -6492,9 +6457,8 @@ F280  A2 FF     LDX #$FF
 F282  A9 A5     LDA #$A5
 F284  8D 47 06  STA $0647
 F287  20 53 FB  JSR $FB53
-F28A  3F       ??? "?" ???
-F28B  48        PHA
-F28C  05 EA     ORA $EA
+F28A  3F 48 05 *RLA $0548,X
+F28D  EA        NOP
 F28E  EA        NOP
 F28F  EA        NOP
 F290  EA        NOP
@@ -6507,9 +6471,8 @@ F29D  C8        INY
 F29E  A9 29     LDA #$29
 F2A0  8D 47 06  STA $0647
 F2A3  20 64 FB  JSR $FB64
-F2A6  3F       ??? "?" ???
-F2A7  48        PHA
-F2A8  05 EA     ORA $EA
+F2A6  3F 48 05 *RLA $0548,X
+F2A9  EA        NOP
 F2AA  EA        NOP
 F2AB  EA        NOP
 F2AC  EA        NOP
@@ -6522,9 +6485,8 @@ F2B9  C8        INY
 F2BA  A9 37     LDA #$37
 F2BC  8D 47 06  STA $0647
 F2BF  20 68 FA  JSR $FA68
-F2C2  3F       ??? "?" ???
-F2C3  48        PHA
-F2C4  05 EA     ORA $EA
+F2C2  3F 48 05 *RLA $0548,X
+F2C5  EA        NOP
 F2C6  EA        NOP
 F2C7  EA        NOP
 F2C8  EA        NOP
@@ -6545,8 +6507,8 @@ F2E4  85 48     STA $48
 F2E6  A9 A5     LDA #$A5
 F2E8  8D 47 06  STA $0647
 F2EB  20 1D FB  JSR $FB1D
-F2EE  43       ??? "C" ???
-F2EF  45 EA     EOR $EA
+F2EE  43 45    *SRE ($45,X)
+F2F0  EA        NOP
 F2F1  EA        NOP
 F2F2  EA        NOP
 F2F3  EA        NOP
@@ -6559,8 +6521,8 @@ F300  C8        INY
 F301  A9 29     LDA #$29
 F303  8D 47 06  STA $0647
 F306  20 2E FB  JSR $FB2E
-F309  43       ??? "C" ???
-F30A  45 EA     EOR $EA
+F309  43 45    *SRE ($45,X)
+F30B  EA        NOP
 F30C  EA        NOP
 F30D  EA        NOP
 F30E  EA        NOP
@@ -6573,8 +6535,8 @@ F31B  C8        INY
 F31C  A9 37     LDA #$37
 F31E  8D 47 06  STA $0647
 F321  20 40 FB  JSR $FB40
-F324  43       ??? "C" ???
-F325  45 EA     EOR $EA
+F324  43 45    *SRE ($45,X)
+F326  EA        NOP
 F327  EA        NOP
 F328  EA        NOP
 F329  EA        NOP
@@ -6587,7 +6549,7 @@ F336  C8        INY
 F337  A9 A5     LDA #$A5
 F339  85 47     STA $47
 F33B  20 1D FB  JSR $FB1D
-F33E  47 47    ??? "GG" ???
+F33E  47 47    *SRE $47
 F340  EA        NOP
 F341  EA        NOP
 F342  EA        NOP
@@ -6601,7 +6563,7 @@ F34F  C8        INY
 F350  A9 29     LDA #$29
 F352  85 47     STA $47
 F354  20 2E FB  JSR $FB2E
-F357  47 47    ??? "GG" ???
+F357  47 47    *SRE $47
 F359  EA        NOP
 F35A  EA        NOP
 F35B  EA        NOP
@@ -6615,7 +6577,7 @@ F368  C8        INY
 F369  A9 37     LDA #$37
 F36B  85 47     STA $47
 F36D  20 40 FB  JSR $FB40
-F370  47 47    ??? "GG" ???
+F370  47 47    *SRE $47
 F372  EA        NOP
 F373  EA        NOP
 F374  EA        NOP
@@ -6629,8 +6591,8 @@ F381  C8        INY
 F382  A9 A5     LDA #$A5
 F384  8D 47 06  STA $0647
 F387  20 1D FB  JSR $FB1D
-F38A  4F 47    ??? "OG" ???
-F38C  06 EA     ASL $EA
+F38A  4F 47 06 *SRE $0647
+F38D  EA        NOP
 F38E  EA        NOP
 F38F  EA        NOP
 F390  EA        NOP
@@ -6643,8 +6605,8 @@ F39D  C8        INY
 F39E  A9 29     LDA #$29
 F3A0  8D 47 06  STA $0647
 F3A3  20 2E FB  JSR $FB2E
-F3A6  4F 47    ??? "OG" ???
-F3A8  06 EA     ASL $EA
+F3A6  4F 47 06 *SRE $0647
+F3A9  EA        NOP
 F3AA  EA        NOP
 F3AB  EA        NOP
 F3AC  EA        NOP
@@ -6657,8 +6619,8 @@ F3B9  C8        INY
 F3BA  A9 37     LDA #$37
 F3BC  8D 47 06  STA $0647
 F3BF  20 40 FB  JSR $FB40
-F3C2  4F 47    ??? "OG" ???
-F3C4  06 EA     ASL $EA
+F3C2  4F 47 06 *SRE $0647
+F3C5  EA        NOP
 F3C6  EA        NOP
 F3C7  EA        NOP
 F3C8  EA        NOP
@@ -6675,8 +6637,8 @@ F3DE  A9 05     LDA #$05
 F3E0  85 46     STA $46
 F3E2  A0 FF     LDY #$FF
 F3E4  20 1D FB  JSR $FB1D
-F3E7  53       ??? "S" ???
-F3E8  45 EA     EOR $EA
+F3E7  53 45    *SRE ($45),Y
+F3E9  EA        NOP
 F3EA  EA        NOP
 F3EB  08        PHP
 F3EC  48        PHA
@@ -6692,8 +6654,8 @@ F3FD  A0 FF     LDY #$FF
 F3FF  A9 29     LDA #$29
 F401  8D 47 06  STA $0647
 F404  20 2E FB  JSR $FB2E
-F407  53       ??? "S" ???
-F408  45 EA     EOR $EA
+F407  53 45    *SRE ($45),Y
+F409  EA        NOP
 F40A  EA        NOP
 F40B  08        PHP
 F40C  48        PHA
@@ -6709,8 +6671,8 @@ F41D  A0 FF     LDY #$FF
 F41F  A9 37     LDA #$37
 F421  8D 47 06  STA $0647
 F424  20 40 FB  JSR $FB40
-F427  53       ??? "S" ???
-F428  45 EA     EOR $EA
+F427  53 45    *SRE ($45),Y
+F429  EA        NOP
 F42A  EA        NOP
 F42B  08        PHP
 F42C  48        PHA
@@ -6727,8 +6689,7 @@ F43F  A2 FF     LDX #$FF
 F441  A9 A5     LDA #$A5
 F443  85 47     STA $47
 F445  20 1D FB  JSR $FB1D
-F448  57       ??? "W" ???
-F449  48        PHA
+F448  57 48    *SRE $48,X
 F44A  EA        NOP
 F44B  EA        NOP
 F44C  EA        NOP
@@ -6742,8 +6703,7 @@ F459  C8        INY
 F45A  A9 29     LDA #$29
 F45C  85 47     STA $47
 F45E  20 2E FB  JSR $FB2E
-F461  57       ??? "W" ???
-F462  48        PHA
+F461  57 48    *SRE $48,X
 F463  EA        NOP
 F464  EA        NOP
 F465  EA        NOP
@@ -6757,8 +6717,7 @@ F472  C8        INY
 F473  A9 37     LDA #$37
 F475  85 47     STA $47
 F477  20 40 FB  JSR $FB40
-F47A  57       ??? "W" ???
-F47B  48        PHA
+F47A  57 48    *SRE $48,X
 F47C  EA        NOP
 F47D  EA        NOP
 F47E  EA        NOP
@@ -6772,9 +6731,8 @@ F48B  A9 A5     LDA #$A5
 F48D  8D 47 06  STA $0647
 F490  A0 FF     LDY #$FF
 F492  20 1D FB  JSR $FB1D
-F495  5B       ??? "[" ???
-F496  48        PHA
-F497  05 EA     ORA $EA
+F495  5B 48 05 *SRE $0548,Y
+F498  EA        NOP
 F499  EA        NOP
 F49A  08        PHP
 F49B  48        PHA
@@ -6790,9 +6748,8 @@ F4AC  A0 FF     LDY #$FF
 F4AE  A9 29     LDA #$29
 F4B0  8D 47 06  STA $0647
 F4B3  20 2E FB  JSR $FB2E
-F4B6  5B       ??? "[" ???
-F4B7  48        PHA
-F4B8  05 EA     ORA $EA
+F4B6  5B 48 05 *SRE $0548,Y
+F4B9  EA        NOP
 F4BA  EA        NOP
 F4BB  08        PHP
 F4BC  48        PHA
@@ -6808,9 +6765,8 @@ F4CD  A0 FF     LDY #$FF
 F4CF  A9 37     LDA #$37
 F4D1  8D 47 06  STA $0647
 F4D4  20 40 FB  JSR $FB40
-F4D7  5B       ??? "[" ???
-F4D8  48        PHA
-F4D9  05 EA     ORA $EA
+F4D7  5B 48 05 *SRE $0548,Y
+F4DA  EA        NOP
 F4DB  EA        NOP
 F4DC  08        PHP
 F4DD  48        PHA
@@ -6827,9 +6783,8 @@ F4F0  A2 FF     LDX #$FF
 F4F2  A9 A5     LDA #$A5
 F4F4  8D 47 06  STA $0647
 F4F7  20 1D FB  JSR $FB1D
-F4FA  5F       ??? "_" ???
-F4FB  48        PHA
-F4FC  05 EA     ORA $EA
+F4FA  5F 48 05 *SRE $0548,X
+F4FD  EA        NOP
 F4FE  EA        NOP
 F4FF  EA        NOP
 F500  EA        NOP
@@ -6842,9 +6797,8 @@ F50D  C8        INY
 F50E  A9 29     LDA #$29
 F510  8D 47 06  STA $0647
 F513  20 2E FB  JSR $FB2E
-F516  5F       ??? "_" ???
-F517  48        PHA
-F518  05 EA     ORA $EA
+F516  5F 48 05 *SRE $0548,X
+F519  EA        NOP
 F51A  EA        NOP
 F51B  EA        NOP
 F51C  EA        NOP
@@ -6857,9 +6811,8 @@ F529  C8        INY
 F52A  A9 37     LDA #$37
 F52C  8D 47 06  STA $0647
 F52F  20 40 FB  JSR $FB40
-F532  5F       ??? "_" ???
-F533  48        PHA
-F534  05 EA     ORA $EA
+F532  5F 48 05 *SRE $0548,X
+F535  EA        NOP
 F536  EA        NOP
 F537  EA        NOP
 F538  EA        NOP
@@ -6880,8 +6833,8 @@ F554  85 48     STA $48
 F556  A9 A5     LDA #$A5
 F558  8D 47 06  STA $0647
 F55B  20 E9 FA  JSR $FAE9
-F55E  63       ??? "c" ???
-F55F  45 EA     EOR $EA
+F55E  63 45    *RRA ($45,X)
+F560  EA        NOP
 F561  EA        NOP
 F562  EA        NOP
 F563  EA        NOP
@@ -6894,8 +6847,8 @@ F570  C8        INY
 F571  A9 29     LDA #$29
 F573  8D 47 06  STA $0647
 F576  20 FA FA  JSR $FAFA
-F579  63       ??? "c" ???
-F57A  45 EA     EOR $EA
+F579  63 45    *RRA ($45,X)
+F57B  EA        NOP
 F57C  EA        NOP
 F57D  EA        NOP
 F57E  EA        NOP
@@ -6908,8 +6861,8 @@ F58B  C8        INY
 F58C  A9 37     LDA #$37
 F58E  8D 47 06  STA $0647
 F591  20 0A FB  JSR $FB0A
-F594  63       ??? "c" ???
-F595  45 EA     EOR $EA
+F594  63 45    *RRA ($45,X)
+F596  EA        NOP
 F597  EA        NOP
 F598  EA        NOP
 F599  EA        NOP
@@ -6922,7 +6875,7 @@ F5A6  C8        INY
 F5A7  A9 A5     LDA #$A5
 F5A9  85 47     STA $47
 F5AB  20 E9 FA  JSR $FAE9
-F5AE  67 47    ??? "gG" ???
+F5AE  67 47    *RRA $47
 F5B0  EA        NOP
 F5B1  EA        NOP
 F5B2  EA        NOP
@@ -6936,7 +6889,7 @@ F5BF  C8        INY
 F5C0  A9 29     LDA #$29
 F5C2  85 47     STA $47
 F5C4  20 FA FA  JSR $FAFA
-F5C7  67 47    ??? "gG" ???
+F5C7  67 47    *RRA $47
 F5C9  EA        NOP
 F5CA  EA        NOP
 F5CB  EA        NOP
@@ -6950,7 +6903,7 @@ F5D8  C8        INY
 F5D9  A9 37     LDA #$37
 F5DB  85 47     STA $47
 F5DD  20 0A FB  JSR $FB0A
-F5E0  67 47    ??? "gG" ???
+F5E0  67 47    *RRA $47
 F5E2  EA        NOP
 F5E3  EA        NOP
 F5E4  EA        NOP
@@ -6964,8 +6917,8 @@ F5F1  C8        INY
 F5F2  A9 A5     LDA #$A5
 F5F4  8D 47 06  STA $0647
 F5F7  20 E9 FA  JSR $FAE9
-F5FA  6F 47    ??? "oG" ???
-F5FC  06 EA     ASL $EA
+F5FA  6F 47 06 *RRA $0647
+F5FD  EA        NOP
 F5FE  EA        NOP
 F5FF  EA        NOP
 F600  EA        NOP
@@ -6978,8 +6931,8 @@ F60D  C8        INY
 F60E  A9 29     LDA #$29
 F610  8D 47 06  STA $0647
 F613  20 FA FA  JSR $FAFA
-F616  6F 47    ??? "oG" ???
-F618  06 EA     ASL $EA
+F616  6F 47 06 *RRA $0647
+F619  EA        NOP
 F61A  EA        NOP
 F61B  EA        NOP
 F61C  EA        NOP
@@ -6992,8 +6945,8 @@ F629  C8        INY
 F62A  A9 37     LDA #$37
 F62C  8D 47 06  STA $0647
 F62F  20 0A FB  JSR $FB0A
-F632  6F 47    ??? "oG" ???
-F634  06 EA     ASL $EA
+F632  6F 47 06 *RRA $0647
+F635  EA        NOP
 F636  EA        NOP
 F637  EA        NOP
 F638  EA        NOP
@@ -7010,8 +6963,8 @@ F64E  A9 05     LDA #$05
 F650  85 46     STA $46
 F652  A0 FF     LDY #$FF
 F654  20 E9 FA  JSR $FAE9
-F657  73       ??? "s" ???
-F658  45 EA     EOR $EA
+F657  73 45    *RRA ($45),Y
+F659  EA        NOP
 F65A  EA        NOP
 F65B  08        PHP
 F65C  48        PHA
@@ -7027,8 +6980,8 @@ F66D  A0 FF     LDY #$FF
 F66F  A9 29     LDA #$29
 F671  8D 47 06  STA $0647
 F674  20 FA FA  JSR $FAFA
-F677  73       ??? "s" ???
-F678  45 EA     EOR $EA
+F677  73 45    *RRA ($45),Y
+F679  EA        NOP
 F67A  EA        NOP
 F67B  08        PHP
 F67C  48        PHA
@@ -7044,8 +6997,8 @@ F68D  A0 FF     LDY #$FF
 F68F  A9 37     LDA #$37
 F691  8D 47 06  STA $0647
 F694  20 0A FB  JSR $FB0A
-F697  73       ??? "s" ???
-F698  45 EA     EOR $EA
+F697  73 45    *RRA ($45),Y
+F699  EA        NOP
 F69A  EA        NOP
 F69B  08        PHP
 F69C  48        PHA
@@ -7062,8 +7015,7 @@ F6AF  A2 FF     LDX #$FF
 F6B1  A9 A5     LDA #$A5
 F6B3  85 47     STA $47
 F6B5  20 E9 FA  JSR $FAE9
-F6B8  77       ??? "w" ???
-F6B9  48        PHA
+F6B8  77 48    *RRA $48,X
 F6BA  EA        NOP
 F6BB  EA        NOP
 F6BC  EA        NOP
@@ -7077,8 +7029,7 @@ F6C9  C8        INY
 F6CA  A9 29     LDA #$29
 F6CC  85 47     STA $47
 F6CE  20 FA FA  JSR $FAFA
-F6D1  77       ??? "w" ???
-F6D2  48        PHA
+F6D1  77 48    *RRA $48,X
 F6D3  EA        NOP
 F6D4  EA        NOP
 F6D5  EA        NOP
@@ -7092,8 +7043,7 @@ F6E2  C8        INY
 F6E3  A9 37     LDA #$37
 F6E5  85 47     STA $47
 F6E7  20 0A FB  JSR $FB0A
-F6EA  77       ??? "w" ???
-F6EB  48        PHA
+F6EA  77 48    *RRA $48,X
 F6EC  EA        NOP
 F6ED  EA        NOP
 F6EE  EA        NOP
@@ -7107,9 +7057,8 @@ F6FB  A9 A5     LDA #$A5
 F6FD  8D 47 06  STA $0647
 F700  A0 FF     LDY #$FF
 F702  20 E9 FA  JSR $FAE9
-F705  7B       ??? "{" ???
-F706  48        PHA
-F707  05 EA     ORA $EA
+F705  7B 48 05 *RRA $0548,Y
+F708  EA        NOP
 F709  EA        NOP
 F70A  08        PHP
 F70B  48        PHA
@@ -7125,9 +7074,8 @@ F71C  A0 FF     LDY #$FF
 F71E  A9 29     LDA #$29
 F720  8D 47 06  STA $0647
 F723  20 FA FA  JSR $FAFA
-F726  7B       ??? "{" ???
-F727  48        PHA
-F728  05 EA     ORA $EA
+F726  7B 48 05 *RRA $0548,Y
+F729  EA        NOP
 F72A  EA        NOP
 F72B  08        PHP
 F72C  48        PHA
@@ -7143,9 +7091,8 @@ F73D  A0 FF     LDY #$FF
 F73F  A9 37     LDA #$37
 F741  8D 47 06  STA $0647
 F744  20 0A FB  JSR $FB0A
-F747  7B       ??? "{" ???
-F748  48        PHA
-F749  05 EA     ORA $EA
+F747  7B 48 05 *RRA $0548,Y
+F74A  EA        NOP
 F74B  EA        NOP
 F74C  08        PHP
 F74D  48        PHA
@@ -7162,9 +7109,8 @@ F760  A2 FF     LDX #$FF
 F762  A9 A5     LDA #$A5
 F764  8D 47 06  STA $0647
 F767  20 E9 FA  JSR $FAE9
-F76A  7F       ??? "\DEL" ???
-F76B  48        PHA
-F76C  05 EA     ORA $EA
+F76A  7F 48 05 *RRA $0548,X
+F76D  EA        NOP
 F76E  EA        NOP
 F76F  EA        NOP
 F770  EA        NOP
@@ -7177,9 +7123,8 @@ F77D  C8        INY
 F77E  A9 29     LDA #$29
 F780  8D 47 06  STA $0647
 F783  20 FA FA  JSR $FAFA
-F786  7F       ??? "\DEL" ???
-F787  48        PHA
-F788  05 EA     ORA $EA
+F786  7F 48 05 *RRA $0548,X
+F789  EA        NOP
 F78A  EA        NOP
 F78B  EA        NOP
 F78C  EA        NOP
@@ -7192,9 +7137,8 @@ F799  C8        INY
 F79A  A9 37     LDA #$37
 F79C  8D 47 06  STA $0647
 F79F  20 0A FB  JSR $FB0A
-F7A2  7F       ??? "\DEL" ???
-F7A3  48        PHA
-F7A4  05 EA     ORA $EA
+F7A2  7F 48 05 *RRA $0548,X
+F7A5  EA        NOP
 F7A6  EA        NOP
 F7A7  EA        NOP
 F7A8  EA        NOP

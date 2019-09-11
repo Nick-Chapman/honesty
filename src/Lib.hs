@@ -20,11 +20,11 @@ import Data.Maybe
 main :: IO ()
 main = do
     bytesIncHeaderAndJunk <- loadFile "data/nestest.nes"
-    let bytes = take sizeCode $ drop headerSize bytesIncHeaderAndJunk
+    let bytes = drop topSkip $ take sizeCode $ drop headerSize bytesIncHeaderAndJunk
     let ops = dis bytes
     let bytes' = reAssemble ops
     when (bytes /= bytes') $ fail "re-assemble failed"
-    mapM_ putStrLn $ displayInstrLines (startAddr `addAddr` 0) ops
+    mapM_ putStrLn $ displayInstrLines (startAddr `addAddr` topSkip) ops
 
 startAddr :: Addr
 startAddr = 0xC000
@@ -34,6 +34,9 @@ headerSize = 16
 
 sizeCode :: Int
 sizeCode = 0x3B78
+
+topSkip :: Int
+topSkip = 0 --0x5F5
 
 loadFile :: String -> IO [Byte]
 loadFile path = do
@@ -58,7 +61,7 @@ displayInstrLine at instr = show at <> "  " <> case instr of
     Instr op mode rand ->
         ljust 8 (showInstrBytes instr)
         <> (if unofficial op then " *" else "  ")
-        <> show op
+        <> showOp op
         <> displayRand at (mode,rand)
 
 ljust :: Int -> String -> String
@@ -68,66 +71,44 @@ showInstrBytes :: Instr -> String
 showInstrBytes instr = unwords $ map show $ instrBytes instr
 
 data Op
-    = ADC
-    | AND
-    | ASL
-    | BCC
-    | BCS
-    | BEQ
-    | BIT
-    | BMI
-    | BNE
-    | BPL
-    | BRK
-    | BVC
-    | BVS
-    | CLC
-    | CLD
-    | CLI
-    | CLV
-    | CMP
-    | CPX
-    | CPY
-    | DEC
-    | DEX
-    | DEY
-    | EOR
-    | INC
-    | INX
-    | INY
-    | JMP
-    | JSR
-    | LDA
-    | LDX
-    | LDY
-    | LSR
-    | NOP
-    | ORA
-    | PHA
-    | PHP
-    | PLA
-    | PLP
-    | ROL
-    | ROR
-    | RTI
-    | RTS
-    | SBC
-    | SEC
-    | SED
-    | SEI
-    | STA
-    | STX
-    | STY
-    | TAX
-    | TAY
-    | TSX
-    | TXA
-    | TXS
-    | TYA
+    = ADC | AND | ASL | BCC | BCS | BEQ | BIT | BMI
+    | BNE | BPL | BRK | BVC | BVS | CLC | CLD | CLI
+    | CLV | CMP | CPX | CPY | DEC | DEX | DEY | EOR
+    | INC | INX | INY | JMP | JSR | LDA | LDX | LDY
+    | LSR | NOP | ORA | PHA | PHP | PLA | PLP | ROL
+    | ROR | RTI | RTS | SBC | SEC | SED | SEI | STA
+    | STX | STY | TAX | TAY | TSX | TXA | TXS | TYA
 
-    | LAX
+    | SBC_extra
+
+    | DCP | ISB | LAX | RLA | RRA | SAX | SLO | SRE
+
+    | NOP_04 | NOP_44 | NOP_64
+    | NOP_0C
+    | NOP_14 | NOP_34 | NOP_54 | NOP_74 | NOP_D4 | NOP_F4
+    | NOP_1A | NOP_3A | NOP_5A | NOP_7A | NOP_DA | NOP_FA
+    | NOP_80
+    | NOP_1C | NOP_3C | NOP_5C | NOP_7C | NOP_DC | NOP_FC
 
     deriving (Eq,Show)
+
+unofficalNop :: Op -> Bool
+unofficalNop op = op `elem`
+    [NOP_04,NOP_44,NOP_64
+    ,NOP_0C
+    ,NOP_14,NOP_34,NOP_54,NOP_74,NOP_D4,NOP_F4
+    ,NOP_1A,NOP_3A,NOP_5A,NOP_7A,NOP_DA,NOP_FA
+    ,NOP_80
+    ,NOP_1C,NOP_3C,NOP_5C,NOP_7C,NOP_DC,NOP_FC
+    ]
+
+unofficial :: Op -> Bool
+unofficial op = op `elem` [DCP,ISB,LAX,RLA,RRA,SAX,SLO,SRE,SBC_extra] || unofficalNop op
+
+showOp :: Op -> String
+showOp = \case
+    SBC_extra -> "SBC"
+    op -> if unofficalNop op then "NOP" else show op
 
 table :: [(Op,Mode,Byte)]
 table =
@@ -283,11 +264,86 @@ table =
     , (TXS, Implied, 0x9a)
     , (TYA, Implied, 0x98)
 
-    , (LAX, IndexedIndirect, 0xA3)
-    ]
+    , (SBC_extra, Immediate, 0xEB)
 
-unofficial :: Op -> Bool
-unofficial op = op `elem` [LAX]
+    , (LAX, IndexedIndirect, 0xA3)
+    , (LAX, ZeroPage, 0xA7)
+    , (LAX, Absolute, 0xAF)
+    , (LAX, IndirectIndexed, 0xB3)
+    , (LAX, ZeroPageY, 0xB7)
+    , (LAX, AbsoluteY, 0xBF)
+    , (DCP, IndexedIndirect, 0xC3)
+    , (DCP, ZeroPage, 0xC7)
+    , (DCP, Absolute, 0xCF)
+    , (DCP, IndirectIndexed, 0xD3)
+    , (DCP, ZeroPageX, 0xD7)
+    , (DCP, AbsoluteY, 0xDB)
+    , (DCP, AbsoluteX, 0xDF)
+    , (SAX, IndexedIndirect, 0x83)
+    , (SAX, ZeroPage, 0x87)
+    , (SAX, Absolute, 0x8F)
+    , (SAX, ZeroPageY, 0x97)
+    , (ISB, IndexedIndirect, 0xE3)
+    , (ISB, ZeroPage, 0xE7)
+    , (ISB, Absolute, 0xEF)
+    , (ISB, IndirectIndexed, 0xF3)
+    , (ISB, ZeroPageX, 0xF7)
+    , (ISB, AbsoluteY, 0xFB)
+    , (ISB, AbsoluteX, 0xFF)
+    , (SLO, IndexedIndirect, 0x03)
+    , (SLO, ZeroPage, 0x07)
+    , (SLO, Absolute, 0x0F)
+    , (SLO, IndirectIndexed, 0x13)
+    , (SLO, ZeroPageX, 0x17)
+    , (SLO, AbsoluteY, 0x1B)
+    , (SLO, AbsoluteX, 0x1F)
+    , (RLA, IndexedIndirect, 0x23)
+    , (RLA, ZeroPage, 0x27)
+    , (RLA, Absolute, 0x2F)
+    , (RLA, IndirectIndexed, 0x33)
+    , (RLA, ZeroPageX, 0x37)
+    , (RLA, AbsoluteY, 0x3B)
+    , (RLA, AbsoluteX, 0x3F)
+    , (SRE, IndexedIndirect, 0x43)
+    , (SRE, ZeroPage, 0x47)
+    , (SRE, Absolute, 0x4F)
+    , (SRE, IndirectIndexed, 0x53)
+    , (SRE, ZeroPageX, 0x57)
+    , (SRE, AbsoluteY, 0x5B)
+    , (SRE, AbsoluteX, 0x5F)
+    , (RRA, IndexedIndirect, 0x63)
+    , (RRA, ZeroPage, 0x67)
+    , (RRA, Absolute, 0x6F)
+    , (RRA, IndirectIndexed, 0x73)
+    , (RRA, ZeroPageX, 0x77)
+    , (RRA, AbsoluteY, 0x7B)
+    , (RRA, AbsoluteX, 0x7F)
+
+    , (NOP_04, ZeroPage, 0x04)
+    , (NOP_44, ZeroPage, 0x44)
+    , (NOP_64, ZeroPage, 0x64)
+    , (NOP_0C, Absolute, 0x0C)
+    , (NOP_14, ZeroPageX, 0x14)
+    , (NOP_34, ZeroPageX, 0x34)
+    , (NOP_54, ZeroPageX, 0x54)
+    , (NOP_74, ZeroPageX, 0x74)
+    , (NOP_D4, ZeroPageX, 0xD4)
+    , (NOP_F4, ZeroPageX, 0xF4)
+    , (NOP_1A, Implied, 0x1A)
+    , (NOP_3A, Implied, 0x3A)
+    , (NOP_5A, Implied, 0x5A)
+    , (NOP_7A, Implied, 0x7A)
+    , (NOP_DA, Implied, 0xDA)
+    , (NOP_FA, Implied, 0xFA)
+    , (NOP_80, Immediate, 0x80)
+    , (NOP_1C, AbsoluteX, 0x1C)
+    , (NOP_3C, AbsoluteX, 0x3C)
+    , (NOP_5C, AbsoluteX, 0x5C)
+    , (NOP_7C, AbsoluteX, 0x7C)
+    , (NOP_DC, AbsoluteX, 0xDC)
+    , (NOP_FC, AbsoluteX, 0xFC)
+
+    ]
 
 decodeViaTable :: Byte -> Maybe (Op,Mode)
 decodeViaTable byte = -- TODO: be more efficient!
@@ -346,7 +402,7 @@ displayRand :: Addr -> (Mode,Rand) -> String
 displayRand at = \case
     (Immediate,RandByte b) -> " #$" <> show b
     (ZeroPage,RandByte b) -> " $" <> show b
-    (Relative,RandByte b) -> " $" <> show (at `addAddr` (2 + byteToInt b)) -- TODO: signed for backwards jumps
+    (Relative,RandByte b) -> " $" <> show (at `addAddr` (2 + byteToInt b))
     (Absolute,RandAddr a) -> " $" <> show a
     (Implied,RandNull) -> ""
     (Accumulator,RandNull) -> " A"
@@ -431,6 +487,7 @@ byteOfInt :: Int -> Byte
 byteOfInt = Byte . fromIntegral
 
 byteToInt :: Byte -> Int
-byteToInt = fromIntegral . unByte -- TODO: signed! -128..127
+byteToInt = sign . fromIntegral . unByte
+    where sign n = if n>=128 then n-256 else n
 
 instance Show Byte where show = printf "%02X" . unByte
