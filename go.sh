@@ -2,6 +2,5 @@
 set -euo pipefail
 
 stack run > dis.log
-
-# | head
-
+cmp dis.log{.expected,}
+#diff dis.log{.expected,} | colordiff
