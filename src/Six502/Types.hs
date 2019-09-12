@@ -8,6 +8,7 @@ module Six502.Types(
     Byte(..),
     ) where
 
+import Data.Bits
 import Data.Word8 (Word8)
 import Text.Printf (printf)
 
@@ -45,6 +46,6 @@ data Mode
     | Indirect
     deriving (Eq,Show)
 
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Num)
+newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Num,Bits)
 
 instance Show Byte where show = printf "%02X" . unByte

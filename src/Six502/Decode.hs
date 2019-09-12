@@ -6,11 +6,19 @@ module Six502.Decode (
     Op(..),
     Rand(..),
     Addr(..),
+    decode1,
     decodeOps,
     reEncodeOps,
     opBytes,
     sizeMode,
+    byteToSigned,
     addAddr,
+    minusAddr,
+    zeroPageAddr,
+    page1Addr,
+    addrToHiLo,
+    addrOfHiLo,
+    addByte,
     ) where
 
 import Data.Word (Word16)
@@ -24,6 +32,7 @@ import qualified Six502.OpCode as OpCode(table)
 data Op
     = Unknown [Byte]
     | Op Instruction Mode Rand
+    deriving (Show)
 
 reEncodeOps :: [Op] -> [Byte]
 reEncodeOps = join . map opBytes
@@ -47,6 +56,10 @@ opBytes = \case
     Unknown bs -> bs
     Op instruction mode rand -> encodeViaTable (instruction,mode) : randBytes rand
 
+
+decode1 :: [Byte] -> Op
+decode1 = head . decodeOps
+
 decodeOps :: [Byte] -> [Op]
 decodeOps = dis []
 
@@ -69,7 +82,7 @@ data Rand = RandByte Byte | RandAddr Addr | RandNull deriving (Show)
 randBytes :: Rand -> [Byte]
 randBytes = \case
     RandByte b -> [b]
-    RandAddr a -> addrBytes a
+    RandAddr a -> [lo,hi] where (hi,lo) = addrToHiLo a
     RandNull -> []
 
 takeMode :: Mode -> [Byte] -> (Rand,[Byte])
@@ -109,8 +122,8 @@ addrOfHiLo :: Byte -> Byte -> Addr
 addrOfHiLo hi lo =
     Addr (256 * fromIntegral (unByte hi) + fromIntegral (unByte lo))
 
-addrBytes :: Addr -> [Byte]
-addrBytes a = [lo,hi] where -- do it with Bits instead?
+addrToHiLo :: Addr -> (Byte,Byte)
+addrToHiLo a = (hi,lo) where -- do it with Bits instead?
     lo = byteOfInt $ n `mod` 256
     hi = byteOfInt $ n `div` 256
     n = fromIntegral $ unAddr a
@@ -118,9 +131,29 @@ addrBytes a = [lo,hi] where -- do it with Bits instead?
 byteOfInt :: Int -> Byte
 byteOfInt = Byte . fromIntegral
 
-newtype Addr = Addr { unAddr :: Word16 } deriving (Num)
+byteToUnsigned :: Byte -> Int
+byteToUnsigned = fromIntegral . unByte
+
+byteToSigned :: Byte -> Int
+byteToSigned = sign . fromIntegral . unByte
+    where sign n = if n>=128 then n-256 else n
+
+addByte :: Byte -> Int -> Byte
+addByte a n = Byte (unByte a + fromIntegral n)
+
+
+newtype Addr = Addr { unAddr :: Word16 } deriving (Eq,Ord,Num)
 
 instance Show Addr where show = printf "%04X" . unAddr
 
 addAddr :: Addr -> Int -> Addr
 addAddr a n = Addr (unAddr a + fromIntegral n)
+
+minusAddr :: Addr -> Addr -> Int
+minusAddr later earlier = fromIntegral (unAddr later - unAddr earlier)
+
+zeroPageAddr :: Byte -> Addr
+zeroPageAddr b = Addr $ fromIntegral $ byteToUnsigned b
+
+page1Addr :: Byte -> Addr
+page1Addr b = Addr $ 256 + (fromIntegral $ byteToUnsigned b)

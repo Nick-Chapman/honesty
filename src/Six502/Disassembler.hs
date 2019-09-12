@@ -2,12 +2,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Six502.Disassembler (displayOpLines) where
+module Six502.Disassembler (
+    displayOpLine,
+    displayOpLines,
+    ljust,
+    sizeOp,
+    ) where
 
 import Data.Char as Char(chr)
 
 import Six502.Types (Byte(unByte),Instruction(..),Mode(..))
-import Six502.Decode (Addr(..),Op(..),Rand(..),sizeMode,addAddr,opBytes)
+import Six502.Decode (Addr(..),Op(..),Rand(..),sizeMode,addAddr,opBytes,byteToSigned)
 
 displayOpLines :: Addr -> [Op] -> [String]
 displayOpLines a = \case
@@ -46,7 +51,7 @@ displayRand :: Addr -> (Mode,Rand) -> String
 displayRand at = \case
     (Immediate,RandByte b) -> " #$" <> show b
     (ZeroPage,RandByte b) -> " $" <> show b
-    (Relative,RandByte b) -> " $" <> show (at `addAddr` (2 + byteToInt b))
+    (Relative,RandByte b) -> " $" <> show (at `addAddr` (2 + byteToSigned b))
     (Absolute,RandAddr a) -> " $" <> show a
     (Implied,RandNull) -> ""
     (Accumulator,RandNull) -> " A"
@@ -58,10 +63,6 @@ displayRand at = \case
     (AbsoluteX,RandAddr a) -> " $" <> show a <> ",X"
     (AbsoluteY,RandAddr a) -> " $" <> show a <> ",Y"
     x -> error $ "displayRand: " <> show x
-
-byteToInt :: Byte -> Int
-byteToInt = sign . fromIntegral . unByte
-    where sign n = if n>=128 then n-256 else n
 
 unofficial :: Instruction -> Bool
 unofficial i = i `elem` [DCP,ISB,LAX,RLA,RRA,SAX,SLO,SRE,SBC_extra] || unofficialNop i
