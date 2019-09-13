@@ -118,6 +118,54 @@ action = \case
     Op BVC Relative (ArgByte b) -> TestFlag FlagOverflow  >>= (branch b . not)
     Op BPL Relative (ArgByte b) -> TestFlag FlagNegative  >>= (branch b . not)
 
+    Op ADC Immediate (ArgByte in2) -> do
+        in1 <- A
+        cin <- TestFlag FlagCarry
+        let (res,cout) = adc cin in1 in2
+        SetA res
+        updateFlag cout FlagCarry
+        updateFlag (res == 0x0) FlagZero
+        let signRes = testBit res 7
+        -- The overflow flag is set if the sign-bit of the result does match either of the args.
+        let signOverflow = (signRes /= signIn1) && (signRes /= signIn2)
+                where signIn1 = testBit in1 7
+                      signIn2 = testBit in2 7
+        updateFlag signOverflow FlagOverflow
+        updateFlag signRes FlagNegative
+        cycles 2
+
+    Op SBC Immediate (ArgByte in2) -> do
+        -- SBC takes the ones complement of the second value and then performs an ADC.
+        action $ Op ADC Immediate (ArgByte (complement in2))
+
+    Op INX Implied ArgNull -> do
+        v <- X
+        let v' = v + 1
+        SetX v'
+        updateNZ v'
+        cycles 2
+
+    Op INY Implied ArgNull -> do
+        v <- Y
+        let v' = v + 1
+        SetY v'
+        updateNZ v'
+        cycles 2
+
+    Op DEX Implied ArgNull -> do
+        v <- X
+        let v' = v - 1
+        SetX v'
+        updateNZ v'
+        cycles 2
+
+    Op DEY Implied ArgNull -> do
+        v <- Y
+        let v' = v - 1
+        SetY v'
+        updateNZ v'
+        cycles 2
+
     Op AND Immediate (ArgByte b) -> do
         acc <- A
         let v = acc .&. b
@@ -142,20 +190,29 @@ action = \case
     Op BIT ZeroPage (ArgByte b) -> do
         mask <- A
         v <- ReadMem (zeroPageAddr b)
-        updateNVZ (v .&. mask)
+        updateFlag (v .&. mask == 0x0) FlagZero
+        updateFlag (testBit v 6) FlagOverflow
+        updateFlag (testBit v 7) FlagNegative
         cycles 3
 
     Op JMP Absolute (ArgAddr a) -> do
         SetPC a
         cycles 3
 
-    Op LDA Immediate (ArgByte b) -> do
+    Op LDA mode arg -> do
+        (b,n) <- load mode arg
         SetA b
         updateNZ b
-        cycles 2
+        return n
 
-    Op LDX Immediate (ArgByte b) -> do
+    Op LDX mode arg -> do
+        (b,n) <- load mode arg
         SetX b
+        updateNZ b
+        return n
+
+    Op LDY Immediate (ArgByte b) -> do
+        SetY b
         updateNZ b
         cycles 2
 
@@ -168,6 +225,18 @@ action = \case
         v <- X;
         StoreMem (zeroPageAddr b) v
         cycles 3
+
+    Op STX Absolute (ArgAddr addr) -> do
+        v <- X;
+        StoreMem addr v
+        cycles 4
+
+    Op TAX Implied ArgNull -> transfer A SetX
+    Op TAY Implied ArgNull -> transfer A SetY
+    Op TYA Implied ArgNull -> transfer Y SetA
+    Op TXA Implied ArgNull -> transfer X SetA
+    Op TSX Implied ArgNull -> transfer SP SetX
+    Op TXS Implied ArgNull -> transferNoFlags X SetSP
 
     Op JSR Absolute (ArgAddr a) -> do
         here <- PC
@@ -206,24 +275,48 @@ action = \case
         compareBytes a b
         cycles 2
 
+    Op CPX Immediate (ArgByte b) -> do
+        x <- X
+        compareBytes x b
+        cycles 2
+
+    Op CPY Immediate (ArgByte b) -> do
+        y <- Y
+        compareBytes y b
+        cycles 2
+
     op -> error $ "action: " <> show op
+
+
+load :: Mode -> Arg -> Act (Byte,Cycles)
+load mode arg = case (mode,arg) of
+    (Immediate, ArgByte b) -> return (b,2)
+    (Absolute, ArgAddr a) -> do b <- ReadMem a; return (b,4)
+    x -> error $ show x
+
+transfer :: Act Byte  -> (Byte -> Act ()) -> Act Cycles
+transfer from into = do
+    v <- from
+    into v
+    updateNZ v
+    cycles 2
+
+transferNoFlags :: Act Byte  -> (Byte -> Act ()) -> Act Cycles
+transferNoFlags from into = do
+    v <- from
+    into v
+    cycles 2
 
 compareBytes :: Byte -> Byte -> Act ()
 compareBytes a b = do
     updateFlag (a == b) FlagZero
     updateFlag (a >= b) FlagCarry
-    updateFlag (a < b) FlagNegative
+    updateFlag (testBit (a - b) 7) FlagNegative
 
 updateNZ :: Byte -> Act ()
 updateNZ b = do
     updateFlag (b == 0x0) FlagZero
     updateFlag (testBit b 7) FlagNegative
-
-updateNVZ :: Byte -> Act ()
-updateNVZ b = do
-    updateFlag (b == 0x0) FlagZero
-    updateFlag (testBit b 7) FlagNegative
-    updateFlag (testBit b 6) FlagOverflow
 
 updateFlag :: Bool -> Flag -> Act ()
 updateFlag cond = if cond then SetFlag else ClearFlag
@@ -248,24 +341,24 @@ pushStackA addr = do
     pushStack hi
     pushStack lo
 
-pushStack :: Byte -> Act ()
-pushStack byte = do
-    top <- SP
-    let top' = top `addByte` (-1)
-    StoreMem (page1Addr top') byte
-    SetSP top'
-
 popStackA :: Act Addr
 popStackA = do
     lo <- popStack
     hi <- popStack
     return $ addrOfHiLo hi lo
 
+pushStack :: Byte -> Act ()
+pushStack byte = do
+    top <- SP
+    StoreMem (page1Addr top) byte
+    SetSP (top - 1)
+
 popStack :: Act Byte
 popStack = do
     top <- SP
-    SetSP (top `addByte` 1)
-    ReadMem (page1Addr top)
+    let top' = top + 1
+    SetSP top'
+    ReadMem (page1Addr top')
 
 data Flag
     = FlagCarry

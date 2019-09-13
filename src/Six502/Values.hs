@@ -1,9 +1,10 @@
 
 module Six502.Values(
     Addr(..),
-    addAddr, minusAddr, zeroPageAddr, page1Addr,
+    addAddr,
+    minusAddr, zeroPageAddr, page1Addr,
     Byte(..),
-    byteOfInt, byteToUnsigned, byteToSigned, addByte,
+    byteOfInt, byteToUnsigned, byteToSigned, adc,
     addrOfHiLo, addrToHiLo,
     ) where
 
@@ -42,8 +43,10 @@ byteToSigned :: Byte -> Int
 byteToSigned = sign . fromIntegral . unByte
     where sign n = if n>=128 then n-256 else n
 
-addByte :: Byte -> Int -> Byte
-addByte a n = Byte (unByte a + fromIntegral n)
+adc :: Bool -> Byte -> Byte -> (Byte,Bool)
+adc cin x y = (Byte $ fromIntegral res,cout) where
+    res = byteToUnsigned x + byteToUnsigned y + (if cin then 1 else 0)
+    cout = res >= 256
 
 addrOfHiLo :: Byte -> Byte -> Addr
 addrOfHiLo hi lo =
