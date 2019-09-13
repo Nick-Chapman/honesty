@@ -26,7 +26,7 @@ displayOpLine at op = show at <> "  " <> case op of
         ljust 8 (showOpBytes op)
         <> (if unofficial instruction then " *" else "  ")
         <> showInstruction instruction
-        <> displayRand at (mode,rand)
+        <> displayArg at (mode,rand)
 
 showOpBytes :: Op -> String
 showOpBytes op = unwords $ map show $ opBytes op
@@ -39,22 +39,22 @@ showInstruction = \case
     SBC_extra -> "SBC"
     instruction -> if unofficialNop instruction then "NOP" else show instruction
 
-displayRand :: Addr -> (Mode,Rand) -> String
-displayRand at = \case
-    (Immediate,RandByte b) -> " #$" <> show b
-    (ZeroPage,RandByte b) -> " $" <> show b
-    (Relative,RandByte b) -> " $" <> show (at `addAddr` (2 + byteToSigned b))
-    (Absolute,RandAddr a) -> " $" <> show a
-    (Implied,RandNull) -> ""
-    (Accumulator,RandNull) -> " A"
-    (IndexedIndirect,RandByte b) -> " ($" <> show b <> ",X)"
-    (IndirectIndexed,RandByte b) -> " ($" <> show b <> "),Y"
-    (Indirect,RandAddr a) -> " ($" <> show a <> ")"
-    (ZeroPageX,RandByte b) -> " $" <> show b <> ",X"
-    (ZeroPageY,RandByte b) -> " $" <> show b <> ",Y"
-    (AbsoluteX,RandAddr a) -> " $" <> show a <> ",X"
-    (AbsoluteY,RandAddr a) -> " $" <> show a <> ",Y"
-    x -> error $ "displayRand: " <> show x
+displayArg :: Addr -> (Mode,Arg) -> String
+displayArg at = \case
+    (Immediate,ArgByte b) -> " #$" <> show b
+    (ZeroPage,ArgByte b) -> " $" <> show b
+    (Relative,ArgByte b) -> " $" <> show (at `addAddr` (2 + byteToSigned b))
+    (Absolute,ArgAddr a) -> " $" <> show a
+    (Implied,ArgNull) -> ""
+    (Accumulator,ArgNull) -> " A"
+    (IndexedIndirect,ArgByte b) -> " ($" <> show b <> ",X)"
+    (IndirectIndexed,ArgByte b) -> " ($" <> show b <> "),Y"
+    (Indirect,ArgAddr a) -> " ($" <> show a <> ")"
+    (ZeroPageX,ArgByte b) -> " $" <> show b <> ",X"
+    (ZeroPageY,ArgByte b) -> " $" <> show b <> ",Y"
+    (AbsoluteX,ArgAddr a) -> " $" <> show a <> ",X"
+    (AbsoluteY,ArgAddr a) -> " $" <> show a <> ",Y"
+    x -> error $ "displayArg: " <> show x
 
 unofficial :: Instruction -> Bool
 unofficial i = i `elem` [DCP,ISB,LAX,RLA,RRA,SAX,SLO,SRE,SBC_extra] || unofficialNop i

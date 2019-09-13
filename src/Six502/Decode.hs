@@ -56,13 +56,13 @@ dis junk = \case
             [] -> ops
             _ -> Unknown (reverse junk) : ops
 
-randBytes :: Rand -> [Byte]
+randBytes :: Arg -> [Byte]
 randBytes = \case
-    RandByte b -> [b]
-    RandAddr a -> [lo,hi] where (hi,lo) = addrToHiLo a
-    RandNull -> []
+    ArgByte b -> [b]
+    ArgAddr a -> [lo,hi] where (hi,lo) = addrToHiLo a
+    ArgNull -> []
 
-takeMode :: Mode -> [Byte] -> (Rand,[Byte])
+takeMode :: Mode -> [Byte] -> (Arg,[Byte])
 takeMode = snd . specMode
 
 opSize :: Op -> Int
@@ -73,7 +73,7 @@ opSize = \case
 modeSize :: Mode -> Int
 modeSize = fst . specMode
 
-type ModeSpec = (Int, [Byte] -> (Rand,[Byte]))
+type ModeSpec = (Int, [Byte] -> (Arg,[Byte]))
 
 specMode :: Mode -> ModeSpec
 specMode = \case
@@ -92,10 +92,10 @@ specMode = \case
     Indirect -> spec2
 
 spec0 :: ModeSpec
-spec0 = (0, \bs -> (RandNull, bs))
+spec0 = (0, \bs -> (ArgNull, bs))
 
 spec1 :: ModeSpec
-spec1 = (1, \case b:rest -> (RandByte b, rest); _ -> error "spec1")
+spec1 = (1, \case b:rest -> (ArgByte b, rest); _ -> error "spec1")
 
 spec2 :: ModeSpec
-spec2 = (2, \case lo:hi:rest -> (RandAddr $ addrOfHiLo hi lo, rest); _ -> error "take2")
+spec2 = (2, \case lo:hi:rest -> (ArgAddr $ addrOfHiLo hi lo, rest); _ -> error "take2")

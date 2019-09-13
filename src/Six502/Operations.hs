@@ -3,12 +3,12 @@ module Six502.Operations(
     Op(..),
     Instruction(..),
     Mode(..),
-    Rand(..)
+    Arg(..)
     ) where
 
 import Six502.Values(Addr,Byte)
 
-data Op = Unknown [Byte] | Op Instruction Mode Rand deriving (Show)
+data Op = Unknown [Byte] | Op Instruction Mode Arg deriving (Show)
 
 data Instruction
     = ADC | AND | ASL | BCC | BCS | BEQ | BIT | BMI
@@ -44,4 +44,4 @@ data Mode
     | Indirect
     deriving (Eq,Show)
 
-data Rand = RandByte Byte | RandAddr Addr | RandNull deriving (Show)
+data Arg = ArgByte Byte | ArgAddr Addr | ArgNull deriving (Show)

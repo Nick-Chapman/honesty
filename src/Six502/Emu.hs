@@ -143,110 +143,110 @@ fetchDecode = do
 action :: Op -> Act Cycles
 action = \case
 
-    Op NOP Implied RandNull -> cycles 2
+    Op NOP Implied ArgNull -> cycles 2
 
-    Op SEC Implied RandNull -> do SetFlag FlagCarry; cycles 2
-    Op SEI Implied RandNull -> do SetFlag FlagInterruptDisable; cycles 2
-    Op SED Implied RandNull -> do SetFlag FlagDecimal; cycles 2
+    Op SEC Implied ArgNull -> do SetFlag FlagCarry; cycles 2
+    Op SEI Implied ArgNull -> do SetFlag FlagInterruptDisable; cycles 2
+    Op SED Implied ArgNull -> do SetFlag FlagDecimal; cycles 2
 
-    Op CLC Implied RandNull -> do ClearFlag FlagCarry; cycles 2
-    Op CLD Implied RandNull -> do ClearFlag FlagDecimal; cycles 2
-    Op CLV Implied RandNull -> do ClearFlag FlagOverflow; cycles 2
+    Op CLC Implied ArgNull -> do ClearFlag FlagCarry; cycles 2
+    Op CLD Implied ArgNull -> do ClearFlag FlagDecimal; cycles 2
+    Op CLV Implied ArgNull -> do ClearFlag FlagOverflow; cycles 2
 
-    Op BCS Relative (RandByte b) -> TestFlag FlagCarry >>= branch b
-    Op BEQ Relative (RandByte b) -> TestFlag FlagZero  >>= branch b
-    Op BVS Relative (RandByte b) -> TestFlag FlagOverflow  >>= branch b
-    Op BMI Relative (RandByte b) -> TestFlag FlagNegative  >>= branch b
+    Op BCS Relative (ArgByte b) -> TestFlag FlagCarry >>= branch b
+    Op BEQ Relative (ArgByte b) -> TestFlag FlagZero  >>= branch b
+    Op BVS Relative (ArgByte b) -> TestFlag FlagOverflow  >>= branch b
+    Op BMI Relative (ArgByte b) -> TestFlag FlagNegative  >>= branch b
 
-    Op BCC Relative (RandByte b) -> TestFlag FlagCarry >>= (branch b . not)
-    Op BNE Relative (RandByte b) -> TestFlag FlagZero  >>= (branch b . not)
-    Op BVC Relative (RandByte b) -> TestFlag FlagOverflow  >>= (branch b . not)
-    Op BPL Relative (RandByte b) -> TestFlag FlagNegative  >>= (branch b . not)
+    Op BCC Relative (ArgByte b) -> TestFlag FlagCarry >>= (branch b . not)
+    Op BNE Relative (ArgByte b) -> TestFlag FlagZero  >>= (branch b . not)
+    Op BVC Relative (ArgByte b) -> TestFlag FlagOverflow  >>= (branch b . not)
+    Op BPL Relative (ArgByte b) -> TestFlag FlagNegative  >>= (branch b . not)
 
-    Op AND Immediate (RandByte b) -> do
+    Op AND Immediate (ArgByte b) -> do
         acc <- A
         let v = acc .&. b
         SetA v
         updateNZ v
         cycles 2
 
-    Op ORA Immediate (RandByte b) -> do
+    Op ORA Immediate (ArgByte b) -> do
         acc <- A
         let v = acc .|. b
         SetA v
         updateNZ v
         cycles 2
 
-    Op EOR Immediate (RandByte b) -> do
+    Op EOR Immediate (ArgByte b) -> do
         acc <- A
         let v = acc `xor` b
         SetA v
         updateNZ v
         cycles 2
 
-    Op BIT ZeroPage (RandByte b) -> do
+    Op BIT ZeroPage (ArgByte b) -> do
         mask <- A
         v <- ReadMem (zeroPageAddr b)
         updateNVZ (v .&. mask)
         cycles 3
 
-    Op JMP Absolute (RandAddr a) -> do
+    Op JMP Absolute (ArgAddr a) -> do
         SetPC a
         cycles 3
 
-    Op LDA Immediate (RandByte b) -> do
+    Op LDA Immediate (ArgByte b) -> do
         SetA b
         updateNZ b
         cycles 2
 
-    Op LDX Immediate (RandByte b) -> do
+    Op LDX Immediate (ArgByte b) -> do
         SetX b
         updateNZ b
         cycles 2
 
-    Op STA ZeroPage (RandByte b) -> do
+    Op STA ZeroPage (ArgByte b) -> do
         v <- A;
         StoreMem (zeroPageAddr b) v
         cycles 3
 
-    Op STX ZeroPage (RandByte b) -> do
+    Op STX ZeroPage (ArgByte b) -> do
         v <- X;
         StoreMem (zeroPageAddr b) v
         cycles 3
 
-    Op JSR Absolute (RandAddr a) -> do
+    Op JSR Absolute (ArgAddr a) -> do
         here <- PC
         pushStackA (here `addAddr` (-1))
         SetPC a
         cycles 6
 
-    Op RTS Implied RandNull -> do
+    Op RTS Implied ArgNull -> do
         target <- popStackA
         SetPC (target `addAddr` 1)
         cycles 6
 
-    Op PHP Implied RandNull -> do
+    Op PHP Implied ArgNull -> do
         byte <- Status
         pushStack (byte .|. 0x30) -- The B flag!
         cycles 3
 
-    Op PHA Implied RandNull -> do
+    Op PHA Implied ArgNull -> do
         byte <- A
         pushStack byte
         cycles 3
 
-    Op PLA Implied RandNull -> do
+    Op PLA Implied ArgNull -> do
         v <- popStack
         SetA v
         updateNZ v
         cycles 4
 
-    Op PLP Implied RandNull -> do
+    Op PLP Implied ArgNull -> do
         v <- popStack
         SetStatus v
         cycles 4
 
-    Op CMP Immediate (RandByte b) -> do
+    Op CMP Immediate (ArgByte b) -> do
         a <- A
         compareBytes a b
         cycles 2
