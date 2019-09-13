@@ -7,20 +7,22 @@ module Six502.Emu(
 
 import Control.Monad (ap,liftM)
 import Data.Bits
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 
 import Six502.Values
 import Six502.Operations
 import Six502.Decode (decode1,opSize)
 import Six502.Disassembler (ljust,displayOpLine)
+import qualified Six502.Mem as Mem
+
+codeLoadAddr :: Addr
+codeLoadAddr = 0xC000
 
 run :: [Byte] -> [State]
 run code = stepFrom (state0 code)
     where stepFrom s = s : stepFrom (step s)
 
 data State = State
-    { mem :: Mem
+    { mem :: Mem.State
     , cpu :: Cpu
     , cc :: Cycles
     }
@@ -29,14 +31,14 @@ showState :: State -> String
 showState state = do
     let State{mem,cpu,cc} = state
     let Cpu{pc} = cpu
-    let bytes = memStarting mem pc
+    let bytes = snd $ Mem.run (Mem.Reads pc) mem
     let op = decode1 bytes
     let col = 48
     ljust col (displayOpLine pc op) <> show cpu <> " " <> show cc
 
 state0 :: [Byte] -> State
 state0 code = State
-    { mem = mem0 code
+    { mem = Mem.initializeWithCode codeLoadAddr code
     , cpu = cpu0
     , cc = 7 -- from nestest.log
     }
@@ -44,59 +46,12 @@ state0 code = State
 step :: State -> State
 step s = do
     let State{mem,cpu,cc} = s
-    let (mem',(cpu',n)) = runMem (interpret fetchDecodeExec cpu) mem
+    let (mem',(cpu',n)) = Mem.run (interpret fetchDecodeExec cpu) mem
     s { mem = mem', cpu = cpu', cc = cc + n }
-
 
 newtype Cycles = Cycles Int deriving (Num)
 
-instance Show Cycles where
-    show (Cycles n) = "CYC:" <> show n
-
-
-codeLoadAddr :: Addr
-codeLoadAddr = 0xC000
-
-data Mem = Mem
-    { code :: [Byte]
-    , ram :: Map Addr Byte
-    }
-
-mem0 :: [Byte] -> Mem
-mem0 code = Mem {code, ram = Map.empty}
-
-memStarting :: Mem -> Addr -> [Byte]
-memStarting Mem{code,ram} a =
-    if a >= codeLoadAddr
-    then drop (a `minusAddr` codeLoadAddr) code
-    else map (\n -> Map.findWithDefault byte0 (a `addAddr` n) ram) [0..]
-
-memUpdate :: Mem -> Addr -> Byte -> Mem
-memUpdate mem@Mem{ram} a b =
-    if a >= codeLoadAddr
-    then error "memUpdate,ROM!"
-    else mem { ram = Map.insert a b ram }
-
-data MemEffect a where
-    MemRet :: a -> MemEffect a
-    MemBind :: MemEffect a -> (a -> MemEffect b) -> MemEffect b
-    MemRead :: Addr -> MemEffect [Byte]
-    MemStore :: Addr -> Byte -> MemEffect ()
-
-
-instance Functor MemEffect where fmap = liftM
-instance Applicative MemEffect where pure = return; (<*>) = ap
-instance Monad MemEffect where return = MemRet; (>>=) = MemBind
-
-runMem :: MemEffect a -> Mem -> (Mem,a)
-runMem eff mem =
-    case eff of
-        MemRet a -> (mem,a)
-        MemBind m f -> do
-            let (mem',a) = runMem m mem
-            runMem (f a) mem'
-        MemRead addr -> (mem, memStarting mem addr)
-        MemStore addr byte -> (memUpdate mem addr byte,())
+instance Show Cycles where show (Cycles n) = "CYC:" <> show n
 
 data Cpu = Cpu
     { pc :: Addr
@@ -358,17 +313,16 @@ instance Functor Act where fmap = liftM
 instance Applicative Act where pure = return; (<*>) = ap
 instance Monad Act where return = Ret; (>>=) = Bind
 
-
-interpret :: Act a -> Cpu -> MemEffect (Cpu,a)
+interpret :: Act a -> Cpu -> Mem.Effect (Cpu,a)
 interpret act cpu = do
     let Cpu{pc,accumulator,xreg,yreg,sp,status} = cpu
     case act of
         Ret a -> nochange a
         Bind m f -> do (cpu',a) <- interpret m cpu; interpret (f a) cpu'
 
-        ReadMem addr -> do bytes <- MemRead addr; return (cpu,head bytes)
-        ReadsMem addr -> do bytes <- MemRead addr; return (cpu,bytes)
-        StoreMem addr byte -> do MemStore addr byte; return (cpu,())
+        ReadMem addr -> do bytes <- Mem.Reads addr; return (cpu,head bytes)
+        ReadsMem addr -> do bytes <- Mem.Reads addr; return (cpu,bytes)
+        StoreMem addr byte -> do Mem.Store addr byte; return (cpu,())
 
         PC -> nochange pc
         A -> nochange accumulator
@@ -392,5 +346,5 @@ interpret act cpu = do
         ClearFlag flag -> return (cpu { status = clearBit status $ bitNumOfFlag flag }, ())
 
     where
-        nochange :: a -> MemEffect (Cpu,a)
+        nochange :: a -> Mem.Effect (Cpu,a)
         nochange x = return (cpu,x)
