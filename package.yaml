@@ -14,6 +14,17 @@ dependencies:
 - containers
 - word8
 
+default-extensions:
+- GADTs
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- NamedFieldPuns
+#- NondecreasingIndentation
+#- NumericUnderscores
+#- OverloadedStrings
+#- RecordWildCards
+- ScopedTypeVariables
+
 library:
   source-dirs: src
   ghc-options:
