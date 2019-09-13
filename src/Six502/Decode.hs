@@ -37,16 +37,20 @@ opBytes = \case
     Op instruction mode rand -> encodeViaTable (instruction,mode) : randBytes rand
 
 decode1 :: [Byte] -> Op
-decode1 = head . decode
+decode1 = \case
+    [] -> error "decode1,[]"
+    b:bs ->
+        case decodeViaTable b of
+            Nothing -> Unknown b
+            Just (instruction,mode) ->
+                Op instruction mode rand where (rand,_) = takeMode mode bs
 
 decode :: [Byte] -> [Op]
 decode = \case
     [] -> []
-    b:bs ->
-        case decodeViaTable b of
-            Nothing -> Unknown b : decode bs
-            Just (instruction,mode) ->
-                Op instruction mode rand : decode bs' where (rand,bs') = takeMode mode bs
+    bs -> do
+        let op = decode1 bs
+        op : decode (drop (opSize op) bs)
 
 randBytes :: Arg -> [Byte]
 randBytes = \case
