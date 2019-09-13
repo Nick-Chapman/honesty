@@ -123,7 +123,7 @@ table =
     , (ROL, ZeroPage, 0x26)
     , (ROL, ZeroPageX, 0x36)
     , (ROR, Accumulator, 0x6a)
-    , (ROR, Absolute, 0x6e) -- emulator101 had op-code for this line and next swapped
+    , (ROR, Absolute, 0x6e)
     , (ROR, AbsoluteX, 0x7e)
     , (ROR, ZeroPage, 0x66)
     , (ROR, ZeroPageX, 0x76)
