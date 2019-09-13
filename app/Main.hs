@@ -8,7 +8,7 @@ import qualified Data.ByteString as BS (ByteString,readFile,unpack)
 
 import Six502.Values (Addr,addAddr,Byte(Byte))
 import Six502.Operations (Op)
-import Six502.Decode (decodeOps,reEncodeOps)
+import Six502.Decode (decode,reEncode)
 import Six502.Disassembler (displayOpLines)
 
 import qualified Six502.Emu as Emu
@@ -31,8 +31,8 @@ dis :: IO ()
 dis = do
     bytesIncHeaderAndJunk <- loadFile "data/nestest.nes"
     let bytes = drop topSkip $ take sizeCode $ drop headerSize bytesIncHeaderAndJunk
-    let ops :: [Op] = decodeOps bytes
-    let bytes' = reEncodeOps ops
+    let ops :: [Op] = decode bytes
+    let bytes' = reEncode ops
     when (bytes /= bytes') $ fail "re-assemble failed"
     mapM_ putStrLn $ displayOpLines (startAddr `addAddr` topSkip) ops
 

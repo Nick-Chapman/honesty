@@ -8,7 +8,7 @@ module Six502.Operations(
 
 import Six502.Values(Addr,Byte)
 
-data Op = Unknown [Byte] | Op Instruction Mode Arg deriving (Show)
+data Op = Unknown Byte | Op Instruction Mode Arg deriving (Show)
 
 data Instruction
     = ADC | AND | ASL | BCC | BCS | BEQ | BIT | BMI

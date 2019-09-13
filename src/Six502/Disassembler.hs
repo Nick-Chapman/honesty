@@ -19,9 +19,9 @@ displayOpLines a = \case
 
 displayOpLine :: Addr -> Op -> String
 displayOpLine at op = show at <> "  " <> case op of
-    Unknown bytes ->
+    Unknown byte ->
         ljust 8 (showOpBytes op)
-        <> "  ??? " <> show (map (Char.chr . fromIntegral . unByte) bytes)
+        <> "  ??? " <> show [Char.chr $ fromIntegral $ unByte byte]
     Op instruction mode rand ->
         ljust 8 (showOpBytes op)
         <> (if unofficial instruction then " *" else "  ")

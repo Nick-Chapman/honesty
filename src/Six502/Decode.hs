@@ -1,8 +1,8 @@
 
 module Six502.Decode (
     decode1,
-    decodeOps,
-    reEncodeOps,
+    decode,
+    reEncode,
     opBytes,
     opSize,
     ) where
@@ -14,8 +14,8 @@ import Six502.Values
 import Six502.Operations
 import qualified Six502.OpCode as OpCode(table)
 
-reEncodeOps :: [Op] -> [Byte]
-reEncodeOps = join . map opBytes
+reEncode :: [Op] -> [Byte]
+reEncode = join . map opBytes
 
 decodeViaTable :: Byte -> Maybe (Instruction,Mode)
 decodeViaTable byte = -- TODO: be more efficient!
@@ -33,28 +33,20 @@ encodeViaTable (instruction,mode) = -- TODO: be more efficient!
 
 opBytes :: Op -> [Byte]
 opBytes = \case
-    Unknown bs -> bs
+    Unknown b -> [b]
     Op instruction mode rand -> encodeViaTable (instruction,mode) : randBytes rand
 
 decode1 :: [Byte] -> Op
-decode1 = head . decodeOps
+decode1 = head . decode
 
-decodeOps :: [Byte] -> [Op]
-decodeOps = dis []
-
-dis :: [Byte] -> [Byte] -> [Op]
-dis junk = \case
-    [] -> flush []
+decode :: [Byte] -> [Op]
+decode = \case
+    [] -> []
     b:bs ->
         case decodeViaTable b of
-            Nothing -> dis (b:junk) bs
+            Nothing -> Unknown b : decode bs
             Just (instruction,mode) ->
-                flush $ Op instruction mode rand : dis [] bs' where (rand,bs') = takeMode mode bs
-    where
-        flush :: [Op] -> [Op]
-        flush ops = case junk of
-            [] -> ops
-            _ -> Unknown (reverse junk) : ops
+                Op instruction mode rand : decode bs' where (rand,bs') = takeMode mode bs
 
 randBytes :: Arg -> [Byte]
 randBytes = \case
@@ -67,7 +59,7 @@ takeMode = snd . specMode
 
 opSize :: Op -> Int
 opSize = \case
-    Unknown xs -> length xs
+    Unknown _ -> 1
     Op _ mode _ -> 1 + modeSize mode
 
 modeSize :: Mode -> Int
