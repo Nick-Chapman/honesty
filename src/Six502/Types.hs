@@ -46,6 +46,6 @@ data Mode
     | Indirect
     deriving (Eq,Show)
 
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Num,Bits)
+newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Num,Bits)
 
 instance Show Byte where show = printf "%02X" . unByte

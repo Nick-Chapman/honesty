@@ -154,16 +154,39 @@ action = \case
     Op SED Implied RandNull -> do SetFlag FlagDecimal; cycles 2
 
     Op CLC Implied RandNull -> do ClearFlag FlagCarry; cycles 2
+    Op CLD Implied RandNull -> do ClearFlag FlagDecimal; cycles 2
+    Op CLV Implied RandNull -> do ClearFlag FlagOverflow; cycles 2
 
     Op BCS Relative (RandByte b) -> TestFlag FlagCarry >>= branch b
     Op BEQ Relative (RandByte b) -> TestFlag FlagZero  >>= branch b
     Op BVS Relative (RandByte b) -> TestFlag FlagOverflow  >>= branch b
---    Op BMI Relative (RandByte b) -> TestFlag FlagNegative  >>= branch b
+    Op BMI Relative (RandByte b) -> TestFlag FlagNegative  >>= branch b
 
     Op BCC Relative (RandByte b) -> TestFlag FlagCarry >>= (branch b . not)
     Op BNE Relative (RandByte b) -> TestFlag FlagZero  >>= (branch b . not)
     Op BVC Relative (RandByte b) -> TestFlag FlagOverflow  >>= (branch b . not)
     Op BPL Relative (RandByte b) -> TestFlag FlagNegative  >>= (branch b . not)
+
+    Op AND Immediate (RandByte b) -> do
+        acc <- A
+        let v = acc .&. b
+        SetA v
+        updateNZ v
+        cycles 2
+
+    Op ORA Immediate (RandByte b) -> do
+        acc <- A
+        let v = acc .|. b
+        SetA v
+        updateNZ v
+        cycles 2
+
+    Op EOR Immediate (RandByte b) -> do
+        acc <- A
+        let v = acc `xor` b
+        SetA v
+        updateNZ v
+        cycles 2
 
     Op BIT ZeroPage (RandByte b) -> do
         mask <- A
@@ -196,17 +219,49 @@ action = \case
         cycles 3
 
     Op JSR Absolute (RandAddr a) -> do
-        here <- PC --TODO: -1 ?
-        pushStack here
+        here <- PC
+        pushStackA (here `addAddr` (-1))
         SetPC a
         cycles 6
 
     Op RTS Implied RandNull -> do
-        target <- popStack
-        SetPC target
+        target <- popStackA
+        SetPC (target `addAddr` 1)
         cycles 6
 
+    Op PHP Implied RandNull -> do
+        byte <- Status
+        pushStack (byte .|. 0x30) -- The B flag!
+        cycles 3
+
+    Op PHA Implied RandNull -> do
+        byte <- A
+        pushStack byte
+        cycles 3
+
+    Op PLA Implied RandNull -> do
+        v <- popStack
+        SetA v
+        updateNZ v
+        cycles 4
+
+    Op PLP Implied RandNull -> do
+        v <- popStack
+        SetStatus v
+        cycles 4
+
+    Op CMP Immediate (RandByte b) -> do
+        a <- A
+        compareBytes a b
+        cycles 2
+
     op -> error $ "action: " <> show op
+
+compareBytes :: Byte -> Byte -> Act ()
+compareBytes a b = do
+    updateFlag (a == b) FlagZero
+    updateFlag (a >= b) FlagCarry
+    updateFlag (a < b) FlagNegative
 
 updateNZ :: Byte -> Act ()
 updateNZ b = do
@@ -236,21 +291,30 @@ jumpRel offset = do
 cycles :: Int -> Act Cycles
 cycles n = return $ Cycles n
 
-pushStack :: Addr -> Act ()
-pushStack a = do
-    top <- SP
-    let (hi,lo) = addrToHiLo a
-    StoreMem (page1Addr top `addAddr` (-1)) hi -- check
-    StoreMem (page1Addr top `addAddr` (-2)) lo -- check
-    SetSP (top `addByte` (-2))
+pushStackA :: Addr -> Act ()
+pushStackA addr = do
+    let (hi,lo) = addrToHiLo addr
+    pushStack hi
+    pushStack lo
 
-popStack :: Act Addr
+pushStack :: Byte -> Act ()
+pushStack byte = do
+    top <- SP
+    let top' = top `addByte` (-1)
+    StoreMem (page1Addr top') byte
+    SetSP top'
+
+popStackA :: Act Addr
+popStackA = do
+    lo <- popStack
+    hi <- popStack
+    return $ addrOfHiLo hi lo
+
+popStack :: Act Byte
 popStack = do
     top <- SP
-    lo <- ReadMem (page1Addr top)
-    hi <- ReadMem (page1Addr top `addAddr` 1)
-    SetSP (top `addByte` 2)
-    return $ addrOfHiLo hi lo
+    SetSP (top `addByte` 1)
+    ReadMem (page1Addr top)
 
 data Flag
     = FlagCarry
@@ -275,16 +339,21 @@ data Act a where
     ReadMem :: Addr -> Act Byte
     ReadsMem :: Addr -> Act [Byte]
     StoreMem :: Addr -> Byte -> Act ()
+
     PC :: Act Addr
-    SetPC :: Addr -> Act ()
     A :: Act Byte
-    SetA :: Byte -> Act ()
     X :: Act Byte
-    SetX :: Byte -> Act ()
     Y :: Act Byte
-    SetY :: Byte -> Act ()
     SP :: Act Byte
+    Status :: Act Byte
+
+    SetPC :: Addr -> Act ()
+    SetA :: Byte -> Act ()
+    SetX :: Byte -> Act ()
+    SetY :: Byte -> Act ()
     SetSP :: Byte -> Act ()
+    SetStatus :: Byte -> Act ()
+
     TestFlag :: Flag -> Act Bool
     SetFlag :: Flag -> Act ()
     ClearFlag :: Flag -> Act ()
@@ -310,12 +379,17 @@ interpret act cpu = do
         X -> nochange xreg
         Y -> nochange yreg
         SP -> nochange sp
+        Status -> nochange status
 
         SetPC addr -> return (cpu {pc=addr}, ())
         SetA byte -> return (cpu {accumulator=byte}, ())
         SetX byte -> return (cpu {xreg=byte}, ())
         SetY byte -> return (cpu {yreg=byte}, ())
         SetSP byte -> return (cpu {sp=byte}, ())
+
+        SetStatus byte -> do
+            let byte' = (byte .&. 0xCF) .|. 0x20 -- bits 5,4 always set to 1,0
+            return (cpu {status=byte'}, ())
 
         TestFlag flag -> nochange $ testBit status (bitNumOfFlag flag)
         SetFlag flag -> return (cpu { status = setBit status $ bitNumOfFlag flag }, ())

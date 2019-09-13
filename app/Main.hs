@@ -27,8 +27,7 @@ emu = do
     bytesIncHeaderAndJunk <- loadFile "data/nestest.nes"
     let bytes = drop topSkip $ take sizeCode $ drop headerSize bytesIncHeaderAndJunk
     let xs :: [Emu.State] = Emu.run bytes
-    let limit = 100
-    mapM_ (putStrLn . Emu.showState) (take limit xs)
+    mapM_ (putStrLn . Emu.showState) xs
 
 dis :: IO ()
 dis = do
