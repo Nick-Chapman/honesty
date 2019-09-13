@@ -1,13 +1,14 @@
 
-module Six502.Types(
+module Six502.Operations(
+    Op(..),
     Instruction(..),
     Mode(..),
-    Byte(..),
+    Rand(..)
     ) where
 
-import Data.Bits
-import Data.Word8 (Word8)
-import Text.Printf (printf)
+import Six502.Values(Addr,Byte)
+
+data Op = Unknown [Byte] | Op Instruction Mode Rand deriving (Show)
 
 data Instruction
     = ADC | AND | ASL | BCC | BCS | BEQ | BIT | BMI
@@ -43,6 +44,4 @@ data Mode
     | Indirect
     deriving (Eq,Show)
 
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Num,Bits)
-
-instance Show Byte where show = printf "%02X" . unByte
+data Rand = RandByte Byte | RandAddr Addr | RandNull deriving (Show)

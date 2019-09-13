@@ -1,35 +1,18 @@
 
 module Six502.Decode (
-    Op(..),
-    Rand(..),
-    Addr(..),
     decode1,
     decodeOps,
     reEncodeOps,
     opBytes,
-    sizeMode,
-    byteToSigned,
-    addAddr,
-    minusAddr,
-    zeroPageAddr,
-    page1Addr,
-    addrToHiLo,
-    addrOfHiLo,
-    addByte,
+    opSize,
     ) where
 
-import Data.Word (Word16)
 import Control.Monad (join)
 import Data.Maybe (mapMaybe)
-import Text.Printf (printf)
 
-import Six502.Types (Byte(Byte,unByte),Instruction(..),Mode(..))
+import Six502.Values
+import Six502.Operations
 import qualified Six502.OpCode as OpCode(table)
-
-data Op
-    = Unknown [Byte]
-    | Op Instruction Mode Rand
-    deriving (Show)
 
 reEncodeOps :: [Op] -> [Byte]
 reEncodeOps = join . map opBytes
@@ -53,7 +36,6 @@ opBytes = \case
     Unknown bs -> bs
     Op instruction mode rand -> encodeViaTable (instruction,mode) : randBytes rand
 
-
 decode1 :: [Byte] -> Op
 decode1 = head . decodeOps
 
@@ -74,8 +56,6 @@ dis junk = \case
             [] -> ops
             _ -> Unknown (reverse junk) : ops
 
-data Rand = RandByte Byte | RandAddr Addr | RandNull deriving (Show)
-
 randBytes :: Rand -> [Byte]
 randBytes = \case
     RandByte b -> [b]
@@ -85,8 +65,13 @@ randBytes = \case
 takeMode :: Mode -> [Byte] -> (Rand,[Byte])
 takeMode = snd . specMode
 
-sizeMode :: Mode -> Int
-sizeMode = fst . specMode
+opSize :: Op -> Int
+opSize = \case
+    Unknown xs -> length xs
+    Op _ mode _ -> 1 + modeSize mode
+
+modeSize :: Mode -> Int
+modeSize = fst . specMode
 
 type ModeSpec = (Int, [Byte] -> (Rand,[Byte]))
 
@@ -114,43 +99,3 @@ spec1 = (1, \case b:rest -> (RandByte b, rest); _ -> error "spec1")
 
 spec2 :: ModeSpec
 spec2 = (2, \case lo:hi:rest -> (RandAddr $ addrOfHiLo hi lo, rest); _ -> error "take2")
-
-addrOfHiLo :: Byte -> Byte -> Addr
-addrOfHiLo hi lo =
-    Addr (256 * fromIntegral (unByte hi) + fromIntegral (unByte lo))
-
-addrToHiLo :: Addr -> (Byte,Byte)
-addrToHiLo a = (hi,lo) where -- do it with Bits instead?
-    lo = byteOfInt $ n `mod` 256
-    hi = byteOfInt $ n `div` 256
-    n = fromIntegral $ unAddr a
-
-byteOfInt :: Int -> Byte
-byteOfInt = Byte . fromIntegral
-
-byteToUnsigned :: Byte -> Int
-byteToUnsigned = fromIntegral . unByte
-
-byteToSigned :: Byte -> Int
-byteToSigned = sign . fromIntegral . unByte
-    where sign n = if n>=128 then n-256 else n
-
-addByte :: Byte -> Int -> Byte
-addByte a n = Byte (unByte a + fromIntegral n)
-
-
-newtype Addr = Addr { unAddr :: Word16 } deriving (Eq,Ord,Num)
-
-instance Show Addr where show = printf "%04X" . unAddr
-
-addAddr :: Addr -> Int -> Addr
-addAddr a n = Addr (unAddr a + fromIntegral n)
-
-minusAddr :: Addr -> Addr -> Int
-minusAddr later earlier = fromIntegral (unAddr later - unAddr earlier)
-
-zeroPageAddr :: Byte -> Addr
-zeroPageAddr b = Addr $ fromIntegral $ byteToUnsigned b
-
-page1Addr :: Byte -> Addr
-page1Addr b = Addr $ 256 + (fromIntegral $ byteToUnsigned b)

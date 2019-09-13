@@ -3,24 +3,19 @@ module Six502.Disassembler (
     displayOpLine,
     displayOpLines,
     ljust,
-    sizeOp,
     ) where
 
 import Data.Char as Char(chr)
 
-import Six502.Types (Byte(unByte),Instruction(..),Mode(..))
-import Six502.Decode (Addr(..),Op(..),Rand(..),sizeMode,addAddr,opBytes,byteToSigned)
+import Six502.Values
+import Six502.Operations
+import Six502.Decode (opBytes,opSize)
 
 displayOpLines :: Addr -> [Op] -> [String]
 displayOpLines a = \case
     [] -> []
     op:ops ->
-        displayOpLine a op : displayOpLines (a `addAddr` sizeOp op) ops
-
-sizeOp :: Op -> Int
-sizeOp = \case
-    Unknown xs -> length xs
-    Op _ mode _ -> 1 + sizeMode mode
+        displayOpLine a op : displayOpLines (a `addAddr` opSize op) ops
 
 displayOpLine :: Addr -> Op -> String
 displayOpLine at op = show at <> "  " <> case op of

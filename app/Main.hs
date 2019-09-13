@@ -1,13 +1,14 @@
 
 module Main (main) where
 
-import qualified Data.ByteString as BS
-import Data.Word8
-import Control.Monad
+import Data.Word8 (Word8)
+import Control.Monad (when)
 import System.Environment (getArgs)
+import qualified Data.ByteString as BS (ByteString,readFile,unpack)
 
-import Six502.Types (Byte(..))
-import Six502.Decode (Op,Addr,decodeOps,reEncodeOps,addAddr)
+import Six502.Values (Addr,addAddr,Byte(Byte))
+import Six502.Operations (Op)
+import Six502.Decode (decodeOps,reEncodeOps)
 import Six502.Disassembler (displayOpLines)
 
 import qualified Six502.Emu as Emu

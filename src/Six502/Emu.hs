@@ -10,9 +10,10 @@ import Data.Bits
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
-import Six502.Types
-import Six502.Decode
-import Six502.Disassembler
+import Six502.Values
+import Six502.Operations
+import Six502.Decode (decode1,opSize)
+import Six502.Disassembler (ljust,displayOpLine)
 
 run :: [Byte] -> [State]
 run code = stepFrom (state0 code)
@@ -136,7 +137,7 @@ fetchDecode = do
     pc <- PC
     bytes <- ReadsMem pc
     let op = decode1 bytes
-    SetPC (pc `addAddr` sizeOp op)
+    SetPC (pc `addAddr` opSize op)
     return $ op
 
 action :: Op -> Act Cycles
