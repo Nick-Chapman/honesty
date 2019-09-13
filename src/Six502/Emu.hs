@@ -118,25 +118,66 @@ action = \case
     Op BVC Relative (ArgByte b) -> TestFlag FlagOverflow  >>= (branch b . not)
     Op BPL Relative (ArgByte b) -> TestFlag FlagNegative  >>= (branch b . not)
 
-    Op ADC Immediate (ArgByte in2) -> do
+    Op ADC mode arg -> do
         in1 <- A
-        cin <- TestFlag FlagCarry
-        let (res,cout) = adc cin in1 in2
-        SetA res
-        updateFlag cout FlagCarry
-        updateFlag (res == 0x0) FlagZero
-        let signRes = testBit res 7
-        -- The overflow flag is set if the sign-bit of the result does match either of the args.
-        let signOverflow = (signRes /= signIn1) && (signRes /= signIn2)
-                where signIn1 = testBit in1 7
-                      signIn2 = testBit in2 7
-        updateFlag signOverflow FlagOverflow
-        updateFlag signRes FlagNegative
-        cycles 2
+        (in2,n) <- load mode arg 0
+        addWithCarry in1 in2
+        return n
 
-    Op SBC Immediate (ArgByte in2) -> do
+    Op SBC mode arg -> do
+        in1 <- A
+        (in2,n) <- load mode arg 0
         -- SBC takes the ones complement of the second value and then performs an ADC.
-        action $ Op ADC Immediate (ArgByte (complement in2))
+        addWithCarry in1 (complement in2)
+        return n
+
+    Op ASL mode arg -> do
+        (v,n) <- load mode arg 2
+        let v' = shiftL v 1
+        updateFlag (testBit v 7) FlagCarry
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
+
+    Op ROL mode arg -> do
+        (v,n) <- load mode arg 2
+        cin <- TestFlag FlagCarry
+        updateFlag (testBit v 7) FlagCarry
+        let v' = (if cin then setBit else clearBit) (shiftL v 1) 0
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
+
+    Op LSR mode arg -> do
+        (v,n) <- load mode arg 2
+        let v' = shiftR v 1
+        updateFlag (testBit v 0) FlagCarry
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
+
+    Op ROR mode arg -> do
+        (v,n) <- load mode arg 2
+        cin <- TestFlag FlagCarry
+        updateFlag (testBit v 0) FlagCarry
+        let v' = (if cin then setBit else clearBit) (shiftR v 1) 7
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
+
+    Op INC mode arg -> do
+        (v,n) <- load mode arg 2
+        let v' = v + 1
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
+
+    Op DEC mode arg -> do
+        (v,n) <- load mode arg 2
+        let v' = v - 1
+        _ <- store mode arg v'
+        updateNZ v'
+        return n
 
     Op INX Implied ArgNull -> do
         v <- X
@@ -166,70 +207,88 @@ action = \case
         updateNZ v'
         cycles 2
 
-    Op AND Immediate (ArgByte b) -> do
+    Op AND mode arg -> do
         acc <- A
-        let v = acc .&. b
-        SetA v
-        updateNZ v
-        cycles 2
+        (v,n) <- load mode arg 0
+        let v' = acc .&. v
+        SetA v'
+        updateNZ v'
+        return n
 
-    Op ORA Immediate (ArgByte b) -> do
+    Op ORA mode arg -> do
         acc <- A
-        let v = acc .|. b
-        SetA v
-        updateNZ v
-        cycles 2
+        (v,n) <- load mode arg 0
+        let v' = acc .|. v
+        SetA v'
+        updateNZ v'
+        return n
 
-    Op EOR Immediate (ArgByte b) -> do
+    Op EOR mode arg -> do
         acc <- A
-        let v = acc `xor` b
-        SetA v
-        updateNZ v
-        cycles 2
+        (v,n) <- load mode arg 0
+        let v' = acc `xor` v
+        SetA v'
+        updateNZ v'
+        return n
 
-    Op BIT ZeroPage (ArgByte b) -> do
+    Op BIT mode arg -> do
         mask <- A
-        v <- ReadMem (zeroPageAddr b)
+        (v,n) <- load mode arg 0
         updateFlag (v .&. mask == 0x0) FlagZero
         updateFlag (testBit v 6) FlagOverflow
         updateFlag (testBit v 7) FlagNegative
-        cycles 3
+        return n
 
     Op JMP Absolute (ArgAddr a) -> do
         SetPC a
         cycles 3
 
+    Op JMP Indirect (ArgAddr a) -> do
+
+        --let a' = a + 1
+
+        -- An original 6502 has does not correctly fetch the target
+        -- address if the indirect vector falls on a page boundary
+        -- (e.g. $xxFF where xx is any value from $00 to $FF). In this
+        -- case fetches the LSB from $xxFF as expected but takes the
+        -- MSB from $xx00.
+
+        let a' = addrOfHiLo hi (lo + 1) where (hi,lo) = addrToHiLo a
+        lo <- ReadMem a
+        hi <- ReadMem a'
+        let addr = addrOfHiLo hi lo
+        SetPC addr
+        cycles 5
+
     Op LDA mode arg -> do
-        (b,n) <- load mode arg
+        (b,n) <- load mode arg 0
         SetA b
         updateNZ b
         return n
 
     Op LDX mode arg -> do
-        (b,n) <- load mode arg
+        (b,n) <- load mode arg 0
         SetX b
         updateNZ b
         return n
 
-    Op LDY Immediate (ArgByte b) -> do
+    Op LDY mode arg -> do
+        (b,n) <- load mode arg 0
         SetY b
         updateNZ b
-        cycles 2
+        return n
 
-    Op STA ZeroPage (ArgByte b) -> do
-        v <- A;
-        StoreMem (zeroPageAddr b) v
-        cycles 3
+    Op STA mode arg -> do
+        v <- A
+        store mode arg v
 
-    Op STX ZeroPage (ArgByte b) -> do
-        v <- X;
-        StoreMem (zeroPageAddr b) v
-        cycles 3
+    Op STX mode arg -> do
+        v <- X
+        store mode arg v
 
-    Op STX Absolute (ArgAddr addr) -> do
-        v <- X;
-        StoreMem addr v
-        cycles 4
+    Op STY mode arg -> do
+        v <- Y
+        store mode arg v
 
     Op TAX Implied ArgNull -> transfer A SetX
     Op TAY Implied ArgNull -> transfer A SetY
@@ -247,6 +306,13 @@ action = \case
     Op RTS Implied ArgNull -> do
         target <- popStackA
         SetPC (target `addAddr` 1)
+        cycles 6
+
+    Op RTI Implied ArgNull -> do
+        status <- popStack
+        pc <- popStackA
+        SetStatus status
+        SetPC pc
         cycles 6
 
     Op PHP Implied ArgNull -> do
@@ -270,29 +336,98 @@ action = \case
         SetStatus v
         cycles 4
 
-    Op CMP Immediate (ArgByte b) -> do
+    Op CMP mode arg -> do
         a <- A
+        (b,n) <- load mode arg 0
         compareBytes a b
-        cycles 2
+        return n
 
-    Op CPX Immediate (ArgByte b) -> do
-        x <- X
-        compareBytes x b
-        cycles 2
+    Op CPX mode arg -> do
+        a <- X
+        (b,n) <- load mode arg 0
+        compareBytes a b
+        return n
 
-    Op CPY Immediate (ArgByte b) -> do
-        y <- Y
-        compareBytes y b
-        cycles 2
+    Op CPY mode arg -> do
+        a <- Y
+        (b,n) <- load mode arg 0
+        compareBytes a b
+        return n
 
     op -> error $ "action: " <> show op
 
+load :: Mode -> Arg -> Cycles -> Act (Byte,Cycles)
+load mode arg c = case (mode,arg) of
 
-load :: Mode -> Arg -> Act (Byte,Cycles)
-load mode arg = case (mode,arg) of
-    (Immediate, ArgByte b) -> return (b,2)
-    (Absolute, ArgAddr a) -> do b <- ReadMem a; return (b,4)
-    x -> error $ show x
+    (Immediate, ArgByte v) -> do
+        return (v,2)
+
+    (Accumulator, ArgNull) -> do
+        v <- A
+        return (v,2)
+
+    (ZeroPage, ArgByte b) -> do
+        v <- ReadMem (zeroPageAddr b)
+        return (v,3+c)
+
+    (Absolute, ArgAddr a) -> do
+        v <- ReadMem a
+        return (v,4+c)
+
+    (IndexedIndirect, ArgByte b) -> do
+        a <- indexedIndirect b
+        v <- ReadMem a
+        return (v,6)
+
+    (IndirectIndexed, ArgByte b) -> do
+        (a,pageCrossed) <- indirectIndexed b
+        v <- ReadMem a
+        return (v,if pageCrossed then 6 else 5)
+
+    x -> error $ "load: " <> show x
+
+store :: Mode -> Arg -> Byte -> Act Cycles
+store mode arg v = case (mode,arg) of
+
+    (Accumulator, ArgNull) -> do
+        SetA v
+        return 0
+
+    (ZeroPage, ArgByte b) -> do
+        StoreMem (zeroPageAddr b) v
+        cycles 3
+
+    (Absolute, ArgAddr a) -> do
+        StoreMem a v
+        cycles 4
+
+    (IndexedIndirect, ArgByte b) -> do
+        a <- indexedIndirect b
+        StoreMem a v
+        return 6
+
+    (IndirectIndexed, ArgByte b) -> do
+        (a,_) <- indirectIndexed b
+        StoreMem a v
+        return 6
+
+    x -> error $ "store: " <> show x
+
+indexedIndirect :: Byte -> Act Addr
+indexedIndirect b = do
+    x <- X
+    lo <- ReadMem (zeroPageAddr (b + x))
+    hi <- ReadMem (zeroPageAddr (b + x + 1)) -- increment *then* wrap
+    return $ addrOfHiLo hi lo
+
+indirectIndexed :: Byte -> Act (Addr,Bool)
+indirectIndexed b = do
+    y <- Y
+    lo <- ReadMem (zeroPageAddr b)
+    hi <- ReadMem (zeroPageAddr (b + 1)) -- increment *then* wrap
+    let (lo',pageCrossed) = adc False lo y
+    let addr = addrOfHiLo (if pageCrossed then hi+1 else hi) lo'
+    return (addr,pageCrossed)
 
 transfer :: Act Byte  -> (Byte -> Act ()) -> Act Cycles
 transfer from into = do
@@ -359,6 +494,21 @@ popStack = do
     let top' = top + 1
     SetSP top'
     ReadMem (page1Addr top')
+
+addWithCarry :: Byte -> Byte -> Act ()
+addWithCarry in1 in2 = do
+    cin <- TestFlag FlagCarry
+    let (res,cout) = adc cin in1 in2
+    SetA res
+    updateFlag cout FlagCarry
+    updateFlag (res == 0x0) FlagZero
+    let signRes = testBit res 7
+    -- The overflow flag is set if the sign-bit of the result does match either of the args.
+    let signOverflow = (signRes /= signIn1) && (signRes /= signIn2)
+            where signIn1 = testBit in1 7
+                  signIn2 = testBit in2 7
+    updateFlag signOverflow FlagOverflow
+    updateFlag signRes FlagNegative
 
 data Flag
     = FlagCarry
