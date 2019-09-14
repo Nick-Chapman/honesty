@@ -16,9 +16,19 @@ import qualified Six502.Emu as Emu
 main :: IO ()
 main = do
     getArgs >>= \case
+        ["--header"] -> header
         ["--dis"] -> dis
         [] -> emu
         args -> error $ "args: " <> show args
+
+header :: IO () -- see header details
+header = do
+    bs <- loadFile "data/nestest.nes"
+    putStrLn $ unwords $ map show (take headerSize bs)
+    print ("length-file",length bs)
+    print ("calc", show ((16 + 16*0x400 + 8*0x400) :: Int))
+    print ("oneCodeChunk(16k)", show ((16*0x400)::Int))
+    print ("sizeCode", sizeCode)
 
 emu :: IO ()
 emu = do
