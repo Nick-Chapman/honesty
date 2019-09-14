@@ -17,6 +17,7 @@ diff -u <(cat data/nestest.log-cut |
               sed 's/@ .... = ../           /' |
               sed 's/= .... @ .... = ../                  /' |
               sed 's/= .... /       /' |
+              sed 's/@ .. /     /' |
               sed 's/= .. /     /'
          ) em.log > diff.log
 

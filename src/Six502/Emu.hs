@@ -85,18 +85,57 @@ byte0 :: Byte
 byte0 = 0x0
 
 fetchDecodeExec :: Act Cycles
-fetchDecodeExec = fetchDecode >>= action
-
-fetchDecode :: Act Op
-fetchDecode = do
+fetchDecodeExec = do
     pc <- PC
     bytes <- ReadsMem pc
     let op = decode1 bytes
     SetPC (pc `addAddr` opSize op)
-    return $ op
+    action pc op
 
-action :: Op -> Act Cycles
-action = \case
+extraReadModifyWriteOpCycles :: Mode -> Cycles
+extraReadModifyWriteOpCycles = \case
+    ZeroPage -> 2
+    ZeroPageX -> 2
+    Absolute -> 2
+    AbsoluteX -> 3
+    _ -> 0
+
+nopAbsoluteX :: Addr -> Act Cycles
+nopAbsoluteX a = do
+    (_,pageCrossed) <- absoluteX a
+    cycles (if pageCrossed then 5 else 4)
+
+action :: Addr -> Op -> Act Cycles
+action pc = \case
+
+    Op NOP_04 _ _ -> cycles 3
+    Op NOP_44 _ _ -> cycles 3
+    Op NOP_64 _ _ -> cycles 3
+
+    Op NOP_0C _ _ -> cycles 4
+
+    Op NOP_14 _ _ -> cycles 4
+    Op NOP_34 _ _ -> cycles 4
+    Op NOP_54 _ _ -> cycles 4
+    Op NOP_74 _ _ -> cycles 4
+    Op NOP_D4 _ _ -> cycles 4
+    Op NOP_F4 _ _ -> cycles 4
+
+    Op NOP_1A _ _ -> cycles 2
+    Op NOP_3A _ _ -> cycles 2
+    Op NOP_5A _ _ -> cycles 2
+    Op NOP_7A _ _ -> cycles 2
+    Op NOP_DA _ _ -> cycles 2
+    Op NOP_FA _ _ -> cycles 2
+
+    Op NOP_80 _ _ -> cycles 2
+
+    Op NOP_1C AbsoluteX (ArgAddr a) -> nopAbsoluteX a
+    Op NOP_3C AbsoluteX (ArgAddr a) -> nopAbsoluteX a
+    Op NOP_5C AbsoluteX (ArgAddr a) -> nopAbsoluteX a
+    Op NOP_7C AbsoluteX (ArgAddr a) -> nopAbsoluteX a
+    Op NOP_DC AbsoluteX (ArgAddr a) -> nopAbsoluteX a
+    Op NOP_FC AbsoluteX (ArgAddr a) -> nopAbsoluteX a
 
     Op NOP Implied ArgNull -> cycles 2
 
@@ -120,64 +159,69 @@ action = \case
 
     Op ADC mode arg -> do
         in1 <- A
-        (in2,n) <- load mode arg 0
+        (in2,n) <- load pc mode arg
         addWithCarry in1 in2
         return n
 
     Op SBC mode arg -> do
         in1 <- A
-        (in2,n) <- load mode arg 0
+        (in2,n) <- load pc mode arg
         -- SBC takes the ones complement of the second value and then performs an ADC.
         addWithCarry in1 (complement in2)
         return n
 
+    Op SBC_extra Immediate (ArgByte in2) -> do
+        in1 <- A
+        addWithCarry in1 (complement in2)
+        return 2
+
     Op ASL mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         let v' = shiftL v 1
         updateFlag (testBit v 7) FlagCarry
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op ROL mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         cin <- TestFlag FlagCarry
         updateFlag (testBit v 7) FlagCarry
         let v' = (if cin then setBit else clearBit) (shiftL v 1) 0
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op LSR mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         let v' = shiftR v 1
         updateFlag (testBit v 0) FlagCarry
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op ROR mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         cin <- TestFlag FlagCarry
         updateFlag (testBit v 0) FlagCarry
         let v' = (if cin then setBit else clearBit) (shiftR v 1) 7
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op INC mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         let v' = v + 1
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op DEC mode arg -> do
-        (v,n) <- load mode arg 2
+        (v,n) <- load pc mode arg
         let v' = v - 1
-        _ <- store mode arg v'
+        _ <- store pc mode arg v'
         updateNZ v'
-        return n
+        return $ extraReadModifyWriteOpCycles mode + n
 
     Op INX Implied ArgNull -> do
         v <- X
@@ -209,7 +253,7 @@ action = \case
 
     Op AND mode arg -> do
         acc <- A
-        (v,n) <- load mode arg 0
+        (v,n) <- load pc mode arg
         let v' = acc .&. v
         SetA v'
         updateNZ v'
@@ -217,7 +261,7 @@ action = \case
 
     Op ORA mode arg -> do
         acc <- A
-        (v,n) <- load mode arg 0
+        (v,n) <- load pc mode arg
         let v' = acc .|. v
         SetA v'
         updateNZ v'
@@ -225,7 +269,7 @@ action = \case
 
     Op EOR mode arg -> do
         acc <- A
-        (v,n) <- load mode arg 0
+        (v,n) <- load pc mode arg
         let v' = acc `xor` v
         SetA v'
         updateNZ v'
@@ -233,7 +277,7 @@ action = \case
 
     Op BIT mode arg -> do
         mask <- A
-        (v,n) <- load mode arg 0
+        (v,n) <- load pc mode arg
         updateFlag (v .&. mask == 0x0) FlagZero
         updateFlag (testBit v 6) FlagOverflow
         updateFlag (testBit v 7) FlagNegative
@@ -260,35 +304,47 @@ action = \case
         SetPC addr
         cycles 5
 
+    Op LAX mode arg -> do
+        (b,n) <- load pc mode arg
+        SetA b
+        SetX b
+        updateNZ b
+        return n
+
     Op LDA mode arg -> do
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         SetA b
         updateNZ b
         return n
 
     Op LDX mode arg -> do
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         SetX b
         updateNZ b
         return n
 
     Op LDY mode arg -> do
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         SetY b
         updateNZ b
         return n
 
+    Op SAX mode arg -> do
+        v1 <- A
+        v2 <- X
+        store pc mode arg (v1 .&. v2)
+
     Op STA mode arg -> do
         v <- A
-        store mode arg v
+        store pc mode arg v
 
     Op STX mode arg -> do
         v <- X
-        store mode arg v
+        store pc mode arg v
 
     Op STY mode arg -> do
         v <- Y
-        store mode arg v
+        store pc mode arg v
 
     Op TAX Implied ArgNull -> transfer A SetX
     Op TAY Implied ArgNull -> transfer A SetY
@@ -338,26 +394,26 @@ action = \case
 
     Op CMP mode arg -> do
         a <- A
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         compareBytes a b
         return n
 
     Op CPX mode arg -> do
         a <- X
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         compareBytes a b
         return n
 
     Op CPY mode arg -> do
         a <- Y
-        (b,n) <- load mode arg 0
+        (b,n) <- load pc mode arg
         compareBytes a b
         return n
 
     op -> error $ "action: " <> show op
 
-load :: Mode -> Arg -> Cycles -> Act (Byte,Cycles)
-load mode arg c = case (mode,arg) of
+load :: Addr -> Mode -> Arg -> Act (Byte,Cycles)
+load pc mode arg = case (mode,arg) of
 
     (Immediate, ArgByte v) -> do
         return (v,2)
@@ -367,12 +423,33 @@ load mode arg c = case (mode,arg) of
         return (v,2)
 
     (ZeroPage, ArgByte b) -> do
-        v <- ReadMem (zeroPageAddr b)
-        return (v,3+c)
+        let a = zeroPageAddr b
+        v <- ReadMem a
+        return (v,3)
+
+    (ZeroPageX, ArgByte b) -> do
+        a <- zeroPageX b
+        v <- ReadMem a
+        return (v,4)
+
+    (ZeroPageY, ArgByte b) -> do
+        a <- zeroPageY b
+        v <- ReadMem a
+        return (v,4)
 
     (Absolute, ArgAddr a) -> do
         v <- ReadMem a
-        return (v,4+c)
+        return (v,4)
+
+    (AbsoluteX, ArgAddr a) -> do
+        (ea,pageCrossed) <- absoluteX a
+        v <- ReadMem ea
+        return (v,if pageCrossed then 5 else 4)
+
+    (AbsoluteY, ArgAddr a) -> do
+        (ea,pageCrossed) <- absoluteY a
+        v <- ReadMem ea
+        return (v,if pageCrossed then 5 else 4)
 
     (IndexedIndirect, ArgByte b) -> do
         a <- indexedIndirect b
@@ -384,22 +461,43 @@ load mode arg c = case (mode,arg) of
         v <- ReadMem a
         return (v,if pageCrossed then 6 else 5)
 
-    x -> error $ "load: " <> show x
+    x -> error $ "load: " <> show (pc,x)
 
-store :: Mode -> Arg -> Byte -> Act Cycles
-store mode arg v = case (mode,arg) of
+store :: Addr -> Mode -> Arg -> Byte -> Act Cycles
+store pc mode arg v = case (mode,arg) of
 
     (Accumulator, ArgNull) -> do
         SetA v
         return 0
 
     (ZeroPage, ArgByte b) -> do
-        StoreMem (zeroPageAddr b) v
+        let a = zeroPageAddr b
+        StoreMem a v
         cycles 3
+
+    (ZeroPageX, ArgByte b) -> do
+        a <- zeroPageX b
+        StoreMem a v
+        cycles 4
+
+    (ZeroPageY, ArgByte b) -> do
+        a <- zeroPageY b
+        StoreMem a v
+        cycles 4
 
     (Absolute, ArgAddr a) -> do
         StoreMem a v
         cycles 4
+
+    (AbsoluteX, ArgAddr a) -> do
+        (ea,_) <- absoluteX a
+        StoreMem ea v
+        return 5
+
+    (AbsoluteY, ArgAddr a) -> do
+        (ea,_) <- absoluteY a
+        StoreMem ea v
+        return 5
 
     (IndexedIndirect, ArgByte b) -> do
         a <- indexedIndirect b
@@ -411,23 +509,53 @@ store mode arg v = case (mode,arg) of
         StoreMem a v
         return 6
 
-    x -> error $ "store: " <> show x
+    x -> error $ "store: " <> show (pc,x)
+
+
+zeroPageX :: Byte -> Act Addr
+zeroPageX b = do
+    x <- X
+    return $ zeroPageAddr (b + x)
+
+zeroPageY :: Byte -> Act Addr
+zeroPageY b = do
+    y <- Y
+    return $ zeroPageAddr (b + y)
+
+absoluteX :: Addr -> Act (Addr, Bool)
+absoluteX a = do
+    x <- X
+    return $ indexAddress a x
+
+absoluteY :: Addr -> Act (Addr, Bool)
+absoluteY a = do
+    y <- Y
+    return $ indexAddress a y
 
 indexedIndirect :: Byte -> Act Addr
 indexedIndirect b = do
     x <- X
-    lo <- ReadMem (zeroPageAddr (b + x))
-    hi <- ReadMem (zeroPageAddr (b + x + 1)) -- increment *then* wrap
-    return $ addrOfHiLo hi lo
+    readZeroPageAddr (b + x)
 
 indirectIndexed :: Byte -> Act (Addr,Bool)
 indirectIndexed b = do
     y <- Y
+    a <- readZeroPageAddr b
+    return $ indexAddress a y
+
+
+readZeroPageAddr :: Byte -> Act Addr
+readZeroPageAddr b = do
     lo <- ReadMem (zeroPageAddr b)
     hi <- ReadMem (zeroPageAddr (b + 1)) -- increment *then* wrap
-    let (lo',pageCrossed) = adc False lo y
-    let addr = addrOfHiLo (if pageCrossed then hi+1 else hi) lo'
-    return (addr,pageCrossed)
+    return $ addrOfHiLo hi lo
+
+indexAddress :: Addr -> Byte -> (Addr,Bool)
+indexAddress a b = do
+    let (hi,lo) = addrToHiLo a
+    let (lo',pageCrossed) = adc False lo b
+    let ea = addrOfHiLo (if pageCrossed then hi+1 else hi) lo'
+    (ea,pageCrossed)
 
 transfer :: Act Byte  -> (Byte -> Act ()) -> Act Cycles
 transfer from into = do
@@ -556,6 +684,9 @@ instance Functor Act where fmap = liftM
 instance Applicative Act where pure = return; (<*>) = ap
 instance Monad Act where return = Ret; (>>=) = Bind
 
+myhead :: [a] -> a
+myhead = \case [] -> error "myhead" ; x:_ -> x
+
 interpret :: Act a -> Cpu -> Mem.Effect (Cpu,a)
 interpret act cpu = do
     let Cpu{pc,accumulator,xreg,yreg,sp,status} = cpu
@@ -563,7 +694,7 @@ interpret act cpu = do
         Ret a -> nochange a
         Bind m f -> do (cpu',a) <- interpret m cpu; interpret (f a) cpu'
 
-        ReadMem addr -> do bytes <- Mem.Reads addr; return (cpu,head bytes)
+        ReadMem addr -> do bytes <- Mem.Reads addr; return (cpu,myhead bytes)
         ReadsMem addr -> do bytes <- Mem.Reads addr; return (cpu,bytes)
         StoreMem addr byte -> do Mem.Store addr byte; return (cpu,())
 
