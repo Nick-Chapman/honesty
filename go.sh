@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 clear
 
-stack run -- --dis > dis.log
+RTS='+RTS -t -RTS'
+
+echo tests started
+
+stack run -- $RTS --dis > dis.log
 cmp dis.log{.expected,}
 #diff dis.log{.expected,} | colordiff
+echo - dis-nestest passed
 
-stack run > em.log
+stack run -- $RTS --nestest > em.log
+cmp em.log{.expected,}
+#diff em.log{.expected,} | colordiff
+echo - emu-nestest passed
+
+echo tests done
+
+exit
 
 status=$?
 

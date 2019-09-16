@@ -18,7 +18,7 @@ main = do
     getArgs >>= \case
         ["--header"] -> header
         ["--dis"] -> dis
-        [] -> emu
+        ["--nestest"] -> emu
         args -> error $ "args: " <> show args
 
 header :: IO () -- see header details
@@ -34,7 +34,8 @@ emu :: IO ()
 emu = do
     bytesIncHeaderAndJunk <- loadFile "data/nestest.nes"
     let bytes = drop topSkip $ take sizeCode $ drop headerSize bytesIncHeaderAndJunk
-    let xs :: [Emu.State] = Emu.run bytes
+    let limit = 5828 -- before reach unimplemented DCP
+    let xs :: [Emu.State] = take limit $ Emu.run bytes
     mapM_ (putStrLn . Emu.showState) xs
 
 dis :: IO ()
