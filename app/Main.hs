@@ -13,13 +13,22 @@ import Six502.Disassembler (displayOpLines)
 
 import qualified Six502.Emu as Emu
 
+import qualified Nes
+
 main :: IO ()
 main = do
     getArgs >>= \case
         ["--header"] -> header
         ["--dis"] -> dis
         ["--nestest"] -> emu
+        ["--gloss"] -> gloss
         args -> error $ "args: " <> show args
+
+gloss :: IO ()
+gloss = do
+    bs <- loadFile "data/nestest.nes"
+    let chr = Nes.chrFromBS $ take 0x1000 $ drop headerSize bs
+    Nes.glossMainShowChr chr
 
 header :: IO () -- see header details
 header = do

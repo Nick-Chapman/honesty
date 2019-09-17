@@ -12,6 +12,9 @@ dependencies:
 - base >= 4.7 && < 5
 - bytestring
 - containers
+- extra
+- gloss
+- split
 - word8
 
 default-extensions:

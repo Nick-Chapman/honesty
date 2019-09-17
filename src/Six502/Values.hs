@@ -29,7 +29,7 @@ zeroPageAddr b = Addr $ fromIntegral $ byteToUnsigned b
 page1Addr :: Byte -> Addr
 page1Addr b = Addr $ 256 + (fromIntegral $ byteToUnsigned b)
 
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Num,Bits)
+newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Enum,Num,Bits)
 
 instance Show Byte where show = printf "%02X" . unByte
 

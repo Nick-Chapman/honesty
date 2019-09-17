@@ -19,6 +19,8 @@ echo - emu-nestest passed
 
 echo tests done
 
+#stack run -- --gloss
+
 exit
 
 status=$?
