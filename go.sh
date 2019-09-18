@@ -7,19 +7,22 @@ RTS='+RTS -t -RTS'
 
 echo tests started
 
-stack run -- $RTS --dis > dis.log
+stack run -- $RTS --dis data/nestest.nes > dis.log
 cmp dis.log{.expected,}
-#diff dis.log{.expected,} | colordiff
 echo - dis-nestest passed
 
-stack run -- $RTS --nestest > em.log
+stack run -- $RTS --emu data/nestest.nes > em.log
 cmp em.log{.expected,}
-#diff em.log{.expected,} | colordiff
 echo - emu-nestest passed
 
 echo tests done
 
-#stack run -- --gloss
+
+#echo - viewing DK char graphics...
+
+#stack run -- --tiles # see something!
+#stack run -- --tiles data/nestest.nes # letters upside down
+
 
 exit
 

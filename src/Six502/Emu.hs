@@ -14,12 +14,10 @@ import Six502.Decode (decode1,opSize)
 import Six502.Disassembler (ljust,displayOpLine)
 import qualified Six502.Mem as Mem
 
-codeLoadAddr :: Addr
-codeLoadAddr = 0xC000
-
-run :: [Byte] -> [State]
-run code = stepFrom (state0 code)
-    where stepFrom s = s : stepFrom (step s)
+run :: Addr -> Addr -> [Byte] -> [State]
+run codeLoadAddr codeStartAddr code = stepFrom (state0 codeLoadAddr codeStartAddr code)
+  where
+      stepFrom s = s : stepFrom (step s)
 
 data State = State
     { mem :: Mem.State
@@ -36,10 +34,10 @@ showState state = do
     let col = 48
     ljust col (displayOpLine pc op) <> show cpu <> " " <> show cc
 
-state0 :: [Byte] -> State
-state0 code = State
+state0 :: Addr -> Addr -> [Byte] -> State
+state0 codeLoadAddr codeStartAddr code = State
     { mem = Mem.initializeWithCode codeLoadAddr code
-    , cpu = cpu0
+    , cpu = cpu0 codeStartAddr
     , cc = 7 -- from nestest.log
     }
 
@@ -71,9 +69,9 @@ instance Show Cpu where
         , "SP:" <> show sp
         ]
 
-cpu0 :: Cpu
-cpu0 = Cpu
-    { pc = codeLoadAddr
+cpu0 :: Addr -> Cpu
+cpu0 codeStartAddr = Cpu
+    { pc = codeStartAddr
     , accumulator = byte0
     , xreg = byte0
     , yreg = byte0
