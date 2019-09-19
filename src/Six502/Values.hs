@@ -4,7 +4,7 @@ module Six502.Values(
     addAddr,
     minusAddr, zeroPageAddr, page1Addr,
     Byte(..),
-    byteOfInt, byteToUnsigned, byteToSigned, adc,
+    byteOfInt, byteToUnsigned, byteToSigned, bytesToString, adc,
     addrOfHiLo, addrToHiLo,
     ) where
 
@@ -12,6 +12,7 @@ import Data.Bits
 import Data.Word (Word16)
 import Data.Word8 (Word8)
 import Text.Printf (printf)
+import qualified Data.Char as Char
 
 newtype Addr = Addr { unAddr :: Word16 } deriving (Eq,Ord,Num)
 
@@ -42,6 +43,9 @@ byteToUnsigned = fromIntegral . unByte
 byteToSigned :: Byte -> Int
 byteToSigned = sign . fromIntegral . unByte
     where sign n = if n>=128 then n-256 else n
+
+bytesToString :: [Byte] -> String
+bytesToString = map (Char.chr .byteToSigned)
 
 adc :: Bool -> Byte -> Byte -> (Byte,Bool)
 adc cin x y = (Byte $ fromIntegral res,cout) where

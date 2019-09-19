@@ -13,7 +13,8 @@ import Data.Tuple.Extra( (***) )
 --import System.IO (hFlush,stdout)
 
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
-import Graphics.Gloss(Point,Picture,translate,scale,color)
+import Graphics.Gloss (Point,Picture,pictures,translate,scale,color)
+import Graphics.Gloss.Interface.IO.Game as Gloss(Event(..),Key(..),SpecialKey(..),KeyState(..))
 
 import Six502.Values
 
@@ -25,16 +26,19 @@ _glossMainShowChr chr =
 
 data Model = Model { i :: Int }
 
-glossMainShowChr :: CHR -> IO ()
-glossMainShowChr chr = do
-    Gloss.playIO dis (Gloss.greyN 0.5) fps model0
-        (\  m -> pictureModel chr m)
+glossMainShowChr :: Bool -> Int -> (CHR,CHR) -> IO ()
+glossMainShowChr fg sc chrPair = do
+    Gloss.playIO dis (Gloss.greyN 0.3) fps model0
+        (\  m -> return $ scale scF (-scF) $ pictureModel chrPair m)
         (\e m -> handleEventModel e m)
         (\d m -> updateModel d m)
     where
-        dis = Gloss.InWindow "NES" (800,600) (5000,0)
+        dis = if fg
+              then Gloss.FullScreen
+              else Gloss.InWindow "NES" (sc * 288,sc * 144) (100,0)
         model0 = Model {i=0}
         fps = 10
+        scF = fromIntegral sc
 
 {-put :: String -> IO ()
 put s = do
@@ -42,18 +46,21 @@ put s = do
     return ()
 -}
 
-pictureModel :: CHR -> Model -> IO Gloss.Picture
-pictureModel chr Model{i} = do
-    let screen = screenFromCHR i chr
-    --put "."
-    return $ translate (-200) (-200) $ scale sc sc $ pictureScreen screen
-    where
-        sc = 2
+pictureModel :: (CHR,CHR) -> Model -> Gloss.Picture
+pictureModel (chr1,chr2)  Model{i} = do
+    let screen1 = screenFromCHR i chr1
+    let screen2 = screenFromCHR i chr2
+    pictures
+        [ translate (-72) 0 $ pictureScreen screen1
+        , translate   72  0 $ pictureScreen screen2
+        ]
 
 handleEventModel :: Gloss.Event -> Model -> IO Model
-handleEventModel _event m = do
+handleEventModel event model = do
     --put "E"
-    return m
+    case event of
+        EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
+        _ -> return model
 
 updateModel :: Float -> Model -> IO Model
 updateModel _delta m@Model{i} = do
@@ -62,7 +69,7 @@ updateModel _delta m@Model{i} = do
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
-    Gloss.pictures $ zipWith doLine [0..] grid
+    translate (-64) (-64) $ Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
         doPixel y x c = point x y c
