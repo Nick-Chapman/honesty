@@ -3,12 +3,13 @@ set -euo pipefail
 
 clear
 
-RTS='+RTS -t -RTS'
+#RTS='+RTS -t -RTS'
+RTS=
 
 echo tests started
 
 stack run -- $RTS --dis data/nestest.nes > dis.log
-cmp dis.log{.expected,}
+diff dis.log{.expected,} | head
 echo - dis-nestest passed
 
 stack run -- $RTS --emu data/nestest.nes > em.log

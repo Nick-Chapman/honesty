@@ -91,7 +91,7 @@ spec0 :: ModeSpec
 spec0 = (0, \bs -> (ArgNull, bs))
 
 spec1 :: ModeSpec
-spec1 = (1, \case b:rest -> (ArgByte b, rest); _ -> error "spec1")
+spec1 = (1, \case b:rest -> (ArgByte b, rest); _ -> (ArgByte 0,[]))
 
 spec2 :: ModeSpec
-spec2 = (2, \case lo:hi:rest -> (ArgAddr $ addrOfHiLo hi lo, rest); _ -> error "take2")
+spec2 = (2, \case lo:hi:rest -> (ArgAddr $ addrOfHiLo hi lo, rest); _ -> (ArgAddr 0,[]))
