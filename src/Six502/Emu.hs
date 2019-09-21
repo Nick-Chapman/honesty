@@ -1,8 +1,6 @@
 
 module Six502.Emu(
-    run,
-    State,
-    showState,
+    interpret, fetchDecodeExec, Cpu(..),Cycles, cpu0,
     ) where
 
 import Control.Monad (ap,liftM)
@@ -11,41 +9,8 @@ import Data.Bits
 import Six502.Values
 import Six502.Operations
 import Six502.Decode (decode1,opSize)
-import Six502.Disassembler (ljust,displayOpLine)
+
 import qualified Six502.Mem as Mem
-
-run :: Addr -> Addr -> [Byte] -> [State]
-run codeLoadAddr codeStartAddr code = stepFrom (state0 codeLoadAddr codeStartAddr code)
-  where
-      stepFrom s = s : stepFrom (step s)
-
-data State = State
-    { mem :: Mem.State
-    , cpu :: Cpu
-    , cc :: Cycles
-    }
-
-showState :: State -> String
-showState state = do
-    let State{mem,cpu,cc} = state
-    let Cpu{pc} = cpu
-    let bytes = snd $ Mem.run (Mem.Reads pc) mem
-    let op = decode1 bytes
-    let col = 48
-    ljust col (displayOpLine pc op) <> show cpu <> " " <> show cc
-
-state0 :: Addr -> Addr -> [Byte] -> State
-state0 codeLoadAddr codeStartAddr code = State
-    { mem = Mem.initializeWithCode codeLoadAddr code
-    , cpu = cpu0 codeStartAddr
-    , cc = 7 -- from nestest.log
-    }
-
-step :: State -> State
-step s = do
-    let State{mem,cpu,cc} = s
-    let (mem',(cpu',n)) = Mem.run (interpret fetchDecodeExec cpu) mem
-    s { mem = mem', cpu = cpu', cc = cc + n }
 
 newtype Cycles = Cycles Int deriving (Num)
 
@@ -364,9 +329,9 @@ action pc = \case
 
     Op RTI Implied ArgNull -> do
         status <- popStack
-        pc <- popStackA
+        pc' <- popStackA
         SetStatus status
-        SetPC pc
+        SetPC pc'
         cycles 6
 
     Op PHP Implied ArgNull -> do
@@ -408,7 +373,7 @@ action pc = \case
         compareBytes a b
         return n
 
-    op -> error $ "action: " <> show op
+    op -> error $ unwords ["action:",show pc,show op]
 
 load :: Addr -> Mode -> Arg -> Act (Byte,Cycles)
 load pc mode arg = case (mode,arg) of
@@ -682,9 +647,6 @@ instance Functor Act where fmap = liftM
 instance Applicative Act where pure = return; (<*>) = ap
 instance Monad Act where return = Ret; (>>=) = Bind
 
-myhead :: [a] -> a
-myhead = \case [] -> error "myhead" ; x:_ -> x
-
 interpret :: Act a -> Cpu -> Mem.Effect (Cpu,a)
 interpret act cpu = do
     let Cpu{pc,accumulator,xreg,yreg,sp,status} = cpu
@@ -692,9 +654,9 @@ interpret act cpu = do
         Ret a -> nochange a
         Bind m f -> do (cpu',a) <- interpret m cpu; interpret (f a) cpu'
 
-        ReadMem addr -> do bytes <- Mem.Reads addr; return (cpu,myhead bytes)
-        ReadsMem addr -> do bytes <- Mem.Reads addr; return (cpu,bytes)
-        StoreMem addr byte -> do Mem.Store addr byte; return (cpu,())
+        ReadMem addr -> do byte <- Mem.Read addr; return (cpu,byte)
+        ReadsMem addr -> do bytes <- memReads addr; return (cpu,bytes)
+        StoreMem addr byte -> do Mem.Write addr byte; return (cpu,())
 
         PC -> nochange pc
         A -> nochange accumulator
@@ -720,3 +682,11 @@ interpret act cpu = do
     where
         nochange :: a -> Mem.Effect (Cpu,a)
         nochange x = return (cpu,x)
+
+
+memReads :: Addr -> Mem.Effect [Byte]
+memReads addr = do  -- dislike this multi Reads interface now. only use for max of 3
+    byte0 <- Mem.Read addr
+    byte1 <- Mem.Read $ addr `addAddr` 1
+    byte2 <- Mem.Read $ addr `addAddr` 2
+    return [byte0,byte1,byte2]

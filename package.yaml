@@ -21,12 +21,16 @@ default-extensions:
 - GADTs
 - GeneralizedNewtypeDeriving
 - LambdaCase
+- MultiWayIf
 - NamedFieldPuns
+- ScopedTypeVariables
+
 #- NondecreasingIndentation
 #- NumericUnderscores
 #- OverloadedStrings
 #- RecordWildCards
-- ScopedTypeVariables
+#- BangPatterns
+#- StandaloneDeriving # Is this dangerous in any way?
 
 library:
   source-dirs: src
@@ -35,7 +39,7 @@ library:
   - -Wno-name-shadowing
 
 executables:
-  xxx-exe:
+  nes:
     main: Main.hs
     source-dirs: app
     ghc-options:

@@ -1,83 +1,48 @@
 
--- First steps WIP for Nes/PPU/graphics emulation...
-
-module Nes(
-    CHR,
-    glossMainShowChr,
-    chrFromBS
+module Graphics(
+    CHR, chrFromBS,
+    Screen, screenFromCHR, pictureScreen,
     ) where
 
-import Data.Bits (testBit) -- (shiftR, (.&.), testBit)
+-- There are two kinds of CHR
+-- a low level collectikon of bytes, found at particular offsets in the rom
+-- and this CHR, which is a higher level object, ready for graphical display
+
+import Data.Bits(testBit)
 import Data.List.Split(chunksOf)
-import Data.Tuple.Extra( (***) )
---import System.IO (hFlush,stdout)
+import Data.Tuple.Extra((***))
 
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
-import Graphics.Gloss (Point,Picture,pictures,translate,scale,color)
-import Graphics.Gloss.Interface.IO.Game as Gloss(Event(..),Key(..),SpecialKey(..),KeyState(..))
 
-import Six502.Values
+import Six502.Values(Byte,byteToUnsigned)
 
-{-_glossMainShowChr :: CHR -> IO ()
-_glossMainShowChr chr =
-    Gloss.display dis (Gloss.yellow) (pictureCHR chr)
-    where dis = Gloss.InWindow "NES" (600,600) (100,100)
--}
+-- TODO: kill/disable this crazy expensive checking...?
+expect :: Char -> Int -> [a] -> [a]
+expect tag n xs = if n == len then xs else error $ "expect[" <> [tag] <> "](length): " <> show n <> ", got: " <> show len
+    where len = length xs
 
-data Model = Model { i :: Int }
+chrFromBS :: [Byte] -> CHR
+chrFromBS = CHR . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
-glossMainShowChr :: Bool -> Int -> (CHR,CHR) -> IO ()
-glossMainShowChr fg sc chrPair = do
-    Gloss.playIO dis (Gloss.greyN 0.3) fps model0
-        (\  m -> return $ scale scF (-scF) $ pictureModel chrPair m)
-        (\e m -> handleEventModel e m)
-        (\d m -> updateModel d m)
-    where
-        dis = if fg
-              then Gloss.FullScreen
-              else Gloss.InWindow "NES" (sc * 288,sc * 144) (100,0)
-        model0 = Model {i=0}
-        fps = 10
-        scF = fromIntegral sc
-
-{-put :: String -> IO ()
-put s = do
-    do putStr s; hFlush(stdout)
-    return ()
--}
-
-pictureModel :: (CHR,CHR) -> Model -> Gloss.Picture
-pictureModel (chr1,chr2)  Model{i} = do
-    let screen1 = screenFromCHR i chr1
-    let screen2 = screenFromCHR i chr2
-    pictures
-        [ translate (-72) 0 $ pictureScreen screen1
-        , translate   72  0 $ pictureScreen screen2
-        ]
-
-handleEventModel :: Gloss.Event -> Model -> IO Model
-handleEventModel event model = do
-    --put "E"
-    case event of
-        EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
-        _ -> return model
-
-updateModel :: Float -> Model -> IO Model
-updateModel _delta m@Model{i} = do
-    --put "U"
-    return m { i = i + 1 }
+screenFromCHR :: CHR -> Screen -- just see the CHR
+screenFromCHR =
+    aboves
+    . map (besides . map screenFromTile)
+    . chunksOf 16
+    . expect '9' 256
+    . unCHR
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
-    translate (-64) (-64) $ Gloss.pictures $ zipWith doLine [0..] grid
+    Gloss.translate (-64) (-64) $ Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
         doPixel y x c = point x y c
 
 point :: Int -> Int -> Colour -> Gloss.Picture
-point x y c = color (colourToGloss c) (pixel (fromIntegral x,fromIntegral y))
+point x y c = Gloss.color (colourToGloss c) (pixel (fromIntegral x,fromIntegral y))
 
-pixel :: Point -> Picture
+pixel :: Gloss.Point -> Gloss.Picture
 pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
 
 colourToGloss :: Colour -> Gloss.Color
@@ -87,39 +52,31 @@ colourToGloss = \case
     Red ->   Gloss.red
     Green -> Gloss.green
 
-
-screenFromCHR :: Int -> CHR -> Screen -- just see the CHR
-screenFromCHR _ =
-    aboves
-    . map (besides . map screenFromTile)
-    . chunksOf 16
-    . expect '9' 256
-    . unCHR
-
 screenFromTile :: Tile -> Screen
 screenFromTile (Tile xss) = do
     let bg = Black
     let pal = Palette { c1 = Red, c2 = Green, c3 = White }
     Screen $ map (map (selectColour bg pal)) xss
 
-_screenFromCHR :: Int -> CHR -> Screen -- see the CHR in th econtext on an invented NT/AT
-_screenFromCHR i chr = do
-    let kilobyte = expect '1' 1024 $ take 1024 (cycle [fromIntegral i..])
+-- TODO: try this, reading data from real mem - the VRAM in the PPU addresss space
+
+_screenFromCHR :: CHR -> Screen -- see the CHR in th econtext on an invented NT/AT
+_screenFromCHR chr = do
+    let kilobyte = expect '1' 1024 $ take 1024 (cyc [0..])
     let (nt,at) = splitAt 960 kilobyte
     let someNameTable = nameTableOfBS (expect '2' 960 nt)
     let someAttributeTable = attributeTableOfBS at
     let screen = decode chr someNameTable someAttributeTable somePalettes
     screen
-        where cycle xs = xss where xss = xs <> xss
+        where cyc xs = xss where xss = xs <> xss
 
+_q :: () -- hold the things that _screenFromCHR above needs
+_q = do let _ = (nameTableOfBS,attributeTableOfBS,decode,somePalettes)
+        ()
 
 somePalettes :: Palettes
 somePalettes = Palettes { p1=pal,p2=pal,p3=pal,p4=pal, bg = Black }
     where pal = Palette { c1 = Red, c2 = Green, c3 = White }
-
-
-chrFromBS :: [Byte] -> CHR
-chrFromBS = CHR . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
 tileFromBS :: [Byte] -> Tile
 tileFromBS = \bs -> do
@@ -180,11 +137,6 @@ makeSquareOfPaletteSelects =
 makePaletteSelect :: (Bool,Bool) -> PaletteSelect
 makePaletteSelect = \case (False,False) -> Pal1; (False,True) -> Pal2; (True,False) -> Pal3; (True,True) -> Pal4
 
-
-expect :: Char -> Int -> [a] -> [a]
-expect tag n xs = if n == len then xs else error $ "expect[" <> [tag] <> "](length): " <> show n <> ", got: " <> show len
-    where len = length xs
-
 decode :: CHR -> NameTable -> AttributeTable -> Palettes -> Screen
 decode chr (NameTable nt) (AttributeTable at) palettes = screen
     where
@@ -217,13 +169,11 @@ decode chr (NameTable nt) (AttributeTable at) palettes = screen
                 pal = selectPalette palettes ps
                 Palettes{bg} = palettes
 
-
 dubdub :: [[a]] -> [[a]]
 dubdub = dub . map dub
     where
         dub :: [a] -> [a]
         dub = concat . map (\x -> [x,x])
-
 
 selectColour :: Colour -> Palette -> ColourSelect -> Colour
 selectColour bg Palette{c1,c2,c3} = \case
@@ -232,14 +182,12 @@ selectColour bg Palette{c1,c2,c3} = \case
     CS2 -> c2
     CS3 -> c3
 
-
 selectPalette :: Palettes -> PaletteSelect -> Palette
 selectPalette Palettes{p1,p2,p3,p4} = \case
     Pal1 -> p1
     Pal2 -> p2
     Pal3 -> p3
     Pal4 -> p4
-
 
 -- screens should be square, but nothing enforces that.. still, we can have some combinators
 
@@ -259,10 +207,9 @@ aboves = \case
     [] -> error "aboves:[]"
     s1:screens -> foldr above s1 screens
 
+newtype CHR = CHR { unCHR :: [Tile] } --256
 
 newtype Screen = Screen { unScreen :: [[Colour]] } --240,256 (full screen), but we can manage smaller frags
-
-newtype CHR = CHR { unCHR :: [Tile] } --256
 
 newtype Tile = Tile [[ColourSelect]] -- 8,8
 

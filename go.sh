@@ -18,13 +18,6 @@ echo - emu-nestest passed
 
 echo tests done
 
-
-#echo - viewing DK char graphics...
-
-#stack run -- --tiles # see something!
-#stack run -- --tiles data/nestest.nes # letters upside down
-
-
 exit
 
 status=$?
