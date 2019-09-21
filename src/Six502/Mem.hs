@@ -44,22 +44,24 @@ run ro@RO{optPrg1,prg2} wram = \case
     Ret x -> return (wram,x)
     Bind e f -> do (wram',v) <- run ro wram e; run ro wram' (f v)
 
-    Read addr -> case decode addr of
+    Read addr -> case decode "read" addr of
         Ram x -> return $ Ram2k.run wram (Ram2k.Read x)
         Rom1 x -> return $ (wram, PRG.read prg1 x)
         Rom2 x -> return $ (wram, PRG.read prg2 x)
         PPU reg -> do v <- PPU.Regs.Read reg; return (wram, v)
+        IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
 
-    Write addr v -> case decode addr of
+    Write addr v -> case decode "write" addr of
         Ram x -> return $ Ram2k.run wram (Ram2k.Write x v)
         Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
         PPU reg -> do PPU.Regs.Write reg v; return (wram, ())
+        IgnoreFineScrollWrite -> return (wram,())
 
     where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
 
-decode :: Addr -> Decode
-decode a = if
+decode :: String -> Addr -> Decode
+decode tag a = if
     | a < 0x800 -> Ram $ fromIntegral $ unAddr a
 
     -- 3 mirrors -- see if they are ever used...
@@ -70,6 +72,10 @@ decode a = if
     | a == 0x2000 -> PPU PPU.Regs.Control
     | a == 0x2001 -> PPU PPU.Regs.Mask
     | a == 0x2002 -> PPU PPU.Regs.Status
+    | a == 0x2005 -> IgnoreFineScrollWrite
+    | a == 0x2006 -> PPU PPU.Regs.PPUADDR
+    | a == 0x2007 -> PPU PPU.Regs.PPUDATA
+
     -- .. more PPU regs
     -- PPU reg mirrors
     -- 0x4000 -- 0x401F -- APU and I/O regs
@@ -77,10 +83,11 @@ decode a = if
     | a >= 0x8000 && a <= 0xBFFF -> Rom1 $ a `minusAddr` 0x8000
     | a >= 0xC000 && a <= 0xFFFF -> Rom2 $ a `minusAddr` 0xC000
     | otherwise ->
-      error $ "CPU.Mem.decode: unsupported address:" <> show a
+      error $ unwords ["CPU.Mem.decode ("<>tag<>") unsupported address:", show a]
 
 data Decode
     = Ram Int
     | Rom1 Int
     | Rom2 Int
     | PPU PPU.Regs.Name
+    | IgnoreFineScrollWrite

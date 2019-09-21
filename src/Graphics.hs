@@ -1,7 +1,8 @@
 
 module Graphics(
     CHR, chrFromBS,
-    Screen, screenFromCHR, pictureScreen,
+    Screen, pictureScreen,
+    screenTiles, screenBG,
     ) where
 
 -- There are two kinds of CHR
@@ -24,8 +25,8 @@ expect tag n xs = if n == len then xs else error $ "expect[" <> [tag] <> "](leng
 chrFromBS :: [Byte] -> CHR
 chrFromBS = CHR . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
-screenFromCHR :: CHR -> Screen -- just see the CHR
-screenFromCHR =
+screenTiles :: CHR -> Screen -- see all 256 tiles in the CHR
+screenTiles =
     aboves
     . map (besides . map screenFromTile)
     . chunksOf 16
@@ -34,7 +35,8 @@ screenFromCHR =
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
-    Gloss.translate (-64) (-64) $ Gloss.pictures $ zipWith doLine [0..] grid
+    --Gloss.translate (-64) (-64) $
+    Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
         doPixel y x c = point x y c
@@ -60,19 +62,12 @@ screenFromTile (Tile xss) = do
 
 -- TODO: try this, reading data from real mem - the VRAM in the PPU addresss space
 
-_screenFromCHR :: CHR -> Screen -- see the CHR in th econtext on an invented NT/AT
-_screenFromCHR chr = do
-    let kilobyte = expect '1' 1024 $ take 1024 (cyc [0..])
+screenBG :: [Byte] -> CHR -> Screen
+screenBG kilobyte chr = do
     let (nt,at) = splitAt 960 kilobyte
     let someNameTable = nameTableOfBS (expect '2' 960 nt)
     let someAttributeTable = attributeTableOfBS at
-    let screen = decode chr someNameTable someAttributeTable somePalettes
-    screen
-        where cyc xs = xss where xss = xs <> xss
-
-_q :: () -- hold the things that _screenFromCHR above needs
-_q = do let _ = (nameTableOfBS,attributeTableOfBS,decode,somePalettes)
-        ()
+    decode chr someNameTable someAttributeTable somePalettes
 
 somePalettes :: Palettes
 somePalettes = Palettes { p1=pal,p2=pal,p3=pal,p4=pal, bg = Black }

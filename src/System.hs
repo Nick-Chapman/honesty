@@ -1,11 +1,10 @@
 
 module System(
-    emu,
-    State(..),CHR, state0, step
+    State(..),CHR, state0, stepCPU, renderScreen,
     ) where
 
 import NesFile(NesFile(..),loadNesFile)
-import Graphics(CHR)
+import Graphics(CHR,Screen)
 
 import Six502.Values
 import Six502.Decode(decode1)
@@ -16,23 +15,8 @@ import qualified Six502.Emu as Six
 import qualified Six502.Mem as Six.Mem
 import qualified Ram2k
 import qualified PPU.Regs
+import qualified PPU.Render
 import qualified PRG
-
--- simple, non graphical entry point, used for nestest.nes regression test
-emu :: String -> IO ()
-emu path = do
-    state <- state0 path
-    let states :: [State] = limitEmuSteps path $ run state
-    mapM_ print states
-  where
-    run :: State -> [State]
-    run state = state : run (step state)
-
-    limitEmuSteps :: String -> [a] -> [a]
-    limitEmuSteps path =
-        case path of
-            "data/nestest.nes" -> take 5828 -- until reach unimplemented DCP
-            _ -> id
 
 data State = State
     { ro :: Six.Mem.RO
@@ -42,6 +26,7 @@ data State = State
     , cc :: Cycles
     , chr1 :: CHR
     , chr2 :: CHR
+    , vram :: Ram2k.State
     }
 
 instance Show State where
@@ -53,14 +38,19 @@ instance Show State where
         let col = 48
         ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
 
-step :: State -> State
-step state = do
+stepCPU :: State -> State
+stepCPU state = do
     let State{ro,wram,cpu,ppu_regs,cc} = state
     let mem_eff = Six.interpret Six.fetchDecodeExec cpu
     let ppu_regs_eff = Six.Mem.run ro wram mem_eff
     let (ppu_regs1,(wram1,(cpu1,n))) = PPU.Regs.run ppu_regs ppu_regs_eff
     state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n}
     -- TODO: need/run: PPU, PPU-Mem, renderer, controller
+
+renderScreen :: State -> Screen
+renderScreen state = do
+    let State{vram,ppu_regs,chr1,chr2} = state
+    PPU.Render.render vram ppu_regs (chr1,chr2)
 
 state0 :: String -> IO State
 state0 path = do
@@ -75,7 +65,13 @@ state0 path = do
         , cc = 7  -- from nestest.log
         , chr1
         , chr2
+        , vram = fillRamWithCrap $ Ram2k.init "vram"
         }
+
+fillRamWithCrap :: Ram2k.State -> Ram2k.State
+fillRamWithCrap ram =
+    fst $ Ram2k.run ram $ mapM_ (\a -> Ram2k.Write a $ fromIntegral a) [0x0..0x7ff]
+
 
 roOfNesFile :: NesFile -> (Six.Mem.RO, PRG.ROM)
 roOfNesFile NesFile{prgs} =
