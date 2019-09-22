@@ -14,15 +14,18 @@ import Six502.Emu(Cycles)
 import qualified Six502.Emu as Six
 import qualified Six502.Mem as Six.Mem
 import qualified Ram2k
-import qualified PPU.Regs
+import qualified PPU.Regs as Regs
 import qualified PPU.Render
 import qualified PRG
+
+import Six502.Emu(Cpu)
+
 
 data State = State
     { ro :: Six.Mem.RO
     , wram :: Ram2k.State
-    , ppu_regs :: PPU.Regs.State
-    , cpu :: Six.Cpu
+    , ppu_regs :: Regs.State
+    , cpu :: Cpu
     , cc :: Cycles
     , chr1 :: CHR
     , chr2 :: CHR
@@ -31,21 +34,21 @@ data State = State
 
 instance Show State where
     show state = do
-        let State{ro,wram,cpu,ppu_regs,cc} = state
+        let State{ro,wram,cpu,ppu_regs,cc,vram} = state
         let Six.Cpu{Six.pc} = cpu
-        let (_,(_,bytes)) = PPU.Regs.run ppu_regs (Six.Mem.run ro wram (Six.Mem.reads pc))
+        let (_,(_,(_,bytes))) = Ram2k.run vram (Regs.run ppu_regs (Six.Mem.run ro wram (Six.Mem.reads pc)))
         let op = decode1 bytes
         let col = 48
         ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
 
 stepCPU :: State -> State
 stepCPU state = do
-    let State{ro,wram,cpu,ppu_regs,cc} = state
+    let State{ro,wram,cpu,ppu_regs,cc,vram} = state
     let mem_eff = Six.interpret Six.fetchDecodeExec cpu
     let ppu_regs_eff = Six.Mem.run ro wram mem_eff
-    let (ppu_regs1,(wram1,(cpu1,n))) = PPU.Regs.run ppu_regs ppu_regs_eff
-    state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n}
-    -- TODO: need/run: PPU, PPU-Mem, renderer, controller
+    let vram_eff :: Ram2k.Effect (Regs.State,(Ram2k.State,(Cpu, Cycles))) = Regs.run ppu_regs ppu_regs_eff
+    let (vram1,(ppu_regs1,(wram1,(cpu1,n)))) = Ram2k.run vram vram_eff
+    state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n, vram = vram1 }
 
 renderScreen :: State -> Screen
 renderScreen state = do
@@ -60,16 +63,17 @@ state0 path = do
     return $ State
         { ro
         , wram = Ram2k.init "wram"
-        , ppu_regs = PPU.Regs.init
+        , ppu_regs = Regs.init
         , cpu = Six.cpu0 pc0
         , cc = 7  -- from nestest.log
         , chr1
         , chr2
-        , vram = fillRamWithCrap $ Ram2k.init "vram"
+--        , vram = _fillRamWithCrap $ Ram2k.init "vram"
+        , vram = Ram2k.init "vram"
         }
 
-fillRamWithCrap :: Ram2k.State -> Ram2k.State
-fillRamWithCrap ram =
+_fillRamWithCrap :: Ram2k.State -> Ram2k.State
+_fillRamWithCrap ram =
     fst $ Ram2k.run ram $ mapM_ (\a -> Ram2k.Write a $ fromIntegral a) [0x0..0x7ff]
 
 
