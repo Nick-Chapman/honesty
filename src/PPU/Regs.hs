@@ -15,7 +15,7 @@ instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
 
-data Name = Control | Mask | Status | PPUADDR | PPUDATA -- | ...
+data Name = Control | Mask | Status | PPUADDR | PPUDATA | OAMADDR-- | ...
     deriving Show
 
 data Effect a where
@@ -61,7 +61,8 @@ run state@State{control, mask, status
     Read Mask -> return (state,mask)
     Read Status -> return (state,status)
     Read PPUADDR -> error "Read PPUADDR" -- return (state,ppu_addr)
-    Read PPUDATA -> error "Reaf PPUDATA" -- return (state,ppu_data)
+    Read PPUDATA -> error "Read PPUDATA" -- return (state,ppu_data)
+    Read OAMADDR -> error "Read OAMADDR"
 
     Write Control b -> return (state { control = b }, ())
     Write Mask b -> return (state { mask = b }, ())
@@ -78,6 +79,11 @@ run state@State{control, mask, status
         -- TODO: proper support for PPU MemMap & nametable mirroring
         Ram2k.Write (a `minusAddr` 0x2000)  b
         return (bumpAddr state, ())
+
+    Write OAMADDR _ -> do
+        --error "Write OAMADDR"
+        return (state, ()) -- TODO: dont ignore when handling sprites!
+
 
 bumpAddr :: State -> State -- TODO: bump should be H/V depending on some status bit
 bumpAddr s@State{ppu_addr_hi=hi, ppu_addr_lo=lo} = do

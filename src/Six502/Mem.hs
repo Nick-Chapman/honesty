@@ -51,12 +51,24 @@ run ro@RO{optPrg1,prg2} wram = \case
         PPU reg -> do v <- PPU.Regs.Read reg; return (wram, v)
         IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
 
+        Dma -> error $ "CPU.Mem, Read DmaTODO"
+        Joy1 -> do
+            let b :: Byte = 0 -- make up a value
+            return (wram,b) -- TODO: support joystick read
+        Joy2 -> do
+            let b :: Byte = 0 -- make up a value
+            return (wram,b) -- TODO: support joystick read
+
     Write addr v -> case decode "write" addr of
         Ram x -> return $ Ram2k.run wram (Ram2k.Write x v)
         Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
         PPU reg -> do PPU.Regs.Write reg v; return (wram, ())
         IgnoreFineScrollWrite -> return (wram,())
+
+        Dma -> return (wram,()) -- TODO: support DMA !!!
+        Joy1 -> return (wram,()) -- TODO: support joystick strobe
+        Joy2 -> return (wram,()) -- TODO: support joystick strobe
 
     where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
 
@@ -72,6 +84,7 @@ decode tag a = if
     | a == 0x2000 -> PPU PPU.Regs.Control
     | a == 0x2001 -> PPU PPU.Regs.Mask
     | a == 0x2002 -> PPU PPU.Regs.Status
+    | a == 0x2003 -> PPU PPU.Regs.OAMADDR
     | a == 0x2005 -> IgnoreFineScrollWrite
     | a == 0x2006 -> PPU PPU.Regs.PPUADDR
     | a == 0x2007 -> PPU PPU.Regs.PPUDATA
@@ -79,7 +92,12 @@ decode tag a = if
     -- .. more PPU regs
     -- PPU reg mirrors
     -- 0x4000 -- 0x401F -- APU and I/O regs
-     --0x4020 .. 0x7FFF -- PRG Ram ??
+
+    | a == 0x4014 -> Dma
+    | a == 0x4016 -> Joy1
+    | a == 0x4017 -> Joy2
+
+    --0x4020 .. 0x7FFF -- PRG Ram ??
     | a >= 0x8000 && a <= 0xBFFF -> Rom1 $ a `minusAddr` 0x8000
     | a >= 0xC000 && a <= 0xFFFF -> Rom2 $ a `minusAddr` 0xC000
     | otherwise ->
@@ -91,3 +109,6 @@ data Decode
     | Rom2 Int
     | PPU PPU.Regs.Name
     | IgnoreFineScrollWrite
+    | Dma
+    | Joy1
+    | Joy2

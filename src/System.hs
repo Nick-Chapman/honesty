@@ -1,6 +1,6 @@
 
 module System(
-    State(..),CHR, state0, stepCPU, renderScreen,
+    State(..),CHR, state0, stepCPU, stepNMI, renderScreen,
     ) where
 
 import NesFile(NesFile(..),loadNesFile)
@@ -44,11 +44,21 @@ instance Show State where
 stepCPU :: State -> State
 stepCPU state = do
     let State{ro,wram,cpu,ppu_regs,cc,vram} = state
-    let mem_eff = Six.interpret Six.fetchDecodeExec cpu
+    let mem_eff = Six.stepInstruction cpu
     let ppu_regs_eff = Six.Mem.run ro wram mem_eff
     let vram_eff :: Ram2k.Effect (Regs.State,(Ram2k.State,(Cpu, Cycles))) = Regs.run ppu_regs ppu_regs_eff
     let (vram1,(ppu_regs1,(wram1,(cpu1,n)))) = Ram2k.run vram vram_eff
     state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n, vram = vram1 }
+
+stepNMI :: State -> State
+stepNMI state = do
+    let State{ro,wram,cpu,ppu_regs,vram} = state
+    let mem_eff = Six.triggerNMI cpu
+    let ppu_regs_eff = Six.Mem.run ro wram mem_eff
+    let vram_eff :: Ram2k.Effect (Regs.State,(Ram2k.State,Cpu)) = Regs.run ppu_regs ppu_regs_eff
+    let (vram1,(ppu_regs1,(wram1,cpu1))) = Ram2k.run vram vram_eff
+    let _ignore = (vram1,ppu_regs1) -- ok to ignore these effects, which can/should not happen?
+    state { wram = wram1, cpu = cpu1 }
 
 renderScreen :: State -> Screen
 renderScreen state = do

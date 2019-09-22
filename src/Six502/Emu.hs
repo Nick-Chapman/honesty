@@ -1,6 +1,9 @@
 
 module Six502.Emu(
-    interpret, fetchDecodeExec, Cpu(..),Cycles, cpu0,
+    Cpu(..),Cycles,
+    cpu0,
+    stepInstruction,
+    triggerNMI,
     ) where
 
 import Control.Monad (ap,liftM)
@@ -37,15 +40,30 @@ instance Show Cpu where
 cpu0 :: Addr -> Cpu
 cpu0 codeStartAddr = Cpu
     { pc = codeStartAddr
-    , accumulator = byte0
-    , xreg = byte0
-    , yreg = byte0
+    , accumulator = 0
+    , xreg = 0
+    , yreg = 0
     , sp = 0xFD
     , status = 0x24
     }
 
-byte0 :: Byte
-byte0 = 0x0
+triggerNMI :: Cpu -> Mem.Effect Cpu
+triggerNMI cpu = do
+    (cpu,()) <- interpret nmi cpu
+    return cpu
+    where
+        nmi :: Act ()
+        nmi = do
+            pc <- PC
+            status <- Status
+            pushStackA pc
+            pushStack status
+            lo <- ReadMem 0xfffa
+            hi <- ReadMem 0xfffb
+            SetPC $ addrOfHiLo hi lo
+
+stepInstruction :: Cpu -> Mem.Effect (Cpu,Cycles)
+stepInstruction = interpret fetchDecodeExec
 
 fetchDecodeExec :: Act Cycles
 fetchDecodeExec = do

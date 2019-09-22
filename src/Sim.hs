@@ -9,8 +9,7 @@ import Graphics.Gloss(pictures,translate,scale)
 import Graphics.Gloss.Interface.IO.Game as Gloss(Event(..),Key(..),SpecialKey(..),KeyState(..))
 
 import Graphics(Screen,pictureScreen,screenTiles)
-import System(State(..),state0,stepCPU,renderScreen)
-import Six502.Emu(Cpu(..))
+import System(State(..),state0,stepCPU,stepNMI,renderScreen)
 
 data Model = Model
     { i :: Int
@@ -65,19 +64,17 @@ handleEventModel event model = do
 
 updateModel :: Float -> Model -> IO Model
 updateModel _delta m@Model{i,state} = do -- called once per frame, every 1/60s
-    let State{cpu=Cpu{pc},cc} = state
-    let _ = (cc,pc)
-    state <- loop 0 state
     --putStrLn $ showFI (0::Int) <> ": " <> show state
+    state1 <- loop 0 state
     --putStrLn "--------------------------------------------------"
-    let screen = renderScreen state
+    let state' = stepNMI state1
     return m
         { i = i + 1
-        , state
-        , screen
+        , state = state'
+        , screen = renderScreen state'
         }
  where
-    showFI n = printf "%5d.%02d" i n -- frame/instruction
+    showFI n = printf "%5d.%03d" i n -- frame/instruction
 
     loop :: Int -> State -> IO State
     loop n state = do
