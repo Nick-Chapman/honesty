@@ -11,6 +11,8 @@ import Graphics.Gloss.Interface.IO.Game as Gloss(Event(..),Key(..),SpecialKey(..
 import Graphics(Screen,pictureScreen,screenTiles)
 import System(State(..),state0,stepCPU,stepNMI,renderScreen)
 
+import qualified Controller
+
 data Model = Model
     { i :: Int
     , state :: State
@@ -32,7 +34,7 @@ gloss path fg sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 2 --60 -- slow for dev
+        fps = 2 -- 60 -- slow for dev
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale scF (-scF) -- The "-" flips the vertical
@@ -56,11 +58,25 @@ pictureModel Model{state=State{chr1,chr2},screen} = do
         ]
 
 handleEventModel :: Gloss.Event -> Model -> IO Model
-handleEventModel event model = do
+handleEventModel event model@Model{state=state@State{con}} = do
     putStrLn "E"
-    case event of
+    return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
-        _ -> return model
+        EventKey (Char 'z') ud _ _ -> joy ud Controller.A
+        EventKey (Char 'x') ud _ _ -> joy ud Controller.B
+        EventKey (SpecialKey KeyTab) ud _ _ -> joy ud Controller.Select
+        EventKey (SpecialKey KeyEnter) ud _ _ -> joy ud Controller.Start
+        EventKey (SpecialKey KeyUp) ud _ _ -> joy ud Controller.Up
+        EventKey (SpecialKey KeyDown) ud _ _ -> joy ud Controller.Down
+        EventKey (SpecialKey KeyLeft) ud _ _ -> joy ud Controller.Left
+        EventKey (SpecialKey KeyRight) ud _ _ -> joy ud Controller.Right
+        _ -> model
+  where
+        joy = \case Down -> press; Up -> release
+        press but = mod $ state { con = Controller.pressJ1 but con }
+        release but = mod $ state { con = Controller.releaseJ1 but con }
+        mod state = model { state }
+
 
 updateModel :: Float -> Model -> IO Model
 updateModel _delta m@Model{i,state} = do -- called once per frame, every 1/60s
@@ -74,11 +90,12 @@ updateModel _delta m@Model{i,state} = do -- called once per frame, every 1/60s
         , screen = renderScreen state'
         }
  where
-    showFI n = printf "%5d.%03d" i n -- frame/instruction
+    showFI n = printf "%5d.%04d" i n -- frame/instruction
 
     loop :: Int -> State -> IO State
     loop n state = do
         -- instructions/frame. needs to be about 10k
-        if n == 1000 then return state else do
-            putStrLn $ showFI n <> ": " <> show state
+        if n == 10000 then return state else do
+            --let State{con} = state
+            putStrLn $ showFI n <> ": " <> show state -- <> " -- " <> show con
             loop (n+1) (stepCPU state)

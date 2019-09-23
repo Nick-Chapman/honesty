@@ -5,6 +5,7 @@ module Six502.Mem( -- address space mapping for the CPU
     run,
     ) where
 
+import Data.Bits(testBit)
 import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
 
@@ -12,6 +13,7 @@ import Six502.Values
 import qualified Ram2k
 import qualified PPU.Regs
 import qualified PRG
+import qualified Controller as Con
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
@@ -38,37 +40,52 @@ rom1 prg2 = RO { optPrg1 = Nothing, prg2 }
 rom2 :: PRG.ROM -> PRG.ROM -> RO
 rom2 prg1 prg2 = RO { optPrg1 = Just prg1, prg2 }
 
-run :: RO -> Ram2k.State -> Effect a -> PPU.Regs.Effect (Ram2k.State,a)
-run ro@RO{optPrg1,prg2} wram = \case
+type State = (Con.State,Ram2k.State)
 
-    Ret x -> return (wram,x)
-    Bind e f -> do (wram',v) <- run ro wram e; run ro wram' (f v)
+run :: RO -> State -> Effect a -> PPU.Regs.Effect (State,a)
+run ro@RO{optPrg1,prg2} state@(con,wram) = \case
+
+    Ret x -> return (state,x)
+    Bind e f -> do (state',v) <- run ro state e; run ro state' (f v)
 
     Read addr -> case decode "read" addr of
-        Ram x -> return $ Ram2k.run wram (Ram2k.Read x)
-        Rom1 x -> return $ (wram, PRG.read prg1 x)
-        Rom2 x -> return $ (wram, PRG.read prg2 x)
-        PPU reg -> do v <- PPU.Regs.Read reg; return (wram, v)
+        Ram x -> do
+            let (wram',v) = Ram2k.run wram (Ram2k.Read x)
+            return ((con,wram'), v)
+
+        Rom1 x -> return $ (state, PRG.read prg1 x)
+        Rom2 x -> return $ (state, PRG.read prg2 x)
+        PPU reg -> do v <- PPU.Regs.Read reg; return (state, v)
         IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
 
         Dma -> error $ "CPU.Mem, Read DmaTODO"
         Joy1 -> do
-            let b :: Byte = 0 -- make up a value
-            return (wram,b) -- TODO: support joystick read
+            let (bool,con') = Con.read con
+            let b :: Byte = if bool then 1 else 0
+            return ((con',wram),b)
         Joy2 -> do
-            let b :: Byte = 0 -- make up a value
-            return (wram,b) -- TODO: support joystick read
+            let b :: Byte = 0 -- no joystick 2
+            return (state,b)
 
     Write addr v -> case decode "write" addr of
-        Ram x -> return $ Ram2k.run wram (Ram2k.Write x v)
+        Ram x -> do
+            let (wram',()) = Ram2k.run wram (Ram2k.Write x v)
+            return $ ((con,wram'),())
+
         Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
-        PPU reg -> do PPU.Regs.Write reg v; return (wram, ())
-        IgnoreFineScrollWrite -> return (wram,())
+        PPU reg -> do PPU.Regs.Write reg v; return (state, ())
+        IgnoreFineScrollWrite -> return (state,())
 
-        Dma -> return (wram,()) -- TODO: support DMA !!!
-        Joy1 -> return (wram,()) -- TODO: support joystick strobe
-        Joy2 -> return (wram,()) -- TODO: support joystick strobe
+        Dma -> return (state,()) -- TODO: support DMA !!!
+        Joy1 -> do
+            let bool = testBit v 0
+            let con' = Con.strobe bool con
+            return ((con',wram),())
+
+        Joy2 -> do
+            --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
+            return (state,())
 
     where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
 

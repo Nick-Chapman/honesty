@@ -17,9 +17,9 @@ import qualified Ram2k
 import qualified PPU.Regs as Regs
 import qualified PPU.Render
 import qualified PRG
+import qualified Controller as Con
 
 import Six502.Emu(Cpu)
-
 
 data State = State
     { ro :: Six.Mem.RO
@@ -30,34 +30,38 @@ data State = State
     , chr1 :: CHR
     , chr2 :: CHR
     , vram :: Ram2k.State
+    , con :: Con.State
     }
 
 instance Show State where
     show state = do
-        let State{ro,wram,cpu,ppu_regs,cc,vram} = state
+        let State{ro,wram,cpu,ppu_regs,cc,vram,con} = state
         let Six.Cpu{Six.pc} = cpu
-        let (_,(_,(_,bytes))) = Ram2k.run vram (Regs.run ppu_regs (Six.Mem.run ro wram (Six.Mem.reads pc)))
+        let (_,(_,(_,bytes))) = Ram2k.run vram (Regs.run ppu_regs (Six.Mem.run ro (con,wram) (Six.Mem.reads pc)))
         let op = decode1 bytes
         let col = 48
         ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
 
 stepCPU :: State -> State
 stepCPU state = do
-    let State{ro,wram,cpu,ppu_regs,cc,vram} = state
+    let State{ro,wram,cpu,ppu_regs,cc,vram,con} = state
     let mem_eff = Six.stepInstruction cpu
-    let ppu_regs_eff = Six.Mem.run ro wram mem_eff
-    let vram_eff :: Ram2k.Effect (Regs.State,(Ram2k.State,(Cpu, Cycles))) = Regs.run ppu_regs ppu_regs_eff
-    let (vram1,(ppu_regs1,(wram1,(cpu1,n)))) = Ram2k.run vram vram_eff
-    state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n, vram = vram1 }
+    let ppu_regs_eff = Six.Mem.run ro (con,wram) mem_eff
+    let vram_eff :: Ram2k.Effect (Regs.State,((Con.State,Ram2k.State),(Cpu, Cycles))) = Regs.run ppu_regs ppu_regs_eff
+    let (vram1,(ppu_regs1,((con1,wram1),(cpu1,n)))) = Ram2k.run vram vram_eff
+    state { wram = wram1, cpu = cpu1, ppu_regs = ppu_regs1, cc = cc + n
+          , vram = vram1
+          , con = con1
+          }
 
 stepNMI :: State -> State
 stepNMI state = do
-    let State{ro,wram,cpu,ppu_regs,vram} = state
+    let State{ro,wram,cpu,ppu_regs,vram,con} = state
     let mem_eff = Six.triggerNMI cpu
-    let ppu_regs_eff = Six.Mem.run ro wram mem_eff
-    let vram_eff :: Ram2k.Effect (Regs.State,(Ram2k.State,Cpu)) = Regs.run ppu_regs ppu_regs_eff
-    let (vram1,(ppu_regs1,(wram1,cpu1))) = Ram2k.run vram vram_eff
-    let _ignore = (vram1,ppu_regs1) -- ok to ignore these effects, which can/should not happen?
+    let ppu_regs_eff = Six.Mem.run ro (con,wram) mem_eff
+    let vram_eff = Regs.run ppu_regs ppu_regs_eff
+    let (vram1,(ppu_regs1,((con1,wram1),cpu1))) = Ram2k.run vram vram_eff
+    let _ignore = (vram1,ppu_regs1,con1) -- ok to ignore these effects, which can/should not happen?
     state { wram = wram1, cpu = cpu1 }
 
 renderScreen :: State -> Screen
@@ -80,6 +84,7 @@ state0 path = do
         , chr2
 --        , vram = _fillRamWithCrap $ Ram2k.init "vram"
         , vram = Ram2k.init "vram"
+        , con = Con.init
         }
 
 _fillRamWithCrap :: Ram2k.State -> Ram2k.State

@@ -77,16 +77,30 @@ run state@State{control, mask, status
         -- return (state { ppu_data = b }, ())
         let a :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
         -- TODO: proper support for PPU MemMap & nametable mirroring
-        Ram2k.Write (a `minusAddr` 0x2000)  b
+        Ram2k.Write (decode a) b
         return (bumpAddr state, ())
 
     Write OAMADDR _ -> do
         --error "Write OAMADDR"
         return (state, ()) -- TODO: dont ignore when handling sprites!
 
-
 bumpAddr :: State -> State -- TODO: bump should be H/V depending on some status bit
 bumpAddr s@State{ppu_addr_hi=hi, ppu_addr_lo=lo} = do
     let a = addrOfHiLo hi lo
     let (hi',lo') = addrToHiLo (a `addAddr` 1)
     s { ppu_addr_hi=hi', ppu_addr_lo=lo'}
+
+decode :: Addr -> Int
+decode a = if
+    | a < 0x2000 -> error $ "Regs.decode, patten table: " <>  show a
+    | a < 0x2800 ->  a `minusAddr` 0x2000
+    | a < 0x3000 ->  a `minusAddr` 0x2800
+
+    | a >= 0x3F00 && a < 0x3F1F ->
+      error $ "Regs.decode, TODO: palette RAM index: " <> show a
+
+    -- mirrors...
+    | a < 0x3800 ->  a `minusAddr` 0x3000
+    | a < 0x4000 ->  a `minusAddr` 0x3800
+
+    | otherwise ->  error $ "Regs.decode, too high: " <> show a
