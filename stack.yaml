@@ -1,1 +1,4 @@
 resolver: lts-14.3
+
+extra-deps:
+- stt-0.2.1

@@ -2,12 +2,20 @@
 module Ram2k(
     Effect(..),
     State, init, run,
+    interpretST, interpretSTT,
+    size,
     ) where
 
 import Prelude hiding (init,read)
 import Control.Monad (ap,liftM)
 import Data.Map(Map)
 import qualified Data.Map as Map
+
+import Control.Monad.ST
+import Control.Monad.Trans.ST
+
+import Data.Array.MArray hiding (inRange)
+import Data.Array.ST hiding (inRange)
 
 import Six502.Values
 
@@ -49,3 +57,34 @@ write state@State{name,ram} a b = if
 
 inRange :: Int -> Bool
 inRange a = a >= 0 && a < size
+
+--newtype Trans x a = Trans { unTrans :: ST x a } deriving (Functor,Applicative,Monad)
+--type Trans x a = ST x a
+
+--runTrans :: forall a. (forall x. Trans x a) -> a
+--runTrans tr = runST tr
+
+interpretST :: Effect a -> ST x a
+interpretST e = do
+    arr <- newArray (0,size-1) 0
+    inter arr e
+    where
+        inter :: STArray x Int Byte -> Effect a -> ST x a
+        inter arr = \case
+            Ret x -> return x
+            Bind e f -> do v <- inter arr e; inter arr (f v)
+            Read a -> readArray arr a
+            Write a b -> writeArray arr a b
+
+
+interpretSTT :: Monad m => Effect a -> STT x m a
+interpretSTT e = do
+    arr <- newSTTArray (0,size-1) 0
+    inter arr e
+    where
+        inter :: Monad m => STArray x Int Byte -> Effect a -> STT x m a
+        inter arr = \case
+            Ret x -> return x
+            Bind e f -> do v <- inter arr e; inter arr (f v)
+            Read a -> readSTTArray arr a
+            Write a b -> writeSTTArray arr a b
