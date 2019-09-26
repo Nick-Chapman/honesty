@@ -3,6 +3,9 @@ module Ram2k(
     Effect(..),
     State, init, run,
     interpretST, interpretSTT,
+
+    MState, newMState, interIO,
+
     size,
     ) where
 
@@ -16,6 +19,7 @@ import Control.Monad.Trans.ST
 
 import Data.Array.MArray hiding (inRange)
 import Data.Array.ST hiding (inRange)
+import Data.Array.IO hiding (inRange)
 
 import Six502.Values
 
@@ -64,15 +68,31 @@ inRange a = a >= 0 && a < size
 --runTrans :: forall a. (forall x. Trans x a) -> a
 --runTrans tr = runST tr
 
+newtype MState = MState { arr :: IOArray Int Byte }
+
+newMState :: IO MState
+newMState = do
+    arr <- newArray (0,size-1) 0
+    return $ MState {arr}
+
+interIO :: MState -> Effect a -> IO a
+interIO m@MState{arr} = \case
+    Ret x -> return x
+    Bind e f -> do v <- interIO m e; interIO m (f v)
+    Read a -> readArray arr a
+    Write a b -> writeArray arr a b
+
+
+
 interpretST :: Effect a -> ST x a
 interpretST e = do
     arr <- newArray (0,size-1) 0
-    inter arr e
+    interST arr e
     where
-        inter :: STArray x Int Byte -> Effect a -> ST x a
-        inter arr = \case
+        interST :: STArray x Int Byte -> Effect a -> ST x a
+        interST arr = \case
             Ret x -> return x
-            Bind e f -> do v <- inter arr e; inter arr (f v)
+            Bind e f -> do v <- interST arr e; interST arr (f v)
             Read a -> readArray arr a
             Write a b -> writeArray arr a b
 
