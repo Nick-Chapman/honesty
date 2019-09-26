@@ -1,7 +1,8 @@
 
 -- try to wire everything up form the top
 
-module Top(model0,
+module Top(gloss,
+           model0,
            pictureModel,
            handleEventModel,
            updateModel,
@@ -11,7 +12,9 @@ import Control.Monad (ap,liftM)
 import Control.Monad (forever)
 import Data.Set(Set)
 import Control.Monad.State
-import Graphics.Gloss.Interface.IO.Game as Gloss(Event,Picture,pictures)
+
+import Graphics.Gloss (translate,scale)
+import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Six502.Values
 import qualified Controller
@@ -21,6 +24,33 @@ import qualified Six502.Emu
 import qualified Six502.Mem
 import qualified Graphics
 import qualified PRG
+import NesFile
+
+
+gloss :: String -> Bool -> Int -> IO ()
+gloss path fg sc = do
+    model <- model0 path
+    Gloss.playIO dis (Gloss.greyN 0.3) fps model
+        (\  m -> return $ doPosition (pictureModel m))
+        (\e m -> handleEventModel e m)
+        (\d m -> updateModel d m)
+    where
+        dis = if fg
+              then Gloss.FullScreen
+              else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
+
+        fps = 2 -- 60 -- slow for dev
+
+        doPosition = doScale . doBorder . doTransOriginUL
+        doScale = scale scF (-scF) -- The "-" flips the vertical
+        scF = fromIntegral sc
+
+        doBorder = translate 10 10
+        doTransOriginUL = translate (- ((fromIntegral x)/2)) (- ((fromIntegral y)/2))
+
+        x = 800
+        y = 600
+
 
 data Model = Model
     { picture :: Gloss.Picture
@@ -52,10 +82,14 @@ updateModel _ model@Model{sys,buttons} = loop sys
                 loop sys
 
 
-model0 :: Addr -> IO Model
-model0 codeStartAddr = do
-    rr <- ramRom0
-    let s = nesState0 codeStartAddr
+model0 :: String -> IO Model
+model0 path = do
+    --nesfile@NesFile{chrs=[(chr1,chr2)]} <- loadNesFile path
+    nesfile <- loadNesFile path
+    let prg = prgOfNesFile nesfile
+    let pc0 = resetAddr path prg
+    rr <- ramRom0 prg
+    let s = nesState0 pc0
     sys <- sysOfNesState rr s
     return $ Model { picture = Gloss.pictures []
                    , sys
@@ -63,18 +97,34 @@ model0 codeStartAddr = do
                    }
 
 
+resetAddr :: String -> PRG.ROM -> Addr
+resetAddr path prg = do
+    let bytes = PRG.unROM prg
+    case path of
+        "data/nestest.nes" -> 0xC000
+        _ -> addrOfHiLo hi lo
+            where
+                lo = bytes !! 0x3ffc
+                hi = bytes !! 0x3ffd
+
+prgOfNesFile :: NesFile -> PRG.ROM
+prgOfNesFile NesFile{prgs} =
+    case prgs of
+        [prg] -> prg
+        --[_prg1,prg2] -> prg2
+        _  ->
+            error "emu, unexpected number of prg"
+
 data NesRamRom = NesRamRom
     { vram :: Ram2k.MState,
       wram :: Ram2k.MState,
       prg :: PRG.ROM
     }
 
-ramRom0 :: IO NesRamRom
-ramRom0 = do
-    let bytes = undefined -- program bytes
+ramRom0 :: PRG.ROM -> IO NesRamRom
+ramRom0 prg = do
     vram <- Ram2k.newMState
     wram <- Ram2k.newMState
-    let prg = PRG.init bytes
     return $ NesRamRom { vram, wram, prg }
 
 

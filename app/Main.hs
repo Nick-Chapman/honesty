@@ -10,7 +10,8 @@ import Six502.Decode (decode,reEncode)
 import Six502.Disassembler (displayOpLines)
 import Six502.Operations (Op)
 import NesFile
-import Sim(gloss)
+import qualified Sim(gloss)
+import qualified Top(gloss)
 import qualified PRG
 
 main :: IO ()
@@ -24,8 +25,9 @@ main = do
         ["--emu",path] -> emu path
 
         -- WIP, fuller NES emulation (but really only 6502 still)
-        [] -> nes path
-        [path] -> nes path
+        ["--old"] -> nes False path
+        [] -> nes True path
+        [path] -> nes True path
 
         args -> error $ "args: " <> show args
   where
@@ -33,8 +35,12 @@ main = do
       path = "data/dk.nes"
       --path = "data/nestest.nes"
 
-nes :: String -> IO ()
-nes path = Sim.gloss path fg scale
+nes :: Bool -> String -> IO ()
+nes new path =
+    if new
+    then Top.gloss path fg scale
+    else Sim.gloss path fg scale
+
 
 fg :: Bool
 fg = False
