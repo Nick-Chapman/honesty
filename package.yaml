@@ -27,11 +27,11 @@ default-extensions:
 - LambdaCase
 - MultiWayIf
 - NamedFieldPuns
+- NumericUnderscores
 - ScopedTypeVariables
 - RankNTypes
 
 #- NondecreasingIndentation
-#- NumericUnderscores
 #- OverloadedStrings
 #- RecordWildCards
 #- BangPatterns
