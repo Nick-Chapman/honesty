@@ -33,3 +33,27 @@ And the `nestest` rom and log from
 Run/test with:
 
     stack build --file-watch --exec ./go.sh
+
+
+## NES notes
+
+Have most of a full NES emulator wired up now. Now the debugging starts...
+
+Current problem...
+- When running an RTS instruction, the PC resumes at a very unexpected address.
+- The Cpu MemMap decode refuses to handle it, assuming it's a bug (which it is)
+- The resume address should come off the stack (from the last executed a JSR)
+- So how come it is corrupted?
+- Add some debug at the Mem Read/Write layer...
+- Then can see the last instruction which wrote to this address
+- AH.. from here:
+
+    F1CE  8D 07 20  STA $2007                       A:24 X:03 Y:02 P:24 SP:FD CYC:38200
+    ("WRITE","wram",510,24)
+
+- which is very wrong!
+- This adress should be mem mapped to a PPU Reg -- PPUDATA -- which it is
+- And this should then cause a write into the vram.. not the wram!
+- fix it...
+- ignore a few more sound register writes...
+- Woo! see the DK title screen

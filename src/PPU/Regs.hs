@@ -89,9 +89,10 @@ run state@State{control, mask, status
 
     Write PPUDATA b -> do
         -- return (state { ppu_data = b }, ())
-        let a :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
-        -- TODO: proper support for PPU MemMap & nametable mirroring
-        Ram2k.Write (decode a) b
+        let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        case (decode addr) of
+            Ram a -> Ram2k.Write a b
+            PaletteRam -> return () -- TODOm get some colours!
         return (bumpAddr state, ())
 
     Write OAMADDR _ -> do
@@ -106,17 +107,22 @@ bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
     let (hi',lo') = addrToHiLo (a `addAddr` bump)
     s { ppu_addr_hi=hi', ppu_addr_lo=lo'}
 
-decode :: Addr -> Int
+decode :: Addr -> Decode
 decode a = if
-    | a < 0x2000 -> error $ "Regs.decode, patten table: " <>  show a
-    | a < 0x2800 ->  a `minusAddr` 0x2000
-    | a < 0x3000 ->  a `minusAddr` 0x2800
+    | a < 0x2000 -> error $ "Regs.decode, cant write to pattern table: " <>  show a
+    | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
+    | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
     | a >= 0x3F00 && a < 0x3F1F ->
-      error $ "Regs.decode, TODO: palette RAM index: " <> show a
+      --error $ "Regs.decode, TODO: palette RAM index: " <> show a
+      PaletteRam
 
-    -- mirrors...
-    | a < 0x3800 ->  a `minusAddr` 0x3000
-    | a < 0x4000 ->  a `minusAddr` 0x3800
+    -- mirrors... wait and see if they are used
+--    | a < 0x3800 ->  a `minusAddr` 0x3000
+--    | a < 0x4000 ->  a `minusAddr` 0x3800
 
     | otherwise ->  error $ "Regs.decode, too high: " <> show a
+
+data Decode
+    = Ram Int
+    | PaletteRam --TODO

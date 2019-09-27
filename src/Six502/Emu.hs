@@ -26,6 +26,7 @@ data Cpu = Cpu
     , yreg :: Byte
     , status :: Byte
     , sp :: Byte
+--    , lastMemWrite :: Maybe (Addr,Byte)
     }
 
 instance Show Cpu where
@@ -35,6 +36,7 @@ instance Show Cpu where
         , "Y:" <> show yreg
         , "P:" <> show status
         , "SP:" <> show sp
+--        , "LM:" <> show lastMemWrite
         ]
 
 cpu0 :: Addr -> Cpu
@@ -45,6 +47,7 @@ cpu0 codeStartAddr = Cpu
     , yreg = 0
     , sp = 0xFD
     , status = 0x24
+--    , lastMemWrite = Nothing
     }
 
 triggerNMI :: Cpu -> Mem.Effect Cpu
@@ -674,7 +677,7 @@ interpret act cpu = do
 
         ReadMem addr -> do byte <- Mem.Read addr; return (cpu,byte)
         ReadsMem addr -> do bytes <- memReads addr; return (cpu,bytes)
-        StoreMem addr byte -> do Mem.Write addr byte; return (cpu,())
+        StoreMem addr byte -> do Mem.Write addr byte; return (cpu,()) -- { lastMemWrite = Just (addr,byte) },())
 
         PC -> nochange pc
         A -> nochange accumulator

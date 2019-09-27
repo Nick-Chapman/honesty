@@ -1,10 +1,6 @@
 
 module Six502.Mem( -- address space mapping for the CPU
     Effect(..), reads,
-    rom1,
-    rom2, -- TODO: use this!
-    --RO,
-    --run,
     decode, Decode(..),
     ) where
 
@@ -13,10 +9,7 @@ import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
 
 import Six502.Values
---import qualified Ram2k
 import qualified PPU.Regs
-import qualified PRG
---import qualified Controller as Con
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
@@ -35,66 +28,6 @@ data Effect a where
     Read :: Addr -> Effect Byte
     Write :: Addr -> Byte -> Effect ()
 
-data RO = RO { optPrg1 :: Maybe PRG.ROM, prg2 :: PRG.ROM }
-
-rom1 :: PRG.ROM -> RO
-rom1 prg2 = RO { optPrg1 = Nothing, prg2 }
-
-rom2 :: PRG.ROM -> PRG.ROM -> RO
-rom2 prg1 prg2 = RO { optPrg1 = Just prg1, prg2 }
-
-
-{-
-type State = (Con.State,Ram2k.State)
-
-run :: RO -> State -> Effect a -> PPU.Regs.Effect (State,a)
-run ro@RO{optPrg1,prg2} state@(con,wram) = \case
-
-    Ret x -> return (state,x)
-    Bind e f -> do (state',v) <- run ro state e; run ro state' (f v)
-
-    Read addr -> case decode "read" addr of
-        Ram x -> do
-            let (wram',v) = Ram2k.run wram (Ram2k.Read x)
-            return ((con,wram'), v)
-
-        Rom1 x -> return $ (state, PRG.read prg1 x)
-        Rom2 x -> return $ (state, PRG.read prg2 x)
-        PPU reg -> do v <- PPU.Regs.Read reg; return (state, v)
-        IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
-
-        Dma -> error $ "CPU.Mem, Read DmaTODO"
-        Joy1 -> do
-            let (bool,con') = Con.read con
-            let b :: Byte = if bool then 1 else 0
-            return ((con',wram),b)
-        Joy2 -> do
-            let b :: Byte = 0 -- no joystick 2
-            return (state,b)
-
-    Write addr v -> case decode "write" addr of
-        Ram x -> do
-            let (wram',()) = Ram2k.run wram (Ram2k.Write x v)
-            return $ ((con,wram'),())
-
-        Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
-        Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
-        PPU reg -> do PPU.Regs.Write reg v; return (state, ())
-        IgnoreFineScrollWrite -> return (state,())
-
-        Dma -> return (state,()) -- TODO: support DMA !!!
-        Joy1 -> do
-            let bool = testBit v 0
-            let con' = Con.strobe bool con
-            return ((con',wram),())
-
-        Joy2 -> do
-            --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
-            return (state,())
-
-    where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
--}
-
 decode :: String -> Addr -> Decode
 decode tag a = if
     | a < 0x800 -> Ram $ fromIntegral $ unAddr a
@@ -104,8 +37,7 @@ decode tag a = if
     -- | a == 0x800 -> Ram undefined
     -- | a == 0x801 -> Ram undefined
 
-    | a < 0x1000 -> Ram $ a `minusAddr` 0x800
-
+    -- | a < 0x1000 -> Ram $ a `minusAddr` 0x800
 
     | a == 0x2000 -> PPU PPU.Regs.Control
     | a == 0x2001 -> PPU PPU.Regs.Mask
@@ -121,9 +53,11 @@ decode tag a = if
     -- PPU reg mirrors
     -- 0x4000 -- 0x401F -- APU and I/O regs
 
-    | a == 0x4011 -> IgnoreSound
-    
+    -- sound is from 0x4000--0x4013, 0x4015, and 0x4017 (overlappiong Joy2)
+    | a >= 0x4000 && a <= 0x4013 -> IgnoreSound
+
     | a == 0x4014 -> Dma
+    | a == 0x4015 -> IgnoreSound
     | a == 0x4016 -> Joy1
     | a == 0x4017 -> Joy2
 
