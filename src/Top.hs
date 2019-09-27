@@ -467,8 +467,8 @@ iCpuMemMapEff buttons = \case
     MM_Bind e f -> do v <- iCpuMemMapEff buttons e; iCpuMemMapEff buttons (f v)
 
     MM_Con eff -> do
-        StateT $ \(consState,regsState) -> do
-            let (v,conState') = Controller.inter buttons consState eff
+        StateT $ \(consState,regsState) -> NesRam.EmbedIO $ do
+            (v,conState') <- Controller.inter buttons consState eff
             return (v,(conState',regsState))
 
     MM_Reg eff -> do

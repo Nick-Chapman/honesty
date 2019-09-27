@@ -36,6 +36,7 @@ default-extensions:
 #- RecordWildCards
 #- BangPatterns
 #- StandaloneDeriving # Is this dangerous in any way?
+#- FlexibleInstances
 
 library:
   source-dirs: src

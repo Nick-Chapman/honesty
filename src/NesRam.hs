@@ -19,6 +19,7 @@ data Effect a where
     Bind :: Effect a -> (a -> Effect b) -> Effect b
     InVram :: Ram2k.Effect a -> Effect a
     InWram :: Ram2k.Effect a -> Effect a
+    EmbedIO :: IO a -> Effect a
 
 data MState = MState
     { vram :: Ram2k.MState
@@ -36,3 +37,4 @@ inter m@MState{vram,wram} = \case
     Bind e f -> do v <- inter m e; inter m (f v)
     InVram e -> Ram2k.interIO vram e
     InWram e -> Ram2k.interIO wram e
+    EmbedIO io -> io

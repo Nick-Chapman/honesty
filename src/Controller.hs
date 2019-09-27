@@ -22,16 +22,24 @@ data Button = A | B | Select | Start | Up | Down | Left | Right deriving (Eq,Ord
 
 type Pressed = Set Button -- only J1
 
-inter :: Pressed -> State -> Effect a -> (a,State)
+inter :: Pressed -> State -> Effect a -> IO (a,State)
 inter pressed state = \case
-    Strobe True -> ((), Strobing)
-    Strobe False -> ((), Sampled $ map (`elem` pressed) [A .. Right])
+    Strobe True -> return ((), Strobing)
+    Strobe False -> return ((), Sampled $ map (`elem` pressed) [A .. Right])
 
-    Read -> case state of
-        Strobing -> (bool2byte $ A `elem` pressed, Strobing)
-        Sampled bools -> case bools of
-            [] -> (1, Sampled [])
-            b:bs' -> (bool2byte b, Sampled bs')
+    Read ->
+        case state of
+            Strobing -> do
+                let res = bool2byte $ A `elem` pressed
+                --print ("Con.Read.inter(Strobing)",state,res)
+                return (res, Strobing)
+            Sampled bools -> case bools of
+                [] -> do
+                    --print ("Con.Read.inter(Sampled[])",state)
+                    return (1, Sampled [])
+                b:bs' -> do
+                    --print ("Con.Read.inter(Sampled)",state,b)
+                    return (bool2byte b, Sampled bs')
 
 bool2byte :: Bool -> Byte
 bool2byte b = if b then 1 else 0
