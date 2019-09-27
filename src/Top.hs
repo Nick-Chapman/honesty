@@ -83,8 +83,8 @@ gloss path fg sc = do
         doBorder = translate 10 10
         doTransOriginUL = translate (- ((fromIntegral x)/2)) (- ((fromIntegral y)/2))
 
-        x = 1000
-        y = 600
+        x = 800
+        y = 400
 
 
 data Model = Model
@@ -168,7 +168,7 @@ makePicture NesRamRom{chr1,chr2} Display{bg1,bg2} = do
         [ pictureScreen bg1
         , translate 300 0 $ pictureScreen bg2
         , translate 600 0 $ pictureScreen left
-        , translate 800 0 $ pictureScreen right
+        , translate 600 150 $ pictureScreen right
         ]
 
 

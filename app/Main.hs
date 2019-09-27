@@ -39,7 +39,7 @@ fg :: Bool
 fg = False
 
 scale :: Int
-scale = 1
+scale = 2
 
 dis :: String -> IO ()
 dis path = do
