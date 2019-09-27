@@ -4,14 +4,12 @@ module Main (main) where
 import Control.Monad (when)
 import System.Environment (getArgs)
 
-import System(State,state0,stepCPU)
 import Six502.Values
 import Six502.Decode (decode,reEncode)
 import Six502.Disassembler (displayOpLines)
 import Six502.Operations (Op)
 import NesFile
-import qualified Sim(gloss)
-import qualified Top(gloss)
+import qualified Top(gloss,model0,printRun)
 import qualified PRG
 
 main :: IO ()
@@ -25,9 +23,8 @@ main = do
         ["--emu",path] -> emu path
 
         -- WIP, fuller NES emulation (but really only 6502 still)
-        ["--old"] -> nes False path
-        [] -> nes True path
-        [path] -> nes True path
+        [] -> nes path
+        [path] -> nes path
 
         args -> error $ "args: " <> show args
   where
@@ -35,12 +32,8 @@ main = do
       path = "data/dk.nes"
       --path = "data/nestest.nes"
 
-nes :: Bool -> String -> IO ()
-nes new path =
-    if new
-    then Top.gloss path fg scale
-    else Sim.gloss path fg scale
-
+nes :: String -> IO ()
+nes path = Top.gloss path fg scale
 
 fg :: Bool
 fg = False
@@ -68,19 +61,14 @@ disPRG addr prg = do
     when (bytes /= bytes') $ fail "re-assemble failed"
     mapM_ putStrLn $ displayOpLines addr ops
 
-
 -- simple, non graphical entry point, used for nestest.nes regression test
 emu :: String -> IO ()
 emu path = do
-    state <- state0 path
-    let states :: [State] = limitEmuSteps path $ run state
-    mapM_ print states
+    model <- Top.model0 path
+    Top.printRun numSteps model
   where
-    run :: State -> [State]
-    run state = state : run (stepCPU state)
-
-    limitEmuSteps :: String -> [a] -> [a]
-    limitEmuSteps path =
+    numSteps :: Int
+    numSteps =
         case path of
-            "data/nestest.nes" -> take 5828 -- until reach unimplemented DCP
-            _ -> id
+            "data/nestest.nes" -> 5828 -- until reach unimplemented DCP
+            _ -> 0

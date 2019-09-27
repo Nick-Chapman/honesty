@@ -3,8 +3,10 @@ module PPU.Regs(
     Effect(..),
     Name(..),
     State, init, run,
+    setVBlank, isEnabledNMI,
     ) where
 
+import Data.Bits
 import Prelude hiding (init)
 import Six502.Values
 import qualified Ram2k
@@ -45,6 +47,14 @@ init = State  -- what are correct init values?
     -- , ppu_data = 0x0
     }
 
+setVBlank :: State -> Bool -> State
+setVBlank state@State{control} bool =
+    state { control = (if bool then setBit else clearBit) control 7 }
+
+isEnabledNMI :: State -> Bool
+isEnabledNMI State{control} = testBit control 7
+
+
 data AddrLatch = Hi | Lo deriving (Show)
 
 run :: State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
@@ -59,7 +69,11 @@ run state@State{control, mask, status
 
     Read Control -> return (state,control)
     Read Mask -> return (state,mask)
-    Read Status -> return (state,status)
+    Read Status -> do
+        let state' = state { ppu_addr_latch = Hi
+                           , status = clearBit status 7 }
+        return (state',status)
+
     Read PPUADDR -> error "Read PPUADDR" -- return (state,ppu_addr)
     Read PPUDATA -> error "Read PPUDATA" -- return (state,ppu_data)
     Read OAMADDR -> error "Read OAMADDR"
@@ -85,9 +99,11 @@ run state@State{control, mask, status
         return (state, ()) -- TODO: dont ignore when handling sprites!
 
 bumpAddr :: State -> State -- TODO: bump should be H/V depending on some status bit
-bumpAddr s@State{ppu_addr_hi=hi, ppu_addr_lo=lo} = do
+bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
+    let bumpV = testBit control 2
+    let bump = if bumpV then 32 else 1
     let a = addrOfHiLo hi lo
-    let (hi',lo') = addrToHiLo (a `addAddr` 1)
+    let (hi',lo') = addrToHiLo (a `addAddr` bump)
     s { ppu_addr_hi=hi', ppu_addr_lo=lo'}
 
 decode :: Addr -> Int

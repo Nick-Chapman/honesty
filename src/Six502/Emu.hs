@@ -1,6 +1,6 @@
 
 module Six502.Emu(
-    Cpu(..),Cycles,
+    Cpu(..),Cycles(..),
     cpu0,
     stepInstruction,
     triggerNMI,
@@ -15,7 +15,7 @@ import Six502.Decode (decode1,opSize)
 
 import qualified Six502.Mem as Mem
 
-newtype Cycles = Cycles Int deriving (Num)
+newtype Cycles = Cycles { unCycles :: Int }  deriving (Eq,Ord,Num)
 
 instance Show Cycles where show (Cycles n) = "CYC:" <> show n
 

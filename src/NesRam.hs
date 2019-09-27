@@ -5,7 +5,7 @@ module NesRam(
     run,
 
     Trans, runTrans, interpretST,
-    Trans', runTrans', interpretST',
+    --Trans', runTrans', interpretST',
 
     ) where -- 2x 2k ram (wram/vram)
 
@@ -14,8 +14,8 @@ import Control.Monad (ap,liftM)
 
 
 import Control.Monad.ST
-import Control.Monad.Trans.ST
-import Control.Monad.Trans.Class
+--import Control.Monad.Trans.ST
+--import Control.Monad.Trans.Class
 
 import Data.Array.MArray hiding (inRange)
 import Data.Array.ST hiding (inRange)
@@ -82,6 +82,7 @@ inter1 arr = \case
     Ram2k.Write a b -> writeArray arr a b
 
 
+{-
 -- coded by composing 2 copies of the interpreter for Ram2k
 
 type Trans' x y a = STT x (ST y) a
@@ -95,3 +96,4 @@ interpretST' = \case
     Bind e f -> do v <- interpretST' e; interpretST' (f v)
     Vram e -> Ram2k.interpretSTT e
     Wram e -> lift $ Ram2k.interpretST e
+-}

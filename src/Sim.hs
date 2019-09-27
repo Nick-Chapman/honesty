@@ -1,8 +1,8 @@
 
 module Sim(
-    gloss,
+    --gloss,
     ) where
-
+{-
 import Text.Printf (printf)
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import Graphics.Gloss(pictures,translate,scale)
@@ -99,3 +99,4 @@ updateModel _delta m@Model{i,state} = do -- called once per frame, every 1/60s
             --let State{con} = state
             putStrLn $ showFI n <> ": " <> show state -- <> " -- " <> show con
             loop (n+1) (stepCPU state)
+-}

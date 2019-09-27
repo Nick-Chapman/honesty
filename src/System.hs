@@ -1,8 +1,14 @@
 
 module System(
-    State(..),CHR, state0, stepCPU, stepNMI, renderScreen,
+    --State(..),
+    --CHR,
+    --state0,
+    --stepCPU,
+    --stepNMI,
+    --renderScreen,
     ) where
 
+{-
 import NesFile(NesFile(..),loadNesFile)
 import Graphics(CHR,Screen)
 
@@ -109,3 +115,4 @@ resetAddr path prg = do
             where
                 lo = bytes !! 0x3ffc
                 hi = bytes !! 0x3ffd
+-}

@@ -1,8 +1,8 @@
 
 module Ram2k(
     Effect(..),
-    State, init, run,
-    interpretST, interpretSTT,
+    State, init, run, -- TODO: remove
+    --interpretST, interpretSTT,
 
     MState, newMState, interIO,
 
@@ -14,11 +14,11 @@ import Control.Monad (ap,liftM)
 import Data.Map(Map)
 import qualified Data.Map as Map
 
-import Control.Monad.ST
-import Control.Monad.Trans.ST
+--import Control.Monad.ST
+--import Control.Monad.Trans.ST
 
 import Data.Array.MArray hiding (inRange)
-import Data.Array.ST hiding (inRange)
+--import Data.Array.ST hiding (inRange)
 import Data.Array.IO hiding (inRange)
 
 import Six502.Values
@@ -79,11 +79,10 @@ interIO :: MState -> Effect a -> IO a
 interIO m@MState{arr} = \case
     Ret x -> return x
     Bind e f -> do v <- interIO m e; interIO m (f v)
-    Read a -> readArray arr a
     Write a b -> writeArray arr a b
+    Read a -> readArray arr a
 
-
-
+{-
 interpretST :: Effect a -> ST x a
 interpretST e = do
     arr <- newArray (0,size-1) 0
@@ -108,3 +107,4 @@ interpretSTT e = do
             Bind e f -> do v <- inter arr e; inter arr (f v)
             Read a -> readSTTArray arr a
             Write a b -> writeSTTArray arr a b
+-}

@@ -1,7 +1,7 @@
 
 module Graphics(
     CHR, chrFromBS,
-    Screen, pictureScreen,
+    Screen(..), pictureScreen,
     screenTiles, screenBG,
     ) where
 
