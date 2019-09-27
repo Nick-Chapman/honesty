@@ -32,11 +32,7 @@ decode :: String -> Addr -> Decode
 decode tag a = if
     | a < 0x800 -> Ram $ fromIntegral $ unAddr a
 
-    -- 3 mirrors -- see if they are ever used...
-    -- so far only touch the first two addresses in the first mirror, but never read/write them
-    -- | a == 0x800 -> Ram undefined
-    -- | a == 0x801 -> Ram undefined
-
+    -- 3 mirrors -- wait to see if they are used...
     -- | a < 0x1000 -> Ram $ a `minusAddr` 0x800
 
     | a == 0x2000 -> PPU PPU.Regs.Control

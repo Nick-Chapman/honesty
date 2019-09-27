@@ -2,12 +2,12 @@
 module PPU.Regs(
     Effect(..),
     Name(..),
-    State, init, run,
+    State, state0,
     setVBlank, isEnabledNMI,
+    inter,
     ) where
 
 import Data.Bits
-import Prelude hiding (init)
 import Six502.Values
 import qualified Ram2k
 
@@ -36,8 +36,8 @@ data State = State
     -- , ppu_data :: Byte
     } deriving Show
 
-init :: State
-init = State  -- what are correct init values?
+state0 :: State
+state0 = State  -- what are correct init values?
     { control = 0x0
     , mask = 0x0
     , status = 0x80 -- lets set the vblank bit
@@ -57,15 +57,15 @@ isEnabledNMI State{control} = testBit control 7
 
 data AddrLatch = Hi | Lo deriving (Show)
 
-run :: State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
-run state@State{control, mask, status
+inter :: State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
+inter state@State{control, mask, status
                ,ppu_addr_latch
                ,ppu_addr_hi, ppu_addr_lo
                } = \case
     Ret x -> return (state,x)
     Bind e f -> do
-        (state',a) <- run state e
-        run state' (f a)
+        (state',a) <- inter state e
+        inter state' (f a)
 
     Read Control -> return (state,control)
     Read Mask -> return (state,mask)

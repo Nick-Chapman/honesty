@@ -14,6 +14,7 @@ import Data.Bits(testBit)
 import Control.Monad (ap,liftM)
 import Control.Monad (forever)
 import Data.Set(Set)
+import qualified Data.Set as Set
 import Control.Monad.State
 
 import Graphics.Gloss (translate,scale,pictures)
@@ -25,7 +26,7 @@ import Six502.Values
 import qualified Controller
 import qualified Ram2k
 import qualified NesRam
-import qualified PPU.Regs
+import qualified PPU.Regs as Regs
 import qualified Six502.Emu
 import qualified Graphics
 import qualified PRG
@@ -74,7 +75,7 @@ gloss path fg sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 2 -- 60 -- slow for dev
+        fps = 1 -- 60 -- slow for dev
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale scF (-scF) -- The "-" flips the vertical
@@ -87,10 +88,13 @@ gloss path fg sc = do
         y = 400
 
 
+type Buttons = Set Controller.Button
+
 data Model = Model
-    { picture :: Gloss.Picture
+    { frameCount :: Int
+    , picture :: Gloss.Picture
     , sys :: Sys
-    , buttons :: ButtonState
+    , buttons :: Buttons
     , rr :: NesRamRom
     }
 
@@ -99,25 +103,41 @@ pictureModel Model{picture} = picture
 
 handleEventModel :: Gloss.Event -> Model -> IO Model
 handleEventModel event model@Model{buttons} = do
-    case event of
+    return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
-        _ ->
-            return $ model { buttons = updateButtons event buttons }
+        EventKey (Char 'z') ud _ _ -> joy ud Controller.A
+        EventKey (Char 'x') ud _ _ -> joy ud Controller.B
+        EventKey (SpecialKey KeyTab) ud _ _ -> joy ud Controller.Select
+        EventKey (SpecialKey KeyEnter) ud _ _ -> joy ud Controller.Start
+        EventKey (SpecialKey KeyUp) ud _ _ -> joy ud Controller.Up
+        EventKey (SpecialKey KeyDown) ud _ _ -> joy ud Controller.Down
+        EventKey (SpecialKey KeyLeft) ud _ _ -> joy ud Controller.Left
+        EventKey (SpecialKey KeyRight) ud _ _ -> joy ud Controller.Right
+        _ -> model
+  where
+        joy = \case Down -> press; Up -> release
+        press but = model { buttons = Set.insert but buttons }
+        release but = model { buttons = Set.delete but buttons }
+
 
 updateModel :: Float -> Model -> IO Model
-updateModel _ model@Model{sys,buttons,rr} = loop sys
+updateModel _ model@Model{frameCount,sys,buttons,rr} =
+    do
+        putStrLn $ show frameCount <> " - " <> show buttons
+        loop sys
     where
         loop :: Sys -> IO Model
         loop = \case
             Sys_Render display sysIO -> do
                 sys <- sysIO
-                return $ model { picture = makePicture rr display , sys }
+                return $ model { frameCount = frameCount + 1
+                               , picture = makePicture rr display , sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
                 --printNSx rr nesState
                 sys <- sysIO
                 loop sys
             Sys_Log Log_NMI sysIO -> do
-                print "--------------------NMI--------------------"
+                --print "--------------------NMI--------------------"
                 sys <- sysIO
                 loop sys
             Sys_Log (Log_Info s) sysIO -> do
@@ -179,11 +199,12 @@ model0 path = do
     let pc0 = resetAddr path prg
     ram <- NesRam.newMState
     let rr = NesRamRom { ram, prg, chr1, chr2 }
-    let s = nesState0 pc0
-    sys <- sysOfNesState rr s
-    return $ Model { picture = Gloss.pictures []
+    let ns = nesState0 pc0
+    sys <- sysOfNesState rr ns
+    return $ Model { frameCount = 0
+                   , picture = Gloss.pictures []
                    , sys
-                   , buttons = buttons0
+                   , buttons = Set.empty
                    , rr
                    }
 
@@ -216,8 +237,8 @@ data NesRamRom = NesRamRom
 
 data NesState = NesState
     { cpu :: CpuState
-    , con :: ControllerState
-    , regs :: RegsState
+    , con :: Controller.State
+    , regs :: Regs.State
     , cc :: Cycles
     }
     deriving (Show)
@@ -230,10 +251,10 @@ sysOfNesState rr nesState = do
 
 
 nesState0 :: Addr -> NesState
-nesState0 codeStartAddr =
-    NesState { cpu = cpuState0 codeStartAddr
-             , con = controllerState0
-             , regs = regsState0
+nesState0 pc0 =
+    NesState { cpu = cpuState0 pc0
+             , con = Controller.state0
+             , regs = Regs.state0
              , cc = Cycles 7 -- for nestest.nes
              }
 
@@ -258,7 +279,7 @@ nesOneFrame = do
     runCpu (cyclesPerFrame - cyclesInVBlank)
     SetVBlank True
     e <- IsNmiEnabled
-    Log $ "enabled=" <> show e
+    --Log $ "enabled=" <> show e
     if e then TriggerNMI else return ()
     runCpu (cyclesInVBlank)
 
@@ -273,8 +294,8 @@ data Step a where
     Step_Bind :: Step a -> (a -> Step b) -> Step b
     SetVBlank :: Bool -> Step ()
     Render :: Step ()
-    Buttons :: Step ButtonState
-    RunCpuInstruction :: ButtonState -> Step Cycles
+    Buttons :: Step Buttons
+    RunCpuInstruction :: Buttons -> Step Cycles
     IsNmiEnabled :: Step Bool
     TriggerNMI :: Step ()
     Log :: String -> Step ()
@@ -288,14 +309,14 @@ data Logged = Log_NesState NesState | Log_NMI | Log_Info String
 data Sys
     = Sys_Render Display (IO Sys) -- comes every instruction, every 2-7 or so cpu cycles
     | Sys_Log Logged (IO Sys) -- comes every 30k ish cpu cycles
-    | Sys_SampleButtons (ButtonState -> IO Sys)
+    | Sys_SampleButtons (Buttons -> IO Sys)
 
 interpretStep :: NesRamRom -> NesState -> Step a -> (NesState -> a -> IO Sys) -> IO Sys
 interpretStep rr@NesRamRom{ram,prg} s@NesState{regs} step k = case step of
     Step_Ret x -> k s x
     Step_Bind e f -> interpretStep rr s e $ \s v -> interpretStep rr s (f v) k
     SetVBlank bool -> do
-        let s' = s {regs = setVBlank regs bool}
+        let s' = s {regs = Regs.setVBlank regs bool}
         k s' ()
     Render -> do
         screen <- NesRam.inter ram $ NesRam.InVram (render rr regs)
@@ -307,7 +328,7 @@ interpretStep rr@NesRamRom{ram,prg} s@NesState{regs} step k = case step of
             (s',cycles) <- NesRam.inter ram (cpuInstruction prg buttons s)
             k s' cycles
     IsNmiEnabled -> do
-        let e = isEnabledNMI regs
+        let e = Regs.isEnabledNMI regs
         k s e
     TriggerNMI -> do
         return $ Sys_Log (Log_NesState s) $ return $ Sys_Log Log_NMI $ do
@@ -320,16 +341,16 @@ interpretStep rr@NesRamRom{ram,prg} s@NesState{regs} step k = case step of
 ----------------------------------------------------------------------
 -- more complex combinations
 
-render :: NesRamRom -> PPU.Regs.State -> Ram2k.Effect Display
+render :: NesRamRom -> Regs.State -> Ram2k.Effect Display
 render NesRamRom{chr1,chr2} _regs = do
-    -- Depending on nametable mirroring (V/H) as selcte by PPU_Regs
+    -- Depending on nametable mirroring (V/H) as selected in PPUCTRL
     -- shoud read 1st or 2nd K of the vram.
     -- Probably better to go via the memory map!
 
     kilobyte1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
     kilobyte2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-    -- depending on some other flag in the PPU.Regs,
+    -- depending on some other flag in the Regs,
     -- should pick chr1 or chr2
     let chrPick = True
     let chr = if chrPick then chr2 else chr1
@@ -339,7 +360,7 @@ render NesRamRom{chr1,chr2} _regs = do
     return $ display
 
 
-cpuInstruction :: PRG.ROM -> ButtonState -> NesState -> NesRam.Effect (NesState,Cycles)
+cpuInstruction :: PRG.ROM -> Buttons -> NesState -> NesRam.Effect (NesState,Cycles)
 cpuInstruction prg2 buttons NesState{cpu,con,regs,cc} = do
     let opPrg1 = Nothing-- TODO
     let mm_eff = iCpuMem (opPrg1,prg2) (Six502.Emu.stepInstruction cpu)
@@ -352,7 +373,7 @@ triggerNMI :: PRG.ROM -> NesState -> NesRam.Effect NesState
 triggerNMI prg2 NesState{cpu,con,regs,cc} = do
     let opPrg1 = Nothing-- TODO
     let mm_eff = iCpuMem (opPrg1,prg2) (Six502.Emu.triggerNMI cpu)
-    let buttons = undefined
+    let buttons = Set.empty -- ok?
     do
         (cpu',(con',regs')) <- runStateT (iCpuMemMapEff buttons mm_eff) (con,regs)
         let ns = NesState cpu' con' regs' cc
@@ -364,9 +385,9 @@ readFromAddr ns NesRamRom{prg,ram} pc = do
     let mem_eff = Six502.Mem.reads pc
     let _tag = "readFromAddr:"<>show ns
     let mm_eff = iCpuMem  (opPrg1,prg) mem_eff
-    let buttons = buttons0
-    let con = controllerState0
-    let regs = regsState0
+    let buttons = Set.empty
+    let con = Controller.state0
+    let regs = Regs.state0
     (bytes,_) <- NesRam.inter ram $ runStateT (iCpuMemMapEff buttons mm_eff) (con,regs)
     return bytes
 
@@ -398,12 +419,12 @@ iCpuMem s@(optPrg1,prg2) = \case
         Ram x -> MM_Ram (Ram2k.Read x)
         Rom1 x -> return $ PRG.read prg1 x
         Rom2 x -> return $ PRG.read prg2 x
-        PPU reg -> MM_Reg (PPU.Regs.Read reg)
+        PPU reg -> MM_Reg (Regs.Read reg)
         -- ???
         IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
         IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
         Dma -> error $ "CPU.Mem, Read DmaTODO"
-        Joy1 -> MM_Con $ ControllerEff_Read
+        Joy1 -> MM_Con $ Controller.Read
         Joy2 -> do
             let b :: Byte = 0 -- no joystick 2
             return b
@@ -412,13 +433,13 @@ iCpuMem s@(optPrg1,prg2) = \case
         Ram x -> MM_Ram (Ram2k.Write x v)
         Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
-        PPU reg -> MM_Reg (PPU.Regs.Write reg v)
+        PPU reg -> MM_Reg (Regs.Write reg v)
         IgnoreFineScrollWrite -> return ()
         IgnoreSound -> return ()
         Dma -> return () -- TODO: support DMA !!!
         Joy1 -> do
             let bool = testBit v 0
-            MM_Con $ ControllerEff_Strobe bool
+            MM_Con $ Controller.Strobe bool
 
         Joy2 -> do
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
@@ -432,80 +453,27 @@ iCpuMem s@(optPrg1,prg2) = \case
 data CpuMemMapEff a where
     MM_Ret :: a -> CpuMemMapEff a
     MM_Bind :: CpuMemMapEff a -> (a -> CpuMemMapEff b) -> CpuMemMapEff b
-    MM_Con :: ControllerEff a -> CpuMemMapEff a
-    MM_Reg :: RegsEff a -> CpuMemMapEff a
+    MM_Con :: Controller.Effect a -> CpuMemMapEff a
+    MM_Reg :: Regs.Effect a -> CpuMemMapEff a
     MM_Ram :: Ram2k.Effect a -> CpuMemMapEff a
 
 instance Functor CpuMemMapEff where fmap = liftM
 instance Applicative CpuMemMapEff where pure = return; (<*>) = ap
 instance Monad CpuMemMapEff where return = MM_Ret; (>>=) = MM_Bind
 
-iCpuMemMapEff :: ButtonState -> CpuMemMapEff a -> StateT (ControllerState,RegsState) NesRam.Effect a
+iCpuMemMapEff :: Buttons -> CpuMemMapEff a -> StateT (Controller.State,Regs.State) NesRam.Effect a
 iCpuMemMapEff buttons = \case
     MM_Ret x -> return x
     MM_Bind e f -> do v <- iCpuMemMapEff buttons e; iCpuMemMapEff buttons (f v)
 
     MM_Con eff -> do
         StateT $ \(consState,regsState) -> do
-            let (v,conState') = runState (iController buttons eff) consState
+            let (v,conState') = Controller.inter buttons consState eff
             return (v,(conState',regsState))
 
     MM_Reg eff -> do
         StateT $ \(consState,regsState) -> NesRam.InVram $ do
-            (regsState',v) <- iRegs eff regsState
+            (regsState',v) <- Regs.inter regsState eff
             return (v,(consState,regsState'))
 
     MM_Ram eff -> lift $ NesRam.InWram eff
-
-
-----------------------------------------------------------------------
--- Buttons -- TODO: move to controller
-
-newtype ButtonState = ButtonState (Set Controller.Button) deriving (Show)
-
-updateButtons :: Gloss.Event -> ButtonState -> ButtonState
-updateButtons = undefined
-
-buttons0 :: ButtonState
-buttons0 = undefined
-
-----------------------------------------------------------------------
--- Controller
-
-type ControllerState = Controller.State
-
-controllerState0 :: ControllerState
-controllerState0 = Controller.init
-
-data ControllerEff a where
-    ControllerEff_Read :: ControllerEff Byte
-    ControllerEff_Strobe :: Bool -> ControllerEff ()
-
-iController :: ButtonState -> ControllerEff a -> State ControllerState a
-iController _buttons = \case
-    ControllerEff_Strobe bool ->
-        state $ \conState -> ((), Controller.strobe bool conState)
-    ControllerEff_Read -> do
-        state $ \conState -> do
-            let (bool,conState') = Controller.read conState
-            let byte = if bool then 1 else 0
-            (byte, conState')
-
-----------------------------------------------------------------------
--- Regs
-
-type RegsState = PPU.Regs.State
-
-regsState0 :: RegsState
-regsState0 = PPU.Regs.init
-
-setVBlank :: RegsState -> Bool -> RegsState
-setVBlank = PPU.Regs.setVBlank
-
-isEnabledNMI :: RegsState -> Bool
-isEnabledNMI = PPU.Regs.isEnabledNMI
-
-type RegsEff a = PPU.Regs.Effect a
-
-iRegs :: RegsEff a -> RegsState -> Ram2k.Effect (RegsState, a)
-iRegs e s = PPU.Regs.run s e

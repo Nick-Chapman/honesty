@@ -1,39 +1,37 @@
 
 module Controller( -- keyboard-mapping is in Sim
-    Button(..), State,
-    init,
-    pressJ1, releaseJ1, -- only joy stick 1 for now
-    strobe, read,
+    Button(..),
+    State, state0,
+    Effect(..), inter,
     ) where
 
-import Prelude hiding (init,read,Right)
+import Prelude hiding (Right)
 import Data.Set(Set)
-import qualified Data.Set as Set
+import Six502.Values
+
+data State = Strobing | Sampled [Bool] deriving (Show)
+
+state0 :: State
+state0 = Sampled []
+
+data Effect a where
+    Read :: Effect Byte
+    Strobe :: Bool -> Effect ()
 
 data Button = A | B | Select | Start | Up | Down | Left | Right deriving (Eq,Ord,Enum,Show)
 
-data Mode = Strobing | Sampled [Bool] deriving (Show)
+type Pressed = Set Button -- only J1
 
-data State = State { mode :: Mode, pressed :: Set Button } deriving (Show)
+inter :: Pressed -> State -> Effect a -> (a,State)
+inter pressed state = \case
+    Strobe True -> ((), Strobing)
+    Strobe False -> ((), Sampled $ map (`elem` pressed) [A .. Right])
 
-init :: State
-init = State { mode = Sampled [], pressed = Set.empty }
+    Read -> case state of
+        Strobing -> (bool2byte $ A `elem` pressed, Strobing)
+        Sampled bools -> case bools of
+            [] -> (1, Sampled [])
+            b:bs' -> (bool2byte b, Sampled bs')
 
-pressJ1 :: Button -> State -> State
-pressJ1 button state@State{pressed} = state { pressed = Set.insert button pressed }
-
-releaseJ1 :: Button -> State -> State
-releaseJ1 button state@State{pressed} = state { pressed = Set.delete button pressed }
-
-strobe :: Bool -> State -> State
-strobe bool state@State{pressed} =
-    if bool
-    then state { mode = Strobing }
-    else state { mode = Sampled $ map (`elem` pressed) [A .. Right] }
-
-read :: State -> (Bool,State)
-read state@State{mode,pressed} = case mode of
-    Strobing -> (A `elem` pressed, state)
-    Sampled bools -> case bools of
-        [] -> (True, state)
-        b1:bs' -> (b1, state { mode = Sampled bs' })
+bool2byte :: Bool -> Byte
+bool2byte b = if b then 1 else 0
