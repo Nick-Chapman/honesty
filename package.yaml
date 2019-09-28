@@ -18,6 +18,7 @@ dependencies:
 - mtl
 - split
 - stt
+- time >= 1.9.3
 - transformers
 - word8
 

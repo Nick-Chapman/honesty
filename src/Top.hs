@@ -3,6 +3,8 @@
 
 module Top(gloss,
            printRun,
+           collapseDisplay,
+           Model(..),
            model0,
            pictureModel,
            handleEventModel,
@@ -20,6 +22,8 @@ import Control.Monad.State
 import Graphics.Gloss (translate,scale,pictures)
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 
+import Text.Printf(printf)
+
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Six502.Values
@@ -33,7 +37,7 @@ import qualified CHR
 import qualified PRG
 import NesFile
 
-import Graphics(PAT,pictureScreen,screenTiles,Screen)
+import Graphics(PAT,pictureScreen,screenTiles,Screen,collapseScreen)
 
 import Six502.Emu (Cycles(..))
 import Six502.Mem(Effect(..),Decode(..),decode,reads)
@@ -61,9 +65,6 @@ _printNSx rr ns@NesState{cpu,cc,regs} = do
     --let s = show pc <> " : " <> show cpu  <> " " <> show cc <> " -" <> show regs
     putStrLn s
 
-
-
-
 gloss :: String -> Bool -> Int -> IO ()
 gloss path fg sc = do
     model <- model0 path
@@ -76,7 +77,7 @@ gloss path fg sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 1 -- 60 -- slow for dev
+        fps = 10 -- 60 -- slow for dev
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale scF (-scF) -- The "-" flips the vertical
@@ -93,7 +94,8 @@ type Buttons = Set Controller.Button
 
 data Model = Model
     { frameCount :: Int
-    , picture :: Gloss.Picture
+    , display :: Display
+    , picture :: Gloss.Picture -- TODO: remove this from here.
     , sys :: Sys
     , buttons :: Buttons
     , rr :: NesRamRom
@@ -122,9 +124,10 @@ handleEventModel event model@Model{buttons} = do
 
 
 updateModel :: Float -> Model -> IO Model
-updateModel _ model@Model{frameCount,sys,buttons,rr} =
+updateModel delta model@Model{frameCount,sys,buttons,rr} =
     do
-        putStrLn $ show frameCount <> " - " <> show buttons
+        let _mes = show frameCount <> " - " <> show buttons <> " - " <> printf "%.03g" delta
+        --putStrLn _mes
         loop sys
     where
         loop :: Sys -> IO Model
@@ -132,6 +135,7 @@ updateModel _ model@Model{frameCount,sys,buttons,rr} =
             Sys_Render display sysIO -> do
                 sys <- sysIO
                 return $ model { frameCount = frameCount + 1
+                               , display
                                , picture = makePicture rr display , sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
                 --printNSx rr nesState
@@ -181,6 +185,9 @@ data Display = Display
     { bg1 :: Screen
     , bg2 :: Screen }
 
+collapseDisplay :: Display -> Bool
+collapseDisplay Display{bg1,bg2} = collapseScreen bg1 /= collapseScreen bg2
+
 makePicture :: NesRamRom -> Display -> Gloss.Picture
 makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
     let left = screenTiles pat1
@@ -201,9 +208,11 @@ model0 path = do
     let pc0 = resetAddr path prg
     ram <- NesRam.newMState
     let rr = NesRamRom { ram, prg, chr, pat1, pat2 }
-    let ns = nesState0 pc0
+    let ns@NesState{regs} = nesState0 pc0
     sys <- sysOfNesState rr ns
+    display <- NesRam.inter ram $ NesRam.InVram (render rr regs)
     return $ Model { frameCount = 0
+                   , display
                    , picture = Gloss.pictures []
                    , sys
                    , buttons = Set.empty
@@ -213,13 +222,12 @@ model0 path = do
 
 resetAddr :: String -> PRG.ROM -> Addr
 resetAddr path prg = do
-    let bytes = PRG.unROM prg
     case path of
         "data/nestest.nes" -> 0xC000
         _ -> addrOfHiLo hi lo
             where
-                lo = bytes !! 0x3ffc
-                hi = bytes !! 0x3ffd
+                lo = PRG.read prg 0x3ffc
+                hi = PRG.read prg 0x3ffd
 
 prgOfNesFile :: NesFile -> PRG.ROM
 prgOfNesFile NesFile{prgs} =
@@ -243,7 +251,6 @@ data NesRamRom = NesRamRom
       pat1 :: PAT,
       pat2 :: PAT
     }
-
 
 data NesState = NesState
     { cpu :: CpuState
@@ -329,8 +336,8 @@ interpretStep rr@NesRamRom{ram,prg} s@NesState{regs} step k = case step of
         let s' = s {regs = Regs.setVBlank regs bool}
         k s' ()
     Render -> do
-        screen <- NesRam.inter ram $ NesRam.InVram (render rr regs)
-        return $ Sys_Render screen $ k s ()
+        display <- NesRam.inter ram $ NesRam.InVram (render rr regs)
+        return $ Sys_Render display $ k s ()
     Buttons ->
         return $ Sys_SampleButtons $ \buttons -> k s buttons
     RunCpuInstruction buttons -> do

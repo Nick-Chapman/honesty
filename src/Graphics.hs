@@ -1,7 +1,7 @@
 
 module Graphics(
     PAT, patFromBS,
-    Screen(..), pictureScreen,
+    Screen(..), pictureScreen, collapseScreen,
     screenTiles, screenBG,
     ) where
 
@@ -33,9 +33,20 @@ screenTiles =
     . expect '9' 256
     . unPAT
 
+collapseScreen :: Screen -> Bool
+collapseScreen (Screen css) = do
+    let bs = do cs <- css; c <- cs; colourBits c
+    foldl (/=) False bs
+
+colourBits :: Colour -> [Bool]
+colourBits = \case
+    Black -> [False,False]
+    White -> [False,True]
+    Red ->   [True,False]
+    Green -> [True,True]
+
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
-    --Gloss.translate (-64) (-64) $
     Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan

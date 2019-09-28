@@ -11,10 +11,14 @@ import Six502.Operations (Op)
 import NesFile
 import qualified Top(gloss,model0,printRun)
 import qualified PRG
+import qualified SpeedTest
 
 main :: IO ()
 main = do
     getArgs >>= \case
+        ["--speed"] -> speed path
+        ["--speed",path] -> speed path
+
         ["--dis"] -> dis path
         ["--dis",path] -> dis path
 
@@ -31,6 +35,10 @@ main = do
       path :: String -- default (for stack run)
       path = "data/dk.nes"
       --path = "data/nestest.nes"
+
+
+speed :: String -> IO () -- test the speed of simulation (without gloss graphics)
+speed path = SpeedTest.run path
 
 nes :: String -> IO ()
 nes path = Top.gloss path fg scale
@@ -55,7 +63,7 @@ dis path = do
 
 disPRG :: Addr -> PRG.ROM -> IO ()
 disPRG addr prg = do
-    let bytes = PRG.unROM prg
+    let bytes = PRG.bytes prg
     let ops :: [Op] = decode bytes
     let bytes' = take (length bytes) $ reEncode ops -- in case 1 or 2 extra 0s
     when (bytes /= bytes') $ fail "re-assemble failed"
