@@ -41,13 +41,13 @@ speed :: String -> IO () -- test the speed of simulation (without gloss graphics
 speed path = SpeedTest.run path
 
 nes :: String -> IO ()
-nes path = Top.gloss path fg scale
+nes path = Top.gloss path fs scale
 
-fg :: Bool
-fg = False
+fs :: Bool -- full-screen
+fs = False
 
 scale :: Int
-scale = 1
+scale = 2
 
 dis :: String -> IO ()
 dis path = do

@@ -19,7 +19,7 @@ import Data.Set(Set)
 import qualified Data.Set as Set
 import Control.Monad.State
 
-import Graphics.Gloss (translate,scale,pictures)
+import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 
 import Text.Printf(printf)
@@ -37,6 +37,7 @@ import qualified Graphics
 import qualified CHR
 import qualified PRG
 import NesFile
+import qualified Log
 
 import Graphics(PAT,pictureScreen,screenTiles,Screen,collapseScreen)
 
@@ -66,25 +67,24 @@ _printNSx rr ns@NesState{cpu,cc,regs} = do
     putStrLn s
 
 gloss :: String -> Bool -> Int -> IO ()
-gloss path fg sc = do
+gloss path fs sc = do
     model <- model0 path
     Gloss.playIO dis (Gloss.greyN 0.3) fps model
         (\  m -> return $ doPosition (pictureModel m))
         (\e m -> handleEventModel e m)
         (\d m -> updateModel d m)
     where
-        dis = if fg
+        dis = if fs
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
         fps = 10 -- 60 -- slow for dev
 
         doPosition = doScale . doBorder . doTransOriginUL
-        doScale = scale scF (-scF) -- The "-" flips the vertical
-        scF = fromIntegral sc
+        doScale = scale (fromIntegral sc) (fromIntegral sc)
 
-        doBorder = translate 10 10
-        doTransOriginUL = translate (- ((fromIntegral x)/2)) (- ((fromIntegral y)/2))
+        doBorder = translate 10 (-10)
+        doTransOriginUL = translate (- ((fromIntegral x)/2)) ( ((fromIntegral y)/2))
 
         x = 800
         y = 400
@@ -95,17 +95,21 @@ type Buttons = Set Controller.Button
 data Model = Model
     { frameCount :: Int
     , display :: Display
-    , picture :: Gloss.Picture -- TODO: remove this from here.
     , sys :: Sys
     , buttons :: Buttons
     , rr :: NesRamRom
     }
 
 pictureModel :: Model -> Gloss.Picture
-pictureModel Model{picture} = picture
+pictureModel Model{frameCount,rr,display,buttons} = pictures
+    [ scale 1 (-1) $ makePicture rr display
+    , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
+    , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
+    ]
 
 handleEventModel :: Gloss.Event -> Model -> IO Model
 handleEventModel event model@Model{buttons} = do
+    --print event
     return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
         EventKey (Char 'z') ud _ _ -> joy ud Controller.A
@@ -124,7 +128,7 @@ handleEventModel event model@Model{buttons} = do
 
 
 updateModel :: Float -> Model -> IO Model
-updateModel delta model@Model{frameCount,sys,buttons,rr} =
+updateModel delta model@Model{frameCount,sys,buttons} =
     do
         let _mes = show frameCount <> " - " <> show buttons <> " - " <> printf "%.03g" delta
         --putStrLn _mes
@@ -134,9 +138,7 @@ updateModel delta model@Model{frameCount,sys,buttons,rr} =
         loop = \case
             Sys_Render display sysIO -> do
                 sys <- sysIO
-                return $ model { frameCount = frameCount + 1
-                               , display
-                               , picture = makePicture rr display , sys }
+                return $ model { frameCount = frameCount + 1, display, sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
                 --printNSx rr nesState
                 sys <- sysIO
@@ -189,14 +191,16 @@ collapseDisplay :: Display -> Bool
 collapseDisplay Display{bg1,bg2} = collapseScreen bg1 /= collapseScreen bg2
 
 makePicture :: NesRamRom -> Display -> Gloss.Picture
-makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
-    let left = screenTiles pat1
-    let right = screenTiles pat2
+--makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
+makePicture _ Display{bg1} = do
+    let _ = screenTiles
+    --let left = screenTiles pat1
+    --let right = screenTiles pat2
     pictures
         [ pictureScreen bg1
-        , translate 300 0 $ pictureScreen bg2
-        , translate 600 0 $ pictureScreen left
-        , translate 600 150 $ pictureScreen right
+        --, translate 300 0 $ pictureScreen bg2
+        --, translate 600 0 $ pictureScreen left
+        --, translate 600 150 $ pictureScreen right
         ]
 
 
@@ -213,7 +217,6 @@ model0 path = do
     display <- NesRam.inter ram $ NesRam.InVram (render rr regs)
     return $ Model { frameCount = 0
                    , display
-                   , picture = Gloss.pictures []
                    , sys
                    , buttons = Set.empty
                    , rr
@@ -485,7 +488,7 @@ iCpuMemMapEff cc chr buttons = \case
 
     MM_Con eff -> do
         StateT $ \(consState,regsState) -> NesRam.EmbedIO $ do
-            (v,conState') <- Controller.inter buttons consState eff
+            (v,conState') <- Log.interIO cc $ Controller.inter buttons consState eff
             return (v,(conState',regsState))
 
     MM_Reg eff -> do

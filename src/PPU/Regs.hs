@@ -128,7 +128,7 @@ decode cc a = if
     | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
-    | a >= 0x3F00 && a < 0x3F1F -> PaletteRam -- TODO
+    | a >= 0x3F00 && a <= 0x3F1F -> PaletteRam
 
     -- mirrors... wait and see if they are used
 --    | a < 0x3800 ->  a `minusAddr` 0x3000
