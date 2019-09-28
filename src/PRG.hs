@@ -20,7 +20,7 @@ init bytes = if
 
 read :: ROM -> Int -> Byte
 read (ROM bytes) a = if
-    | inRange a -> bytes !! a -- TODO: optimize!
+    | inRange a -> bytes !! a -- TODO: optimize! -- this is terrible!
     | otherwise -> error $ "PRG.read: " <> show a
 
 inRange :: Int -> Bool

@@ -9,7 +9,7 @@ import qualified Data.ByteString as BS (readFile,unpack)
 
 import Six502.Values
 
-import Graphics(CHR,chrFromBS)
+import Graphics(PAT,patFromBS)
 
 import qualified PRG
 
@@ -19,10 +19,10 @@ headerSize = 16
 prgSize :: Int
 prgSize = 0x4000 --16k
 
-chrSize :: Int
-chrSize = 0x1000 --2k (One CHR of 256 tiles)
+patSize :: Int
+patSize = 0x1000 --2k (One PAT of 256 tiles)
 
-data NesFile = NesFile { header :: [Byte], prgs :: [PRG.ROM], chrs :: [(CHR,CHR)] }
+data NesFile = NesFile { header :: [Byte], prgs :: [PRG.ROM], pats :: [(PAT,PAT)] }
 
 instance Show NesFile where
     show NesFile{header} = "NesFile: " <> (unwords $ map show header)
@@ -36,10 +36,10 @@ loadNesFile path = do
     let header = take headerSize bs
     let x = byteToUnsigned (bs !! 4)
     let y = byteToUnsigned (bs !! 5)
-    when (length bs /= headerSize + (x * prgSize) + (y * 2 * chrSize)) $ error "bad file size"
+    when (length bs /= headerSize + (x * prgSize) + (y * 2 * patSize)) $ error "bad file size"
     let prgs = map (\i -> PRG.init $ take prgSize $ drop (headerSize + i * prgSize) bs) [0..x-1]
-    let chrs = map (\i -> chrPairFromBS $ take (2*chrSize) $ drop (headerSize + x * prgSize + i * 2 * chrSize) bs) [0..y-1]
-    return $ NesFile header prgs chrs
+    let pats = map (\i -> patPairFromBS $ take (2*patSize) $ drop (headerSize + x * prgSize + i * 2 * patSize) bs) [0..y-1]
+    return $ NesFile header prgs pats
 
-chrPairFromBS :: [Byte] -> (CHR,CHR)
-chrPairFromBS = (chrFromBS *** chrFromBS) . splitAt chrSize
+patPairFromBS :: [Byte] -> (PAT,PAT)
+patPairFromBS = (patFromBS *** patFromBS) . splitAt patSize

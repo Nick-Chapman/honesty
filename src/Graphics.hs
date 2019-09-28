@@ -1,13 +1,12 @@
 
 module Graphics(
-    CHR, chrFromBS,
+    PAT, patFromBS,
     Screen(..), pictureScreen,
     screenTiles, screenBG,
     ) where
 
--- There are two kinds of CHR
--- a low level collectikon of bytes, found at particular offsets in the rom
--- and this CHR, which is a higher level object, ready for graphical display
+-- CHR is a low level collectikon of bytes, found at particular offsets in the rom
+-- This PAT, which is a higher level object, ready for graphical display
 
 import Data.Bits(testBit)
 import Data.List.Split(chunksOf)
@@ -19,19 +18,20 @@ import Six502.Values(Byte,byteToUnsigned)
 
 -- TODO: kill/disable this crazy expensive checking...?
 expect :: Char -> Int -> [a] -> [a]
-expect tag n xs = if n == len then xs else error $ "expect[" <> [tag] <> "](length): " <> show n <> ", got: " <> show len
-    where len = length xs
+--expect tag n xs = if n == len then xs else error $ "expect[" <> [tag] <> "](length): " <> show n <> ", got: " <> show len
+--    where len = length xs
+expect _ _ xs = xs
 
-chrFromBS :: [Byte] -> CHR
-chrFromBS = CHR . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
+patFromBS :: [Byte] -> PAT
+patFromBS = PAT . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
-screenTiles :: CHR -> Screen -- see all 256 tiles in the CHR
+screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
 screenTiles =
     aboves
     . map (besides . map screenFromTile)
     . chunksOf 16
     . expect '9' 256
-    . unCHR
+    . unPAT
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
@@ -62,12 +62,12 @@ screenFromTile (Tile xss) = do
 
 -- TODO: try this, reading data from real mem - the VRAM in the PPU addresss space
 
-screenBG :: [Byte] -> CHR -> Screen
-screenBG kilobyte chr = do
+screenBG :: [Byte] -> PAT -> Screen
+screenBG kilobyte pat = do
     let (nt,at) = splitAt 960 kilobyte
     let someNameTable = nameTableOfBS (expect '2' 960 nt)
     let someAttributeTable = attributeTableOfBS at
-    decode chr someNameTable someAttributeTable somePalettes
+    decode pat someNameTable someAttributeTable somePalettes
 
 somePalettes :: Palettes
 somePalettes = Palettes { p1=pal,p2=pal,p3=pal,p4=pal, bg = Black }
@@ -132,10 +132,10 @@ makeSquareOfPaletteSelects =
 makePaletteSelect :: (Bool,Bool) -> PaletteSelect
 makePaletteSelect = \case (False,False) -> Pal1; (False,True) -> Pal2; (True,False) -> Pal3; (True,True) -> Pal4
 
-decode :: CHR -> NameTable -> AttributeTable -> Palettes -> Screen
-decode chr (NameTable nt) (AttributeTable at) palettes = screen
+decode :: PAT -> NameTable -> AttributeTable -> Palettes -> Screen
+decode pat (NameTable nt) (AttributeTable at) palettes = screen
     where
-        tiles = unCHR chr
+        tiles = unPAT pat
         screen =
              aboves
             . map (besides . map processTile) $ ntat
@@ -202,7 +202,7 @@ aboves = \case
     [] -> error "aboves:[]"
     s1:screens -> foldr above s1 screens
 
-newtype CHR = CHR { unCHR :: [Tile] } --256
+newtype PAT = PAT { unPAT :: [Tile] } --256
 
 newtype Screen = Screen { unScreen :: [[Colour]] } --240,256 (full screen), but we can manage smaller frags
 

@@ -32,7 +32,7 @@ import qualified Graphics
 import qualified PRG
 import NesFile
 
-import Graphics(CHR,pictureScreen,screenTiles,Screen)
+import Graphics(PAT,pictureScreen,screenTiles,Screen)
 
 import Six502.Emu (Cycles(..))
 import Six502.Mem(Effect(..),Decode(..),decode,reads)
@@ -181,9 +181,9 @@ data Display = Display
     , bg2 :: Screen }
 
 makePicture :: NesRamRom -> Display -> Gloss.Picture
-makePicture NesRamRom{chr1,chr2} Display{bg1,bg2} = do
-    let left = screenTiles chr1
-    let right = screenTiles chr2
+makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
+    let left = screenTiles pat1
+    let right = screenTiles pat2
     pictures
         [ pictureScreen bg1
         , translate 300 0 $ pictureScreen bg2
@@ -194,11 +194,11 @@ makePicture NesRamRom{chr1,chr2} Display{bg1,bg2} = do
 
 model0 :: String -> IO Model
 model0 path = do
-    nesfile@NesFile{chrs=[(chr1,chr2)]} <- loadNesFile path
+    nesfile@NesFile{pats=[(pat1,pat2)]} <- loadNesFile path
     let prg = prgOfNesFile nesfile
     let pc0 = resetAddr path prg
     ram <- NesRam.newMState
-    let rr = NesRamRom { ram, prg, chr1, chr2 }
+    let rr = NesRamRom { ram, prg, pat1, pat2 }
     let ns = nesState0 pc0
     sys <- sysOfNesState rr ns
     return $ Model { frameCount = 0
@@ -230,8 +230,8 @@ prgOfNesFile NesFile{prgs} =
 data NesRamRom = NesRamRom
     { ram :: NesRam.MState,
       prg :: PRG.ROM,
-      chr1 :: CHR,
-      chr2 :: CHR
+      pat1 :: PAT,
+      pat2 :: PAT
     }
 
 
@@ -342,7 +342,7 @@ interpretStep rr@NesRamRom{ram,prg} s@NesState{regs} step k = case step of
 -- more complex combinations
 
 render :: NesRamRom -> Regs.State -> Ram2k.Effect Display
-render NesRamRom{chr1,chr2} _regs = do
+render NesRamRom{pat1,pat2} _regs = do
     -- Depending on nametable mirroring (V/H) as selected in PPUCTRL
     -- shoud read 1st or 2nd K of the vram.
     -- Probably better to go via the memory map!
@@ -351,11 +351,11 @@ render NesRamRom{chr1,chr2} _regs = do
     kilobyte2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
     -- depending on some other flag in the Regs,
-    -- should pick chr1 or chr2
-    let chrPick = True
-    let chr = if chrPick then chr2 else chr1
-    let bg1 = Graphics.screenBG kilobyte1 chr
-    let bg2 = Graphics.screenBG kilobyte2 chr
+    -- should pick pat1 or pat2
+    let patPick = True
+    let pat = if patPick then pat2 else pat1
+    let bg1 = Graphics.screenBG kilobyte1 pat
+    let bg2 = Graphics.screenBG kilobyte2 pat
     let display = Display { bg1, bg2 }
     return $ display
 

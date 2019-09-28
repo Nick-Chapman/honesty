@@ -62,6 +62,7 @@ inter state@State{control, mask, status
                ,ppu_addr_latch
                ,ppu_addr_hi, ppu_addr_lo
                } = \case
+
     Ret x -> return (state,x)
     Bind e f -> do
         (state',a) <- inter state e
@@ -74,8 +75,19 @@ inter state@State{control, mask, status
                            , status = clearBit status 7 }
         return (state',status)
 
-    Read PPUADDR -> error "Read PPUADDR" -- return (state,ppu_addr)
-    Read PPUDATA -> error "Read PPUDATA" -- return (state,ppu_data)
+    Read PPUADDR -> error "Read PPUADDR"
+
+    Read PPUDATA -> do
+        let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        case decode addr of
+            Rom -> error $ "TODO: Read PPUDADA, pattern table: " <>  show addr
+            Ram a -> do
+                b <- Ram2k.Read a
+                return (bumpAddr state, b)
+            PaletteRam ->
+                error "Read PPUDATA, PaletteRam"
+
+
     Read OAMADDR -> error "Read OAMADDR"
 
     Write Control b -> return (state { control = b }, ())
@@ -88,11 +100,12 @@ inter state@State{control, mask, status
             Lo -> return (state { ppu_addr_lo = b, ppu_addr_latch = Hi }, ())
 
     Write PPUDATA b -> do
-        -- return (state { ppu_data = b }, ())
         let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
         case (decode addr) of
+            Rom -> error $ "Write PPUDADA, cant write to pattern table: " <>  show addr
             Ram a -> Ram2k.Write a b
-            PaletteRam -> return () -- TODOm get some colours!
+            PaletteRam -> return ()
+
         return (bumpAddr state, ())
 
     Write OAMADDR _ -> do
@@ -109,13 +122,11 @@ bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
 
 decode :: Addr -> Decode
 decode a = if
-    | a < 0x2000 -> error $ "Regs.decode, cant write to pattern table: " <>  show a
+    | a < 0x2000 -> Rom
     | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
-    | a >= 0x3F00 && a < 0x3F1F ->
-      --error $ "Regs.decode, TODO: palette RAM index: " <> show a
-      PaletteRam
+    | a >= 0x3F00 && a < 0x3F1F -> PaletteRam -- TODO
 
     -- mirrors... wait and see if they are used
 --    | a < 0x3800 ->  a `minusAddr` 0x3000
@@ -125,4 +136,5 @@ decode a = if
 
 data Decode
     = Ram Int
-    | PaletteRam --TODO
+    | Rom
+    | PaletteRam
