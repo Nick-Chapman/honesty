@@ -4,7 +4,7 @@ module CHR(
     init, read,
     ) where
 
-import Data.Array(Array,(!),array)
+import Data.Array(Array,(!),listArray)
 import Prelude hiding (init,read)
 import Six502.Values
 
@@ -15,7 +15,7 @@ size = 0x2000 -- 8k
 
 init :: [Byte] -> ROM
 init bytes = if
-    | n == size -> ROM { bytes, bytesA = array (0,size-1) $ zip [0..] bytes }
+    | n == size -> ROM { bytes, bytesA = listArray (0,size-1) bytes }
     | otherwise -> error $ "CHR.init: " <> show n
     where
         n = length bytes

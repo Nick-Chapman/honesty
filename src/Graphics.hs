@@ -8,6 +8,7 @@ module Graphics(
 -- CHR is a low level collectikon of bytes, found at particular offsets in the rom
 -- This PAT, which is a higher level object, ready for graphical display
 
+import Data.Array((!),listArray)
 import Data.Bits(testBit)
 import Data.List.Split(chunksOf)
 import Data.Tuple.Extra((***))
@@ -146,7 +147,7 @@ makePaletteSelect = \case (False,False) -> Pal1; (False,True) -> Pal2; (True,Fal
 decode :: PAT -> NameTable -> AttributeTable -> Palettes -> Screen
 decode pat (NameTable nt) (AttributeTable at) palettes = screen
     where
-        tiles = unPAT pat
+        tiles = listArray (0,255) $ unPAT pat
         screen =
              aboves
             . map (besides . map processTile) $ ntat
@@ -166,7 +167,7 @@ decode pat (NameTable nt) (AttributeTable at) palettes = screen
             where (Tile xss) = getTile ts
 
         getTile :: TileSelect -> Tile
-        getTile = (tiles !!) . byteToUnsigned
+        getTile = (tiles !) . byteToUnsigned
 
         processPixel :: PaletteSelect -> ColourSelect -> Colour
         processPixel ps cs = col
