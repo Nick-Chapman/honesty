@@ -1,27 +1,30 @@
 
 module CHR(
-    ROM, unROM, init, read,
+    ROM,
+    init, read,
     ) where
 
+import Data.Array(Array,(!),array)
 import Prelude hiding (init,read)
 import Six502.Values
 
-newtype ROM = ROM { unROM :: [Byte] }
+data ROM = ROM { bytes :: [Byte], bytesA :: Array Int Byte }
 
 size :: Int
 size = 0x2000 -- 8k
 
 init :: [Byte] -> ROM
 init bytes = if
-    | n == size -> ROM bytes
+    | n == size -> ROM { bytes, bytesA = array (0,size-1) $ zip [0..] bytes }
     | otherwise -> error $ "CHR.init: " <> show n
     where
         n = length bytes
 
 read :: ROM -> Int -> Byte
-read (ROM bytes) a = if
-    | inRange a -> bytes !! a -- TODO: optimize! -- this is terrible!
-    | otherwise -> error $ "CHR.read: " <> show a
+read rom a = if
+    | inRange a -> bytesA rom ! a
+    | otherwise ->
+      error $ "CHR.read: " <> show a
 
 inRange :: Int -> Bool
 inRange a = a >= 0 && a < size
