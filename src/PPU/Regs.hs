@@ -7,11 +7,12 @@ module PPU.Regs(
     inter,
     ) where
 
+import Control.Monad (ap,liftM)
 import Data.Bits
+
 import Six502.Values
 import qualified Ram2k
-
-import Control.Monad (ap,liftM)
+import qualified CHR
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
@@ -57,16 +58,16 @@ isEnabledNMI State{control} = testBit control 7
 
 data AddrLatch = Hi | Lo deriving (Show)
 
-inter :: State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
-inter state@State{control, mask, status
+inter :: CHR.ROM -> State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
+inter chr state@State{control, mask, status
                ,ppu_addr_latch
                ,ppu_addr_hi, ppu_addr_lo
                } = \case
 
     Ret x -> return (state,x)
     Bind e f -> do
-        (state',a) <- inter state e
-        inter state' (f a)
+        (state',a) <- inter chr state e
+        inter chr state' (f a)
 
     Read Control -> return (state,control)
     Read Mask -> return (state,mask)
@@ -80,7 +81,9 @@ inter state@State{control, mask, status
     Read PPUDATA -> do
         let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
         case decode addr of
-            Rom -> error $ "TODO: Read PPUDADA, pattern table: " <>  show addr
+            Rom x ->
+                --error $ "TODO: Read PPUDADA, pattern table: " <>  show addr
+                return (bumpAddr state, CHR.read chr x)
             Ram a -> do
                 b <- Ram2k.Read a
                 return (bumpAddr state, b)
@@ -102,7 +105,7 @@ inter state@State{control, mask, status
     Write PPUDATA b -> do
         let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
         case (decode addr) of
-            Rom -> error $ "Write PPUDADA, cant write to pattern table: " <>  show addr
+            Rom _ -> error $ "Write PPUDADA, cant write to pattern table: " <>  show addr
             Ram a -> Ram2k.Write a b
             PaletteRam -> return ()
 
@@ -122,7 +125,7 @@ bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
 
 decode :: Addr -> Decode
 decode a = if
-    | a < 0x2000 -> Rom
+    | a < 0x2000 -> Rom $ fromIntegral $ unAddr a
     | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
@@ -136,5 +139,5 @@ decode a = if
 
 data Decode
     = Ram Int
-    | Rom
+    | Rom Int
     | PaletteRam
