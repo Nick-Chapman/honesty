@@ -64,7 +64,8 @@ Here:
 ## First speed measurements
 
 - getting 1.25 fps. Terrible.
-- obvious optimization to PRG ROM (to use array indexing): -> 15 fps!
+- obvious optimization to PRG ROM (to use array indexing): -> 15 fps
+- same optimization for op-decode via: -> 21 fps
 
 Now DK reaches the next crash/not-implemented yet point
 

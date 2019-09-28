@@ -8,6 +8,7 @@ module Six502.Decode (
     ) where
 
 import Control.Monad (join)
+import Data.Array ((!),listArray)
 import Data.Maybe (mapMaybe)
 
 import Six502.Values
@@ -18,11 +19,17 @@ reEncode :: [Op] -> [Byte]
 reEncode = join . map opBytes
 
 decodeViaTable :: Byte -> Maybe (Instruction,Mode)
-decodeViaTable byte = -- TODO: be more efficient!
-    case mapMaybe (\(i,m,b) -> if byte==b then Just (i,m) else Nothing) OpCode.table of
-        [] -> Nothing
-        [im] -> Just im
-        ims -> error $ "decodeViaTable:" <> show byte <> " -> " <> show ims
+decodeViaTable = if
+    | quick -> (arr !)
+    | otherwise -> raw_decodeViaTable
+    where
+        quick = True -- fps: 15 --> 21
+        arr = listArray (0,255) $ map raw_decodeViaTable [0..255]
+        raw_decodeViaTable byte =
+            case mapMaybe (\(i,m,b) -> if byte==b then Just (i,m) else Nothing) OpCode.table of
+                [] -> Nothing
+                [im] -> Just im
+                ims -> error $ "decodeViaTable:" <> show byte <> " -> " <> show ims
 
 encodeViaTable :: (Instruction,Mode) -> Byte
 encodeViaTable (instruction,mode) = -- TODO: be more efficient!

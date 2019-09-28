@@ -11,6 +11,7 @@ module Six502.Values(
 import Data.Bits
 import Data.Word (Word16)
 import Data.Word8 (Word8)
+import GHC.Arr(Ix)
 import Text.Printf (printf)
 import qualified Data.Char as Char
 
@@ -30,7 +31,7 @@ zeroPageAddr b = Addr $ fromIntegral $ byteToUnsigned b
 page1Addr :: Byte -> Addr
 page1Addr b = Addr $ 256 + (fromIntegral $ byteToUnsigned b)
 
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Enum,Num,Bits)
+newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Enum,Num,Bits,Ix)
 
 instance Show Byte where show = printf "%02X" . unByte
 
