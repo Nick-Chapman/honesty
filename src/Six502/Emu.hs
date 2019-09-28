@@ -676,7 +676,7 @@ interpret act cpu = do
         Bind m f -> do (cpu',a) <- interpret m cpu; interpret (f a) cpu'
 
         ReadMem addr -> do byte <- Mem.Read addr; return (cpu,byte)
-        ReadsMem addr -> do bytes <- memReads addr; return (cpu,bytes)
+        ReadsMem addr -> do bytes <- Mem.reads addr; return (cpu,bytes)
         StoreMem addr byte -> do Mem.Write addr byte; return (cpu,()) -- { lastMemWrite = Just (addr,byte) },())
 
         PC -> nochange pc
@@ -703,11 +703,3 @@ interpret act cpu = do
     where
         nochange :: a -> Mem.Effect (Cpu,a)
         nochange x = return (cpu,x)
-
-
-memReads :: Addr -> Mem.Effect [Byte]
-memReads addr = do  -- dislike this multi Reads interface now. only use for max of 3
-    byte0 <- Mem.Read addr
-    byte1 <- Mem.Read $ addr `addAddr` 1
-    byte2 <- Mem.Read $ addr `addAddr` 2
-    return [byte0,byte1,byte2]
