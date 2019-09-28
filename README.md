@@ -40,13 +40,15 @@ Run/test with:
 Have most of a full NES emulator wired up now. Now the debugging starts...
 
 Current problem...
+
 - When running an RTS instruction, the PC resumes at a very unexpected address.
 - The Cpu MemMap decode refuses to handle it, assuming it's a bug (which it is)
 - The resume address should come off the stack (from the last executed a JSR)
 - So how come it is corrupted?
 - Add some debug at the Mem Read/Write layer...
 - Then can see the last instruction which wrote to this address
-- AH.. from here:
+
+Here:
 
     F1CE  8D 07 20  STA $2007                       A:24 X:03 Y:02 P:24 SP:FD CYC:38200
     ("WRITE","wram",510,24)
@@ -57,3 +59,13 @@ Current problem...
 - fix it...
 - ignore a few more sound register writes...
 - Woo! see the DK title screen
+
+
+## First speed measurements
+
+- getting 1.25 fps. Terrible.
+- obvious optimization to PRG ROM (to use array indexing): -> 15 fps!
+
+Now DK reaches the next crash/not-implemented yet point
+
+    nes: Regs.decode, too high: 3F1F
