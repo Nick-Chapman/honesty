@@ -69,4 +69,4 @@ Here:
 
 Now DK reaches the next crash/not-implemented yet point
 
-    nes: Regs.decode, too high: 3F1F
+    nes: CYC:10632429 - Regs.decode, too high: 3F1F

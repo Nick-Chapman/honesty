@@ -1,6 +1,6 @@
 
 module Six502.Emu(
-    Cpu(..),Cycles(..),
+    Cpu(..),
     cpu0,
     stepInstruction,
     triggerNMI,
@@ -9,15 +9,12 @@ module Six502.Emu(
 import Control.Monad (ap,liftM)
 import Data.Bits
 
+import Six502.Cycles
 import Six502.Values
 import Six502.Operations
 import Six502.Decode (decode1,opSize)
 
 import qualified Six502.Mem as Mem
-
-newtype Cycles = Cycles { unCycles :: Int }  deriving (Eq,Ord,Num)
-
-instance Show Cycles where show (Cycles n) = "CYC:" <> show n
 
 data Cpu = Cpu
     { pc :: Addr
@@ -580,7 +577,7 @@ jumpRel offset = do
     SetPC (pc `addAddr` offset)
 
 cycles :: Int -> Act Cycles
-cycles n = return $ Cycles n
+cycles n = return $ fromIntegral n
 
 pushStackA :: Addr -> Act ()
 pushStackA addr = do
