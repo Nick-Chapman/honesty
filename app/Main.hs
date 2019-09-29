@@ -4,7 +4,7 @@ module Main (main) where
 import Control.Monad (when)
 import System.Environment (getArgs)
 
-import Six502.Values
+import Addr
 import Six502.Decode (decode,reEncode)
 import Six502.Disassembler (displayOpLines)
 import Six502.Operations (Op)

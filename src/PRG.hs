@@ -7,7 +7,8 @@ module PRG(
 
 import Data.Array(Array,(!),listArray)
 import Prelude hiding (init,read)
-import Six502.Values
+
+import Byte
 
 data ROM = ROM { bytes :: [Byte], bytesA :: Array Int Byte }
 

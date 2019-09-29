@@ -17,7 +17,7 @@ import Data.Tuple.Extra((***))
 
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
-import Six502.Values(Byte,byteToUnsigned)
+import Byte(Byte,byteToUnsigned)
 import PPU.Colour
 
 -- TODO: kill/disable this crazy expensive checking...?

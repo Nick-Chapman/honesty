@@ -1,7 +1,7 @@
 
 module Six502.OpCode (table) where
 
-import Six502.Values (Byte)
+import Byte(Byte)
 import Six502.Operations (Instruction(..),Mode(..))
 
 table :: [(Instruction,Mode,Byte)]

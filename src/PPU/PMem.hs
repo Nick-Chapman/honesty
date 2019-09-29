@@ -6,7 +6,8 @@ module PPU.PMem( -- address space mapping for the PPU
 
 import Control.Monad (ap,liftM)
 
-import Six502.Values
+import Addr
+import Byte
 import CHR
 import qualified Ram2k
 import qualified PPU.Palette as Palette

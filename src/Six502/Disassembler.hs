@@ -7,7 +7,8 @@ module Six502.Disassembler (
 
 import Data.Char as Char(chr)
 
-import Six502.Values
+import Addr
+import Byte
 import Six502.Operations
 import Six502.Decode (opBytes,opSize)
 

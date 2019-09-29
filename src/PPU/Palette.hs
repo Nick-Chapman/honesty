@@ -5,11 +5,11 @@ module PPU.Palette(
     inter,
     ) where
 
+import Control.Monad (ap,liftM)
 import Data.Map.Strict as Map
 
-import Six502.Values
+import Byte
 
-import Control.Monad (ap,liftM)
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
@@ -24,8 +24,7 @@ data Effect a where
 -- (25 bytes) -- uni bg col + 2 (spr/bg) x 4 x 3 cols
 -- & 7 wasted bytes
 
-data State = PAL (Map Int Byte)
-    deriving Show
+data State = PAL (Map Int Byte) deriving (Show)
 
 state0 :: State
 state0 = PAL Map.empty

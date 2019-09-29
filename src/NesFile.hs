@@ -7,10 +7,8 @@ import Control.Monad (when)
 import Data.Tuple.Extra( (***) )
 import qualified Data.ByteString as BS (readFile,unpack)
 
-import Six502.Values
-
+import Byte
 import Graphics(PAT,patFromBS)
-
 import qualified CHR
 import qualified PRG
 

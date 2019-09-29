@@ -22,13 +22,14 @@ import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import qualified Graphics(pictureScreen,screenBG)
 import Graphics(Screen,PAT,Palette(..),Palettes(..))
 
+import Addr
+import Byte
 import Nes
 import NesFile
 import PPU.Colour
 import Six502.Cycles
 import Six502.Decode(decode1)
 import Six502.Disassembler(ljust,displayOpLine)
-import Six502.Values
 import qualified CHR
 import qualified Controller
 import qualified NesRam

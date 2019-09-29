@@ -8,7 +8,8 @@ import Data.Bits(testBit)
 import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
 
-import Six502.Values
+import Byte
+import Addr
 import qualified PPU.Regs as Regs
 import qualified PRG
 import qualified Six502.MM as MM

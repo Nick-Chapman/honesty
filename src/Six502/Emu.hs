@@ -7,9 +7,10 @@ module Six502.Emu(
 import Control.Monad (ap,liftM)
 import Data.Bits
 
+import Addr
+import Byte
 import Six502.Cpu as Cpu
 import Six502.Cycles
-import Six502.Values
 import Six502.Operations
 import Six502.Decode (decode1,opSize)
 

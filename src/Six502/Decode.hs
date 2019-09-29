@@ -11,7 +11,8 @@ import Control.Monad (join)
 import Data.Array ((!),listArray)
 import Data.Maybe (mapMaybe)
 
-import Six502.Values
+import Byte
+import Addr
 import Six502.Operations
 import qualified Six502.OpCode as OpCode(table)
 

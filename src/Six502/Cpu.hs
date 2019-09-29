@@ -3,7 +3,8 @@ module Six502.Cpu(
     State(..), state0,
     ) where
 
-import Six502.Values
+import Addr
+import Byte
 
 data State = State
     { pc :: Addr

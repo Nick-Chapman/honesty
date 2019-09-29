@@ -1,19 +1,15 @@
 
-module Six502.Values(
+module Addr(
     Addr(..),
     addAddr,
     minusAddr, zeroPageAddr, page1Addr,
-    Byte(..),
-    byteOfInt, byteToUnsigned, byteToSigned, bytesToString, adc,
     addrOfHiLo, addrToHiLo,
     ) where
 
-import Data.Bits
 import Data.Word (Word16)
-import Data.Word8 (Word8)
-import GHC.Arr(Ix)
 import Text.Printf (printf)
-import qualified Data.Char as Char
+
+import Byte
 
 newtype Addr = Addr { unAddr :: Word16 } deriving (Eq,Ord,Num)
 
@@ -30,28 +26,6 @@ zeroPageAddr b = Addr $ fromIntegral $ byteToUnsigned b
 
 page1Addr :: Byte -> Addr
 page1Addr b = Addr $ 256 + (fromIntegral $ byteToUnsigned b)
-
-newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Enum,Num,Bits,Ix)
-
-instance Show Byte where show = printf "%02X" . unByte
-
-byteOfInt :: Int -> Byte
-byteOfInt = Byte . fromIntegral
-
-byteToUnsigned :: Byte -> Int
-byteToUnsigned = fromIntegral . unByte
-
-byteToSigned :: Byte -> Int
-byteToSigned = sign . fromIntegral . unByte
-    where sign n = if n>=128 then n-256 else n
-
-bytesToString :: [Byte] -> String
-bytesToString = map (Char.chr .byteToSigned)
-
-adc :: Bool -> Byte -> Byte -> (Byte,Bool)
-adc cin x y = (Byte $ fromIntegral res,cout) where
-    res = byteToUnsigned x + byteToUnsigned y + (if cin then 1 else 0)
-    cout = res >= 256
 
 addrOfHiLo :: Byte -> Byte -> Addr
 addrOfHiLo hi lo =

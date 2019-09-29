@@ -4,12 +4,11 @@ module Ram2k(
     MState, newMState, interIO,
     ) where
 
-import Prelude hiding (init,read)
 import Control.Monad (ap,liftM)
-
 import Data.Array.IO
+import Prelude hiding (init,read)
 
-import Six502.Values
+import Byte
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

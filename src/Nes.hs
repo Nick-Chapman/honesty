@@ -3,8 +3,8 @@ module Nes(
     State(..), state0,
     ) where
 
+import Addr
 import Six502.Cycles
-import Six502.Values
 import qualified Six502.Cpu as Cpu
 import qualified Controller
 import qualified PPU.Regs as Regs

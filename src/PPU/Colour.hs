@@ -5,7 +5,7 @@ module PPU.Colour(
     toGloss,
     ) where
 
-import Six502.Values
+import Byte
 
 import qualified Graphics.Gloss.Data.Color as Gloss
 

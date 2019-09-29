@@ -9,7 +9,8 @@ module PPU.Regs(
 
 import Data.Bits
 
-import Six502.Values
+import Byte
+import Addr
 import Six502.Cycles
 import qualified CHR
 import qualified PPU.PMem as PMem

@@ -10,8 +10,8 @@ module Controller( -- keyboard-mapping is in Sim
 import Control.Monad
 import Prelude hiding (Left,Right)
 import Data.Set(Set)
-import Six502.Values
 
+import Byte
 import Log(message)
 import qualified Log
 
@@ -50,4 +50,3 @@ showPressed pressed =
     where letter = \case
               A -> 'A' ; B -> 'B' ; Select -> 'T' ; Start -> 'E'
               Up -> 'U' ; Down -> 'D' ; Left -> 'L' ; Right -> 'R'
-

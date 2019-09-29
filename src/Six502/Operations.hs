@@ -6,7 +6,8 @@ module Six502.Operations(
     Arg(..)
     ) where
 
-import Six502.Values(Addr,Byte)
+import Addr(Addr)
+import Byte(Byte)
 
 data Op = Unknown Byte | Op Instruction Mode Arg deriving (Show)
 
