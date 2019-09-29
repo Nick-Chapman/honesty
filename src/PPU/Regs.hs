@@ -19,8 +19,16 @@ instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
 
-data Name = Control | Mask | Status | PPUADDR | PPUDATA | OAMADDR-- | ...
-    deriving Show
+data Name
+    = PPUCTRL
+    | PPUMASK
+    | PPUSTATUS
+    | OAMADDR
+    | OAMDATA
+    | PPUSCROLL
+    | PPUADDR
+    | PPUDATA
+    | OAMDMA
 
 data Effect a where
     Ret :: a -> Effect a
@@ -32,21 +40,19 @@ data State = State
     { control :: Byte
     , mask :: Byte
     , status :: Byte
-    , ppu_addr_latch :: AddrLatch
-    , ppu_addr_hi :: Byte
-    , ppu_addr_lo :: Byte
-    -- , ppu_data :: Byte
+    , addr_latch :: AddrLatch
+    , addr_hi :: Byte
+    , addr_lo :: Byte
     } deriving Show
 
 state0 :: State
-state0 = State  -- what are correct init values?
+state0 = State
     { control = 0x0
     , mask = 0x0
-    , status = 0x80 -- lets set the vblank bit
-    , ppu_addr_latch = Hi
-    , ppu_addr_hi= 0x0
-    , ppu_addr_lo = 0x0
-    -- , ppu_data = 0x0
+    , status = 0x80 -- why must this be set?
+    , addr_latch = Hi
+    , addr_hi= 0x0
+    , addr_lo = 0x0
     }
 
 setVBlank :: State -> Bool -> State
@@ -59,52 +65,46 @@ isEnabledNMI State{control} = testBit control 7
 data AddrLatch = Hi | Lo deriving (Show)
 
 inter :: Cycles -> CHR.ROM -> State -> Effect a -> PMem.Effect (State, a)
-inter cc chr state@State{control, mask, status
-               ,ppu_addr_latch
-               ,ppu_addr_hi, ppu_addr_lo
-               } = \case
+inter cc chr state@State{control, mask, status ,addr_latch ,addr_hi, addr_lo} = \case
 
     Ret x -> return (state,x)
     Bind e f -> do (state',a) <- inter cc chr state e; inter cc chr state' (f a)
 
-    Read Control -> return (state,control)
-    Read Mask -> return (state,mask)
-    Read Status -> do
-        let state' = state { ppu_addr_latch = Hi
-                           , status = clearBit status 7 }
+    Read PPUCTRL -> return (state,control)
+    Read PPUMASK -> return (state,mask)
+    Read PPUSTATUS -> do
+        let state' = state { addr_latch = Hi , status = clearBit status 7 }
         return (state',status)
-
+    Read OAMADDR -> error "Read OAMADDR"
+    Read OAMDATA -> error "Read OAMDATA"
+    Read PPUSCROLL -> error "Read PPUSCROLL"
     Read PPUADDR -> error "Read PPUADDR"
-
     Read PPUDATA -> do
-        let addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        let addr = addrOfHiLo addr_hi addr_lo
         b <- PMem.Read addr
         return (bumpAddr state, b)
+    Read OAMDMA -> error "Read OAMDMA"
 
-    Read OAMADDR -> error "Read OAMADDR"
-
-    Write Control b -> return (state { control = b }, ())
-    Write Mask b -> return (state { mask = b }, ())
-    Write Status b -> return (state { status = b }, ())
-
+    Write PPUCTRL b -> return (state { control = b }, ())
+    Write PPUMASK b -> return (state { mask = b }, ())
+    Write PPUSTATUS b -> return (state { status = b }, ())
+    Write OAMADDR _ -> do return (state, ()) -- TODO: dont ignore when handling sprites!
+    Write OAMDATA _ -> error "Write OAMDATA"
+    Write PPUSCROLL _ -> do return (state, ()) -- TODO: dont ignore for scrolling
     Write PPUADDR b -> do
-        case ppu_addr_latch of
-            Hi -> return (state { ppu_addr_hi = b, ppu_addr_latch = Lo }, ())
-            Lo -> return (state { ppu_addr_lo = b, ppu_addr_latch = Hi }, ())
-
+        case addr_latch of
+            Hi -> return (state { addr_hi = b, addr_latch = Lo }, ())
+            Lo -> return (state { addr_lo = b, addr_latch = Hi }, ())
     Write PPUDATA b -> do
-        let addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        let addr = addrOfHiLo addr_hi addr_lo
         PMem.Write addr b
         return (bumpAddr state, ())
-
-    Write OAMADDR _ -> do
-        --error "Write OAMADDR"
-        return (state, ()) -- TODO: dont ignore when handling sprites!
+    Write OAMDMA _ -> error "Write OAMDMA"
 
 bumpAddr :: State -> State
-bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
+bumpAddr s@State{control,addr_hi=hi, addr_lo=lo} = do
     let bumpV = testBit control 2
     let bump = if bumpV then 32 else 1
     let a = addrOfHiLo hi lo
     let (hi',lo') = addrToHiLo (a `addAddr` bump)
-    s { ppu_addr_hi=hi', ppu_addr_lo=lo'}
+    s { addr_hi=hi', addr_lo=lo'}

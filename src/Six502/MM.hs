@@ -21,7 +21,6 @@ import qualified Ram2k
 
 type Buttons = Set Controller.Button
 
-
 data Effect a where
     Ret :: a -> Effect a
     Bind :: Effect a -> (a -> Effect b) -> Effect b
@@ -46,7 +45,7 @@ inter cc chr buttons = \case
     Reg eff -> do
         StateT $ \ns@Nes.State{regs,pal} -> NesRam.InVram $ do
             -- TODO: these 3 PPU interpreters should be merged and moved in to PPU subdir
-            (pal',(regs',v)) <- PRam.interIO cc pal $ PMem.inter chr $ Regs.inter cc chr regs eff
+            (pal',(regs',v)) <- PRam.inter cc pal $ PMem.inter chr $ Regs.inter cc chr regs eff
             return (v, ns { regs = regs', pal = pal' })
 
     Ram eff -> lift $ NesRam.InWram eff

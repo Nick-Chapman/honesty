@@ -1,7 +1,6 @@
 
-module Six502.Mem( -- address space mapping for the CPU
+module Six502.Mem(
     Effect(..), reads,
-    --decode, Decode(..),
     inter,
     ) where
 
@@ -27,19 +26,13 @@ data Effect a where
     Write :: Addr -> Byte -> Effect ()
 
 reads :: Addr -> Effect [Byte]
-reads addr = do  -- dislike this multi Reads interface now. only use for max of 3
+reads addr = do
     byte0 <- Read addr
     byte1 <- Read $ addr `addAddr` 1
     byte2 <- Read $ addr `addAddr` 2
     return [byte0,byte1,byte2]
 
-
-
-
-type CpuMemEff a = Six502.Mem.Effect a
-
-
-inter :: (Maybe PRG.ROM,PRG.ROM) -> CpuMemEff a -> MM.Effect a
+inter :: (Maybe PRG.ROM,PRG.ROM) -> Effect a -> MM.Effect a
 inter s@(optPrg1,prg2) = \case
 
     Ret x -> return x
@@ -50,8 +43,6 @@ inter s@(optPrg1,prg2) = \case
         Rom1 x -> return $ PRG.read prg1 x
         Rom2 x -> return $ PRG.read prg2 x
         PPU reg -> MM.Reg (Regs.Read reg)
-        -- ???
-        IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
         IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
         Dma -> error $ "CPU.Mem, Read DmaTODO"
         Joy1 -> MM.Con $ Controller.Read
@@ -64,7 +55,6 @@ inter s@(optPrg1,prg2) = \case
         Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
         PPU reg -> MM.Reg (Regs.Write reg v)
-        IgnoreFineScrollWrite -> return ()
         IgnoreSound -> return ()
         Dma -> return () -- TODO: support DMA !!!
         Joy1 -> do
@@ -85,17 +75,15 @@ decode tag a = if
     -- 3 mirrors -- wait to see if they are used...
     -- | a < 0x1000 -> Ram $ a `minusAddr` 0x800
 
-    | a == 0x2000 -> PPU Regs.Control
-    | a == 0x2001 -> PPU Regs.Mask
-    | a == 0x2002 -> PPU Regs.Status
+    | a == 0x2000 -> PPU Regs.PPUCTRL
+    | a == 0x2001 -> PPU Regs.PPUMASK
+    | a == 0x2002 -> PPU Regs.PPUSTATUS
     | a == 0x2003 -> PPU Regs.OAMADDR
-    | a == 0x2005 -> IgnoreFineScrollWrite
+    -- 2004 -> OAMDATA (not seen yet)
+    | a == 0x2005 -> PPU Regs.PPUSCROLL
     | a == 0x2006 -> PPU Regs.PPUADDR
     | a == 0x2007 -> PPU Regs.PPUDATA
 
-    | a == 0x2425 -> IgnoreFineScrollWrite -- ????
-
-    -- .. more PPU regs
     -- PPU reg mirrors
     -- 0x4000 -- 0x401F -- APU and I/O regs
 
@@ -118,7 +106,6 @@ data Decode
     | Rom1 Int
     | Rom2 Int
     | PPU Regs.Name
-    | IgnoreFineScrollWrite
     | IgnoreSound
     | Dma
     | Joy1

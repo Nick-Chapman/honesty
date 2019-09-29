@@ -9,7 +9,6 @@
 ## NES, things to support
 
 - PPU regs - status, control, mask - detailed/correct behaviour
-- Pallet
 - Dma
 - Oam
 - sprite render
@@ -35,13 +34,9 @@
 
 ## Refactoring
 
-- NesState type to sep file Nes.State
 - Gloss picture code to sep file
 - Step continuation mess in Top.hs
-- split up Top.hs & move to correct places
-- MemMapEffect to own file
 - render code to own file
-
 - Byte/Addr -> Top level
 
 

@@ -1,7 +1,7 @@
 
 module PPU.PRam(
     Effect(..),
-    interIO,
+    inter,
     ) where
 
 import Control.Monad (ap,liftM)
@@ -21,10 +21,10 @@ data Effect a where
     InPalette :: Palette.Effect a -> Effect a
     Error :: String -> Effect a
 
-interIO :: Cycles -> Palette.State -> Effect a -> Ram2k.Effect (Palette.State, a)
-interIO cc s = \case
+inter :: Cycles -> Palette.State -> Effect a -> Ram2k.Effect (Palette.State, a)
+inter cc s = \case
     Ret x -> return (s,x)
-    Bind e f -> do (s,v) <- interIO cc s e; interIO cc s (f v)
+    Bind e f -> do (s,v) <- inter cc s e; inter cc s (f v)
     InVRam eff -> do v <- eff; return (s,v)
     InPalette eff -> return $ Palette.inter s eff
     Error mes  -> error $ show cc <> ":" <> mes
