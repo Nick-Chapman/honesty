@@ -32,7 +32,7 @@ default-extensions:
 - ScopedTypeVariables
 - RankNTypes
 
-#- NondecreasingIndentation
+- NondecreasingIndentation
 #- OverloadedStrings
 #- RecordWildCards
 #- BangPatterns

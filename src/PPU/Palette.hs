@@ -5,6 +5,8 @@ module PPU.Palette(
     inter,
     ) where
 
+import Data.Map.Strict as Map
+
 import Six502.Values
 
 import Control.Monad (ap,liftM)
@@ -18,14 +20,19 @@ data Effect a where
     Read :: Int -> Effect Byte
     Write :: Int -> Byte -> Effect ()
 
-data State -- 1 uni bg col + 2 (spr/bg) x 4 x 3 cols
+-- 32 bytes decoded as:
+-- (25 bytes) -- uni bg col + 2 (spr/bg) x 4 x 3 cols
+-- & 7 wasted bytes
+
+data State = PAL (Map Int Byte)
+    deriving Show
 
 state0 :: State
-state0 = undefined
+state0 = PAL Map.empty
 
 inter :: State -> Effect a -> (State, a)
-inter s = \case
+inter s@(PAL m) = \case
     Ret x -> (s,x)
     Bind e f -> let (s',v) = inter s e in inter s' (f v)
-    Write _a _b -> (s,()) -- error $ "Palette.write" -- TODO: do something!
-    Read a -> error $ "Palette.read:" <> show a
+    Write a b -> (PAL $ Map.insert a b m, ())
+    Read a -> (s, Map.findWithDefault 0 a m)

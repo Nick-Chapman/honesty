@@ -45,8 +45,8 @@ decode a = if
     | a < 0x2000 -> Rom $ fromIntegral $ unAddr a
     | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
-    | a >= 0x3F00 && a < 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00 -- BUG 0x3F1F
---    | a >= 0x3F00 && a <= 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00
+--    | a >= 0x3F00 && a < 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00 -- BUG 0x3F1F
+    | a >= 0x3F00 && a <= 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00
     -- mirrors... wait and see if they are used
 --    | a < 0x3800 ->  a `minusAddr` 0x3000
 --    | a < 0x4000 ->  a `minusAddr` 0x3800

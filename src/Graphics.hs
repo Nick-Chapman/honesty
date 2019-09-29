@@ -2,7 +2,9 @@
 module Graphics(
     PAT, patFromBS,
     Screen(..), pictureScreen, collapseScreen,
-    screenTiles, screenBG,
+    --screenTiles,
+    screenBG,
+    Palettes(..),Palette(..),
     ) where
 
 -- CHR is a low level collectikon of bytes, found at particular offsets in the rom
@@ -16,6 +18,7 @@ import Data.Tuple.Extra((***))
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Six502.Values(Byte,byteToUnsigned)
+import PPU.Colour
 
 -- TODO: kill/disable this crazy expensive checking...?
 expect :: Char -> Int -> [a] -> [a]
@@ -26,25 +29,18 @@ expect _ _ xs = xs
 patFromBS :: [Byte] -> PAT
 patFromBS = PAT . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
-screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
+{-screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
 screenTiles =
     aboves
     . map (besides . map screenFromTile)
     . chunksOf 16
     . expect '9' 256
-    . unPAT
+    . unPAT-}
 
 collapseScreen :: Screen -> Bool
 collapseScreen (Screen css) = do
     let bs = do cs <- css; c <- cs; colourBits c
     foldl (/=) False bs
-
-colourBits :: Colour -> [Bool]
-colourBits = \case
-    Black -> [False,False]
-    White -> [False,True]
-    Red ->   [True,False]
-    Green -> [True,True]
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =
@@ -54,36 +50,27 @@ pictureScreen (Screen grid) =
         doPixel y x c = point x y c
 
 point :: Int -> Int -> Colour -> Gloss.Picture
-point x y c = Gloss.color (colourToGloss c) (pixel (fromIntegral x,fromIntegral y))
+point x y c = Gloss.color (toGloss c) (pixel (fromIntegral x,fromIntegral y))
 
 pixel :: Gloss.Point -> Gloss.Picture
 pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
 
-colourToGloss :: Colour -> Gloss.Color
-colourToGloss = \case
-    Black -> Gloss.black
-    White -> Gloss.white
-    Red ->   Gloss.red
-    Green -> Gloss.green
 
-screenFromTile :: Tile -> Screen
+{-screenFromTile :: Tile -> Screen
 screenFromTile (Tile xss) = do
-    let bg = Black
-    let pal = Palette { c1 = Red, c2 = Green, c3 = White }
+    let bg = black
+    let pal = Palette { c1 = red, c2 = green, c3 = white }
     Screen $ map (map (selectColour bg pal)) xss
+-}
 
 -- TODO: try this, reading data from real mem - the VRAM in the PPU addresss space
 
-screenBG :: [Byte] -> PAT -> Screen
-screenBG kilobyte pat = do
+screenBG :: Palettes -> [Byte] -> PAT -> Screen
+screenBG palettes kilobyte pat = do
     let (nt,at) = splitAt 960 kilobyte
     let someNameTable = nameTableOfBS (expect '2' 960 nt)
     let someAttributeTable = attributeTableOfBS at
-    decode pat someNameTable someAttributeTable somePalettes
-
-somePalettes :: Palettes
-somePalettes = Palettes { p1=pal,p2=pal,p3=pal,p4=pal, bg = Black }
-    where pal = Palette { c1 = Red, c2 = Green, c3 = White }
+    decode pat someNameTable someAttributeTable palettes
 
 tileFromBS :: [Byte] -> Tile
 tileFromBS = \bs -> do
@@ -233,5 +220,3 @@ data PaletteSelect = Pal1 | Pal2 | Pal3 | Pal4
 data Palette = Palette { c1,c2,c3 :: Colour }
 
 data Palettes = Palettes { p1,p2,p3,p4 :: Palette, bg :: Colour }
-
-data Colour = Black | White | Red | Green -- | Blue

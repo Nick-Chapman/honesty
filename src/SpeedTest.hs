@@ -19,7 +19,7 @@ world0 :: String -> IO World
 world0 = Top.model0
 
 stepWorld :: World -> IO World
-stepWorld = Top.updateModel 0
+stepWorld = Top.updateModel False 0
 
 collapseWorld :: World -> Bool
 collapseWorld Model{display} = Top.collapseDisplay display
