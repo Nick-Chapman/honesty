@@ -3,7 +3,6 @@ module PPU.Colour(
     Colour,
     ofByte,
     toGloss,
-    colourBits,
     ) where
 
 import Six502.Values
@@ -14,9 +13,6 @@ newtype Colour = Colour Byte
 
 ofByte :: Byte -> Colour
 ofByte = Colour
-
-colourBits :: Colour -> [Bool]
-colourBits (Colour _) = [] -- force for better speed tests?
 
 toGloss :: Colour -> Gloss.Color
 toGloss (Colour byte) = do

@@ -5,7 +5,7 @@ import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
 import Data.Fixed
 
-import Top(Model(Model,display),model0,updateModel,collapseDisplay)
+import Top(Model,model0,updateModel)
 
 type World = Model
 
@@ -13,7 +13,7 @@ run :: String -> IO ()
 run path = do
     time0 <- getCurrentTime
     w0 <- world0 path
-    testStepper time0 0 w0 time0 stepWorld collapseWorld
+    testStepper time0 0 w0 time0 stepWorld
 
 world0 :: String -> IO World
 world0 = Top.model0
@@ -21,19 +21,16 @@ world0 = Top.model0
 stepWorld :: World -> IO World
 stepWorld = Top.updateModel False 0
 
-collapseWorld :: World -> Bool
-collapseWorld Model{display} = Top.collapseDisplay display
-
-testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Bool) -> IO ()
-testStepper time frames state time0 step collapse = do
+testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> IO ()
+testStepper time frames state time0 step = do
     state' <- step state
     time' <- getCurrentTime
     let frames' = frames + 1
     let fpsX = makeFps frames' time0 time'
     let fpsY = makeFps 1       time  time'
-    putStrLn $ show frames <> (if (collapse state) then "x" else ".")
+    putStrLn $ show frames <> (if (True) then "x" else ".")
         <> "[" <> show fpsX <> "] " <> show fpsY
-    testStepper time' frames' state' time0 step collapse
+    testStepper time' frames' state' time0 step
 
 newtype Fps = Fps Float
 

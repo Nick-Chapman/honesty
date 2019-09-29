@@ -1,7 +1,7 @@
 
 module Graphics(
     PAT, patFromBS,
-    Screen(..), pictureScreen, collapseScreen,
+    Screen(..), pictureScreen,
     --screenTiles,
     screenBG,
     Palettes(..),Palette(..),
@@ -36,11 +36,6 @@ screenTiles =
     . chunksOf 16
     . expect '9' 256
     . unPAT-}
-
-collapseScreen :: Screen -> Bool
-collapseScreen (Screen css) = do
-    let bs = do cs <- css; c <- cs; colourBits c
-    foldl (/=) False bs
 
 pictureScreen :: Screen -> Gloss.Picture
 pictureScreen (Screen grid) =

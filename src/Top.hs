@@ -1,7 +1,6 @@
 
 module Top(gloss,
            printRun,
-           collapseDisplay,
            Model(..),
            model0,
            pictureModel,
@@ -20,7 +19,7 @@ import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
-import qualified Graphics(pictureScreen,collapseScreen,screenBG)
+import qualified Graphics(pictureScreen,screenBG)
 import Graphics(Screen,PAT,Palette(..),Palettes(..))
 
 import Nes
@@ -129,6 +128,7 @@ updateModel _debug _delta model@Model{frameCount,sys,buttons} = loop sys
                 let Nes.State{cc=_cc,pal=_pal} = nesState
                 when _debug $ print (_showDelta _delta, frameCount,_cc)
                 sys <- sysIO
+                -- TODO: force to WHNF here?
                 return $ model { frameCount = frameCount + 1, display, sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
                 sys <- sysIO
@@ -173,10 +173,6 @@ printRun n Model{buttons,sys,rr} = loop n sys
 data Display = Display
     { bg1 :: Screen
     , bg2 :: Screen }
-
--- TODO: ditch the collapse thing (thought was needed for speed testing)
-collapseDisplay :: Display -> Bool
-collapseDisplay Display{bg1,bg2} = Graphics.collapseScreen bg1 /= Graphics.collapseScreen bg2
 
 makePicture :: NesRamRom -> Display -> Gloss.Picture
 --makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
