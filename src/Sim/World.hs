@@ -1,12 +1,9 @@
 
-module Top(gloss,
-           printRun,
-           Model(..),
-           model0,
-           pictureModel,
-           handleEventModel,
-           updateModel,
-           ) where
+module Sim.World(
+    World(..), world0, updateWorld,
+    NesRamRom(..), Display(..),
+    printRun
+    ) where
 
 import Control.Monad (ap,liftM)
 import Control.Monad (forever)
@@ -15,12 +12,8 @@ import qualified Data.Set as Set
 import Control.Monad.State
 import Text.Printf(printf)
 
-import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
-import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
-import qualified Graphics.Gloss.Interface.IO.Game as Gloss
-
-import qualified Graphics(pictureScreen,screenBG)
-import Graphics(Screen,PAT,Palette(..),Palettes(..))
+import qualified PPU.Graphics as Graphics(screenBG)
+import PPU.Graphics(Screen,PAT,Palette(..),Palettes(..))
 
 import Addr
 import Byte
@@ -42,44 +35,9 @@ import qualified Six502.Emu
 import qualified Six502.MM as MM
 import qualified Six502.Mem
 
-printNS :: NesRamRom -> Nes.State -> IO ()
-printNS rr ns@Nes.State{cpu,cc,regs=_} = do
-    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
-    bytes <- readFromAddr ns rr pc
-    let op = Six502.Decode.decode1 bytes
-    let col = 48
-    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
-    putStrLn s
-
-gloss :: String -> Bool -> Int -> IO ()
-gloss path fs sc = do
-    let debug = True
-    model <- model0 path
-    Gloss.playIO dis (Gloss.greyN 0.3) fps model
-        (\  m -> return $ doPosition (pictureModel m))
-        (\e m -> handleEventModel e m)
-        (\d m -> updateModel debug d m)
-    where
-        dis = if fs
-              then Gloss.FullScreen
-              else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
-
-        fps = 20 -- 60
-
-        doPosition = doScale . doBorder . doTransOriginUL
-        doScale = scale (fromIntegral sc) (fromIntegral sc)
-
-        doBorder = translate 10 (-10)
-        doTransOriginUL = translate (- ((fromIntegral x)/2)) ( ((fromIntegral y)/2))
-
-        x = 800
-        y = 400
-
-
 type Buttons = Set Controller.Button
 
--- TODO: rename as World
-data Model = Model
+data World = World
     { frameCount :: Int
     , display :: Display
     , sys :: Sys
@@ -87,50 +45,22 @@ data Model = Model
     , rr :: NesRamRom
     }
 
--- TODO: collect/isolate all Gloss using code
-pictureModel :: Model -> Gloss.Picture
-pictureModel Model{frameCount,rr,display,buttons} = pictures
-    [ scale 1 (-1) $ makePicture rr display
-    , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
-    , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
-    ]
-
-handleEventModel :: Gloss.Event -> Model -> IO Model
-handleEventModel event model@Model{buttons} = do
-    --print event
-    return $ case event of
-        EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
-        EventKey (Char 'z') ud _ _ -> joy ud Controller.A
-        EventKey (Char 'x') ud _ _ -> joy ud Controller.B
-        EventKey (SpecialKey KeyTab) ud _ _ -> joy ud Controller.Select
-        EventKey (SpecialKey KeyEnter) ud _ _ -> joy ud Controller.Start
-        EventKey (SpecialKey KeyUp) ud _ _ -> joy ud Controller.Up
-        EventKey (SpecialKey KeyDown) ud _ _ -> joy ud Controller.Down
-        EventKey (SpecialKey KeyLeft) ud _ _ -> joy ud Controller.Left
-        EventKey (SpecialKey KeyRight) ud _ _ -> joy ud Controller.Right
-        _ -> model
-  where
-        joy = \case Down -> press; Up -> release
-        press but = model { buttons = Set.insert but buttons }
-        release but = model { buttons = Set.delete but buttons }
-
-
 _showDelta :: Float -> String
 _showDelta = printf "%.03g"
 
--- TODO: updateModel & printRun functions should becombined
+-- TODO: updateWorld & printRun functions should becombined
 
-updateModel :: Bool -> Float -> Model -> IO Model
-updateModel _debug _delta model@Model{frameCount,sys,buttons} = loop sys
+updateWorld :: Bool -> Float -> World -> IO World
+updateWorld _debug _delta world@World{frameCount,sys,buttons} = loop sys
     where
-        loop :: Sys -> IO Model
+        loop :: Sys -> IO World
         loop = \case
             Sys_Render nesState display sysIO -> do
                 let Nes.State{cc=_cc,pal=_pal} = nesState
                 when _debug $ print (_showDelta _delta, frameCount,_cc)
                 sys <- sysIO
                 -- TODO: force to WHNF here?
-                return $ model { frameCount = frameCount + 1, display, sys }
+                return $ world { frameCount = frameCount + 1, display, sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
                 sys <- sysIO
                 loop sys
@@ -146,8 +76,8 @@ updateModel _debug _delta model@Model{frameCount,sys,buttons} = loop sys
                 sys <- f buttons
                 loop sys
 
-printRun :: Int -> Model -> IO ()
-printRun n Model{buttons,sys,rr} = loop n sys
+printRun :: Int -> World -> IO ()
+printRun n World{buttons,sys,rr} = loop n sys
     where
         loop :: Int -> Sys -> IO ()
         loop n sys = case sys of
@@ -171,26 +101,21 @@ printRun n Model{buttons,sys,rr} = loop n sys
                 sys <- f buttons
                 loop n sys
 
+printNS :: NesRamRom -> Nes.State -> IO ()
+printNS rr ns@Nes.State{cpu,cc,regs=_} = do
+    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
+    bytes <- readFromAddr ns rr pc
+    let op = Six502.Decode.decode1 bytes
+    let col = 48
+    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
+    putStrLn s
+
 data Display = Display
     { bg1 :: Screen
     , bg2 :: Screen }
 
-makePicture :: NesRamRom -> Display -> Gloss.Picture
---makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
-makePicture _ Display{bg1} = do
-    --let _ = screenTiles
-    --let left = screenTiles pat1
-    --let right = screenTiles pat2
-    pictures
-        [ Graphics.pictureScreen bg1
-        --, translate 300 0 $ pictureScreen bg2
-        --, translate 600 0 $ pictureScreen left
-        --, translate 600 150 $ pictureScreen right
-        ]
-
-
-model0 :: String -> IO Model
-model0 path = do
+world0 :: String -> IO World
+world0 path = do
     nesfile@NesFile{pats=[(pat1,pat2)]} <- loadNesFile path
     let prg = prgOfNesFile nesfile
     let chr = chrOfNesFile nesfile
@@ -200,7 +125,7 @@ model0 path = do
     let ns@Nes.State{regs,pal} = Nes.state0 pc0
     sys <- sysOfNesState rr ns
     display <- NesRam.inter ram $ NesRam.InVram (render rr regs pal)
-    return $ Model { frameCount = 0
+    return $ World { frameCount = 0
                    , display
                    , sys
                    , buttons = Set.empty
@@ -251,7 +176,7 @@ cyclesInVBlank :: Cycles
 cyclesInVBlank = fromIntegral ((8200::Int) `div` 3)
 
 framesUntilPPuWarmsUp :: Int
-framesUntilPPuWarmsUp = 1
+framesUntilPPuWarmsUp = 0
 
 nesForever :: Step ()
 nesForever = do

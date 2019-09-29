@@ -5,13 +5,14 @@ import Control.Monad (when)
 import System.Environment (getArgs)
 
 import Addr
+import NesFile
 import Six502.Decode (decode,reEncode)
 import Six502.Disassembler (displayOpLines)
 import Six502.Operations (Op)
-import NesFile
-import qualified Top(gloss,model0,printRun)
 import qualified PRG
-import qualified SpeedTest
+import qualified Sim.Gloss(run)
+import qualified Sim.World(world0,printRun)
+import qualified SpeedTest(run)
 
 main :: IO ()
 main = do
@@ -26,7 +27,7 @@ main = do
         ["--emu"] -> emu path
         ["--emu",path] -> emu path
 
-        -- WIP, fuller NES emulation (but really only 6502 still)
+        -- NES emulation, using Gloss
         [] -> nes path
         [path] -> nes path
 
@@ -41,7 +42,7 @@ speed :: String -> IO () -- test the speed of simulation (without gloss graphics
 speed path = SpeedTest.run path
 
 nes :: String -> IO ()
-nes path = Top.gloss path fs scale
+nes path = Sim.Gloss.run path fs scale
 
 fs :: Bool -- full-screen
 fs = False
@@ -72,8 +73,8 @@ disPRG addr prg = do
 -- simple, non graphical entry point, used for nestest.nes regression test
 emu :: String -> IO ()
 emu path = do
-    model <- Top.model0 path
-    Top.printRun numSteps model
+    world <- Sim.World.world0 path
+    Sim.World.printRun numSteps world
   where
     numSteps :: Int
     numSteps =

@@ -1,7 +1,7 @@
 
-module Graphics(
+module PPU.Graphics(
     PAT, patFromBS,
-    Screen(..), pictureScreen,
+    Screen(..),
     --screenTiles,
     screenBG,
     Palettes(..),Palette(..),
@@ -14,8 +14,6 @@ import Data.Array((!),listArray)
 import Data.Bits(testBit)
 import Data.List.Split(chunksOf)
 import Data.Tuple.Extra((***))
-
-import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Byte(Byte,byteToUnsigned)
 import PPU.Colour
@@ -37,28 +35,12 @@ screenTiles =
     . expect '9' 256
     . unPAT-}
 
-pictureScreen :: Screen -> Gloss.Picture
-pictureScreen (Screen grid) =
-    Gloss.pictures $ zipWith doLine [0..] grid
-    where
-        doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
-        doPixel y x c = point x y c
-
-point :: Int -> Int -> Colour -> Gloss.Picture
-point x y c = Gloss.color (toGloss c) (pixel (fromIntegral x,fromIntegral y))
-
-pixel :: Gloss.Point -> Gloss.Picture
-pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
-
-
 {-screenFromTile :: Tile -> Screen
 screenFromTile (Tile xss) = do
     let bg = black
     let pal = Palette { c1 = red, c2 = green, c3 = white }
     Screen $ map (map (selectColour bg pal)) xss
 -}
-
--- TODO: try this, reading data from real mem - the VRAM in the PPU addresss space
 
 screenBG :: Palettes -> [Byte] -> PAT -> Screen
 screenBG palettes kilobyte pat = do
@@ -178,7 +160,7 @@ selectPalette Palettes{p1,p2,p3,p4} = \case
     Pal3 -> p3
     Pal4 -> p4
 
--- screens should be square, but nothing enforces that.. still, we can have some combinators
+-- screens should be rectangular, but nothing enforces that.. still, we can have some combinators
 
 beside :: Screen -> Screen -> Screen -- chops taller screen
 beside (Screen xss) (Screen yss) = Screen (zipWith (<>) xss yss)

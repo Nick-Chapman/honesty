@@ -2,24 +2,21 @@
 module PPU.Colour(
     Colour,
     ofByte,
-    toGloss,
+    toRGB,
     ) where
 
 import Byte
-
-import qualified Graphics.Gloss.Data.Color as Gloss
 
 newtype Colour = Colour Byte
 
 ofByte :: Byte -> Colour
 ofByte = Colour
 
-toGloss :: Colour -> Gloss.Color
-toGloss (Colour byte) = do
+toRGB :: Colour -> (Int,Int,Int)
+toRGB (Colour byte) = do
     let i = fromIntegral $ unByte byte
     if i>=64 then error $ "Colour.toGloss(>=64)," <> show i else do
-    let (x,y,z) = decimalMapping !! i -- TODO: array indexing
-    Gloss.makeColorI x y z 255
+    decimalMapping !! i -- TODO: array indexing
 
 decimalMapping :: [(Int,Int,Int)]
 decimalMapping =

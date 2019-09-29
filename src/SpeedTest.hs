@@ -5,21 +5,13 @@ import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
 import Data.Fixed
 
-import Top(Model,model0,updateModel)
-
-type World = Model
+import Sim.World(world0,updateWorld)
 
 run :: String -> IO ()
 run path = do
     time0 <- getCurrentTime
     w0 <- world0 path
-    testStepper time0 0 w0 time0 stepWorld
-
-world0 :: String -> IO World
-world0 = Top.model0
-
-stepWorld :: World -> IO World
-stepWorld = Top.updateModel False 0
+    testStepper time0 0 w0 time0 (updateWorld False 0)
 
 testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> IO ()
 testStepper time frames state time0 step = do
