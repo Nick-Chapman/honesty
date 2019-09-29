@@ -1,7 +1,5 @@
 
 module Six502.Emu(
-    Cpu(..),
-    cpu0,
     stepInstruction,
     triggerNMI,
     ) where
@@ -9,6 +7,7 @@ module Six502.Emu(
 import Control.Monad (ap,liftM)
 import Data.Bits
 
+import Six502.Cpu as Cpu
 import Six502.Cycles
 import Six502.Values
 import Six502.Operations
@@ -16,38 +15,7 @@ import Six502.Decode (decode1,opSize)
 
 import qualified Six502.Mem as Mem
 
-data Cpu = Cpu
-    { pc :: Addr
-    , accumulator :: Byte
-    , xreg :: Byte
-    , yreg :: Byte
-    , status :: Byte
-    , sp :: Byte
---    , lastMemWrite :: Maybe (Addr,Byte)
-    }
-
-instance Show Cpu where
-    show = \Cpu{accumulator,xreg,yreg,status,sp} -> unwords
-        [ "A:" <> show accumulator
-        , "X:" <> show xreg
-        , "Y:" <> show yreg
-        , "P:" <> show status
-        , "SP:" <> show sp
---        , "LM:" <> show lastMemWrite
-        ]
-
-cpu0 :: Addr -> Cpu
-cpu0 codeStartAddr = Cpu
-    { pc = codeStartAddr
-    , accumulator = 0
-    , xreg = 0
-    , yreg = 0
-    , sp = 0xFD
-    , status = 0x24
---    , lastMemWrite = Nothing
-    }
-
-triggerNMI :: Cpu -> Mem.Effect Cpu
+triggerNMI :: Cpu.State -> Mem.Effect Cpu.State
 triggerNMI cpu = do
     (cpu,()) <- interpret nmi cpu
     return cpu
@@ -62,7 +30,7 @@ triggerNMI cpu = do
             hi <- ReadMem 0xfffb
             SetPC $ addrOfHiLo hi lo
 
-stepInstruction :: Cpu -> Mem.Effect (Cpu,Cycles)
+stepInstruction :: Cpu.State -> Mem.Effect (Cpu.State,Cycles)
 stepInstruction = interpret fetchDecodeExec
 
 fetchDecodeExec :: Act Cycles
@@ -665,16 +633,16 @@ instance Functor Act where fmap = liftM
 instance Applicative Act where pure = return; (<*>) = ap
 instance Monad Act where return = Ret; (>>=) = Bind
 
-interpret :: Act a -> Cpu -> Mem.Effect (Cpu,a)
+interpret :: Act a -> Cpu.State -> Mem.Effect (Cpu.State,a)
 interpret act cpu = do
-    let Cpu{pc,accumulator,xreg,yreg,sp,status} = cpu
+    let Cpu.State{pc,accumulator,xreg,yreg,sp,status} = cpu
     case act of
         Ret a -> nochange a
         Bind m f -> do (cpu',a) <- interpret m cpu; interpret (f a) cpu'
 
         ReadMem addr -> do byte <- Mem.Read addr; return (cpu,byte)
         ReadsMem addr -> do bytes <- Mem.reads addr; return (cpu,bytes)
-        StoreMem addr byte -> do Mem.Write addr byte; return (cpu,()) -- { lastMemWrite = Just (addr,byte) },())
+        StoreMem addr byte -> do Mem.Write addr byte; return (cpu,())
 
         PC -> nochange pc
         A -> nochange accumulator
@@ -698,5 +666,5 @@ interpret act cpu = do
         ClearFlag flag -> return (cpu { status = clearBit status $ bitNumOfFlag flag }, ())
 
     where
-        nochange :: a -> Mem.Effect (Cpu,a)
+        nochange :: a -> Mem.Effect (Cpu.State,a)
         nochange x = return (cpu,x)

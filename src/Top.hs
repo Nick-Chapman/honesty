@@ -1,6 +1,4 @@
 
--- try to wire everything up form the top
-
 module Top(gloss,
            printRun,
            collapseDisplay,
@@ -11,52 +9,46 @@ module Top(gloss,
            updateModel,
            ) where
 
-import Data.Bits(testBit)
-
 import Control.Monad (ap,liftM)
 import Control.Monad (forever)
 import Data.Set(Set)
 import qualified Data.Set as Set
 import Control.Monad.State
+import Text.Printf(printf)
 
 import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
-
-import Text.Printf(printf)
-
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
-import Six502.Values
-import Six502.Cycles
-import qualified Controller
-import qualified Ram2k
-import qualified NesRam
-import qualified PPU.Regs as Regs
-import qualified PPU.PMem as PMem
-import qualified PPU.PRam as PRam
-import qualified PPU.Palette as Palette
-import qualified Six502.Emu
-import qualified Graphics
-import qualified CHR
-import qualified PRG
+import qualified Graphics(pictureScreen,collapseScreen,screenBG)
+import Graphics(Screen,PAT,Palette(..),Palettes(..))
+
+import Nes
 import NesFile
-import qualified Log
-
-import Graphics -- (PAT,pictureScreen,screenTiles,Screen,collapseScreen)
 import PPU.Colour
-
-import Six502.Mem(Effect(..),Decode(..),decode,reads)
-
-import Six502.Disassembler(ljust,displayOpLine)
+import Six502.Cycles
 import Six502.Decode(decode1)
+import Six502.Disassembler(ljust,displayOpLine)
+import Six502.Values
+import qualified CHR
+import qualified Controller
+import qualified NesRam
+import qualified PPU.Palette as Palette
+import qualified PPU.Regs as Regs
+import qualified PRG
+import qualified Ram2k
+import qualified Six502.Cpu
+import qualified Six502.Emu
+import qualified Six502.MM as MM
+import qualified Six502.Mem
 
-printNS :: NesRamRom -> NesState -> IO ()
-printNS rr ns@NesState{cpu,cc,regs=_} = do
-    let Six502.Emu.Cpu{Six502.Emu.pc} = cpu
+printNS :: NesRamRom -> Nes.State -> IO ()
+printNS rr ns@Nes.State{cpu,cc,regs=_} = do
+    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
     bytes <- readFromAddr ns rr pc
-    let op = decode1 bytes
+    let op = Six502.Decode.decode1 bytes
     let col = 48
-    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc -- <> " -" <> show regs
+    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
     putStrLn s
 
 gloss :: String -> Bool -> Int -> IO ()
@@ -72,7 +64,7 @@ gloss path fs sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 10 -- 60 -- slow for dev
+        fps = 20 -- 60
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)
@@ -86,6 +78,7 @@ gloss path fs sc = do
 
 type Buttons = Set Controller.Button
 
+-- TODO: rename as World
 data Model = Model
     { frameCount :: Int
     , display :: Display
@@ -94,6 +87,7 @@ data Model = Model
     , rr :: NesRamRom
     }
 
+-- TODO: collect/isolate all Gloss using code
 pictureModel :: Model -> Gloss.Picture
 pictureModel Model{frameCount,rr,display,buttons} = pictures
     [ scale 1 (-1) $ makePicture rr display
@@ -124,14 +118,16 @@ handleEventModel event model@Model{buttons} = do
 _showDelta :: Float -> String
 _showDelta = printf "%.03g"
 
+-- TODO: updateModel & printRun functions should becombined
+
 updateModel :: Bool -> Float -> Model -> IO Model
 updateModel _debug _delta model@Model{frameCount,sys,buttons} = loop sys
     where
         loop :: Sys -> IO Model
         loop = \case
             Sys_Render nesState display sysIO -> do
-                let NesState{cc=_cc,pal=_pal} = nesState
-                -- when _debug $ print (showDelta _delta, frameCount,_cc,_pal)
+                let Nes.State{cc=_cc,pal=_pal} = nesState
+                when _debug $ print (_showDelta _delta, frameCount,_cc)
                 sys <- sysIO
                 return $ model { frameCount = frameCount + 1, display, sys }
             Sys_Log (Log_NesState _nesState) sysIO -> do
@@ -148,7 +144,6 @@ updateModel _debug _delta model@Model{frameCount,sys,buttons} = loop sys
             Sys_SampleButtons f -> do
                 sys <- f buttons
                 loop sys
-
 
 printRun :: Int -> Model -> IO ()
 printRun n Model{buttons,sys,rr} = loop n sys
@@ -175,14 +170,13 @@ printRun n Model{buttons,sys,rr} = loop n sys
                 sys <- f buttons
                 loop n sys
 
-
-
 data Display = Display
     { bg1 :: Screen
     , bg2 :: Screen }
 
+-- TODO: ditch the collapse thing (thought was needed for speed testing)
 collapseDisplay :: Display -> Bool
-collapseDisplay Display{bg1,bg2} = collapseScreen bg1 /= collapseScreen bg2
+collapseDisplay Display{bg1,bg2} = Graphics.collapseScreen bg1 /= Graphics.collapseScreen bg2
 
 makePicture :: NesRamRom -> Display -> Gloss.Picture
 --makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
@@ -191,7 +185,7 @@ makePicture _ Display{bg1} = do
     --let left = screenTiles pat1
     --let right = screenTiles pat2
     pictures
-        [ pictureScreen bg1
+        [ Graphics.pictureScreen bg1
         --, translate 300 0 $ pictureScreen bg2
         --, translate 600 0 $ pictureScreen left
         --, translate 600 150 $ pictureScreen right
@@ -206,7 +200,7 @@ model0 path = do
     let pc0 = resetAddr path prg
     ram <- NesRam.newMState
     let rr = NesRamRom { ram, prg, chr, pat1, pat2 }
-    let ns@NesState{regs,pal} = nesState0 pc0
+    let ns@Nes.State{regs,pal} = Nes.state0 pc0
     sys <- sysOfNesState rr ns
     display <- NesRam.inter ram $ NesRam.InVram (render rr regs pal)
     return $ Model { frameCount = 0
@@ -215,7 +209,6 @@ model0 path = do
                    , buttons = Set.empty
                    , rr
                    }
-
 
 resetAddr :: String -> PRG.ROM -> Addr
 resetAddr path prg = do
@@ -249,30 +242,10 @@ data NesRamRom = NesRamRom
       pat2 :: PAT
     }
 
-data NesState = NesState
-    { cpu :: CpuState
-    , con :: Controller.State
-    , regs :: Regs.State
-    , cc :: Cycles
-    , pal :: Palette.State
-    }
-    deriving (Show)
-
-
-sysOfNesState :: NesRamRom -> NesState -> IO Sys
+sysOfNesState :: NesRamRom -> Nes.State -> IO Sys
 sysOfNesState rr nesState = do
-    let finished (_::NesState) () = error "we finished"
+    let finished (_::Nes.State) () = error "we finished"
     interpretStep rr nesState nesForever finished
-
-
-nesState0 :: Addr -> NesState
-nesState0 pc0 =
-    NesState { cpu = cpuState0 pc0
-             , con = Controller.state0
-             , regs = Regs.state0
-             , cc = 7 -- for nestest.nes
-             , pal = Palette.state0
-             }
 
 cyclesPerFrame :: Cycles
 cyclesPerFrame = 29780
@@ -281,7 +254,7 @@ cyclesInVBlank :: Cycles
 cyclesInVBlank = fromIntegral ((8200::Int) `div` 3)
 
 framesUntilPPuWarmsUp :: Int
-framesUntilPPuWarmsUp = 0 -- TODO: get real!
+framesUntilPPuWarmsUp = 1
 
 nesForever :: Step ()
 nesForever = do
@@ -295,7 +268,6 @@ nesOneFrame = do
     runCpu (cyclesPerFrame - cyclesInVBlank)
     SetVBlank True
     e <- IsNmiEnabled
-    --Log $ "enabled=" <> show e
     if e then TriggerNMI else return ()
     runCpu (cyclesInVBlank)
 
@@ -320,15 +292,16 @@ instance Functor Step where fmap = liftM
 instance Applicative Step where pure = return; (<*>) = ap
 instance Monad Step where return = Step_Ret; (>>=) = Step_Bind
 
-data Logged = Log_NesState NesState | Log_NMI | Log_Info String
+data Logged = Log_NesState Nes.State | Log_NMI | Log_Info String
 
+-- TODO: this continutaion based type is overly complex
 data Sys
-    = Sys_Render NesState Display (IO Sys) -- comes every instruction, every 2-7 or so cpu cycles
-    | Sys_Log Logged (IO Sys) -- comes every 30k ish cpu cycles
+    = Sys_Render Nes.State Display (IO Sys)
+    | Sys_Log Logged (IO Sys)
     | Sys_SampleButtons (Buttons -> IO Sys)
 
-interpretStep :: NesRamRom -> NesState -> Step a -> (NesState -> a -> IO Sys) -> IO Sys
-interpretStep rr@NesRamRom{ram,prg} s@NesState{regs,pal} step k = case step of
+interpretStep :: NesRamRom -> Nes.State -> Step a -> (Nes.State -> a -> IO Sys) -> IO Sys
+interpretStep rr@NesRamRom{ram,prg} s@Nes.State{regs,pal} step k = case step of
     Step_Ret x -> k s x
     Step_Bind e f -> interpretStep rr s e $ \s v -> interpretStep rr s (f v) k
     SetVBlank bool -> do
@@ -354,8 +327,8 @@ interpretStep rr@NesRamRom{ram,prg} s@NesState{regs,pal} step k = case step of
         return $ Sys_Log (Log_Info info) $ do
             k s ()
 
-----------------------------------------------------------------------
--- more complex combinations
+
+-- TODO: move this to new module: PPU.Render
 
 render :: NesRamRom -> Regs.State -> Palette.State -> Ram2k.Effect Display
 render NesRamRom{pat1,pat2} _regs pal = do
@@ -398,117 +371,32 @@ makePalettes pal = do
               return $ Palette { c1,c2,c3 }
 
 
-cpuInstruction :: NesRamRom -> PRG.ROM -> Buttons -> NesState -> NesRam.Effect (NesState,Cycles)
-cpuInstruction NesRamRom{chr} prg2 buttons ns@NesState{cpu,cc} = do
+-- TODO: move this code into Six502.Emu. Factor common code from the 3 defs
+
+cpuInstruction :: NesRamRom -> PRG.ROM -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
+cpuInstruction NesRamRom{chr} prg2 buttons ns@Nes.State{cpu,cc} = do
     let opPrg1 = Nothing-- TODO
-    let mm_eff = iCpuMem (opPrg1,prg2) (Six502.Emu.stepInstruction cpu)
+    let mm_eff = Six502.Mem.inter (opPrg1,prg2) (Six502.Emu.stepInstruction cpu)
     do
-        ((cpu',cycles),ns') <- runStateT (iCpuMemMapEff cc chr buttons mm_eff) ns
+        ((cpu',cycles),ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
         let ns'' = ns' { cpu = cpu', cc = cc+cycles }
         return (ns'',cycles)
 
-triggerNMI :: NesRamRom -> PRG.ROM -> NesState -> NesRam.Effect NesState
-triggerNMI NesRamRom{chr} prg2 ns@NesState{cpu,cc} = do
+triggerNMI :: NesRamRom -> PRG.ROM -> Nes.State -> NesRam.Effect Nes.State
+triggerNMI NesRamRom{chr} prg2 ns@Nes.State{cpu,cc} = do
     let opPrg1 = Nothing-- TODO
-    let mm_eff = iCpuMem (opPrg1,prg2) (Six502.Emu.triggerNMI cpu)
+    let mm_eff = Six502.Mem.inter (opPrg1,prg2) (Six502.Emu.triggerNMI cpu)
     let buttons = Set.empty -- ok?
     do
-        (cpu',ns') <- runStateT (iCpuMemMapEff cc chr buttons mm_eff) ns
+        (cpu',ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
         return ns' { cpu = cpu' }
 
-readFromAddr :: NesState -> NesRamRom -> Addr -> IO [Byte]
-readFromAddr ns@NesState{cc} NesRamRom{prg,chr,ram} pc = do
+readFromAddr :: Nes.State -> NesRamRom -> Addr -> IO [Byte]
+readFromAddr ns@Nes.State{cc} NesRamRom{prg,chr,ram} pc = do
     let opPrg1 = Nothing-- TODO
     let mem_eff = Six502.Mem.reads pc
     let _tag = "readFromAddr:"<>show ns
-    let mm_eff = iCpuMem  (opPrg1,prg) mem_eff
+    let mm_eff = Six502.Mem.inter  (opPrg1,prg) mem_eff
     let buttons = Set.empty
-    (bytes,_) <- NesRam.inter ram $ runStateT (iCpuMemMapEff cc chr buttons mm_eff) ns
+    (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter cc chr buttons mm_eff) ns
     return bytes
-
-
-----------------------------------------------------------------------
--- Cpu
-
-type CpuState = Six502.Emu.Cpu
-
-cpuState0 :: Addr -> CpuState
-cpuState0 = Six502.Emu.cpu0
-
---stepInstruction :: CpuState -> CpuMemEff (CpuState,Cycles)
---stepInstruction = Six502.Emu.stepInstruction
-
-----------------------------------------------------------------------
--- CpuMemEff
-
-type CpuMemEff a = Six502.Mem.Effect a
-
--- TODO: MOve this code back into Cpu/Mem.hs
-iCpuMem :: (Maybe PRG.ROM,PRG.ROM) -> CpuMemEff a -> CpuMemMapEff a
-iCpuMem s@(optPrg1,prg2) = \case
-
-    Ret x -> return x
-    Bind e f -> do v <- iCpuMem s e; iCpuMem s (f v)
-
-    Read addr -> case decode "read" addr of
-        Ram x -> MM_Ram (Ram2k.Read x)
-        Rom1 x -> return $ PRG.read prg1 x
-        Rom2 x -> return $ PRG.read prg2 x
-        PPU reg -> MM_Reg (Regs.Read reg)
-        -- ???
-        IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
-        IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
-        Dma -> error $ "CPU.Mem, Read DmaTODO"
-        Joy1 -> MM_Con $ Controller.Read
-        Joy2 -> do
-            let b :: Byte = 0 -- no joystick 2
-            return b
-
-    Write addr v -> case decode "write" addr of
-        Ram x -> MM_Ram (Ram2k.Write x v)
-        Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
-        Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
-        PPU reg -> MM_Reg (Regs.Write reg v)
-        IgnoreFineScrollWrite -> return ()
-        IgnoreSound -> return ()
-        Dma -> return () -- TODO: support DMA !!!
-        Joy1 -> do
-            let bool = testBit v 0
-            MM_Con $ Controller.Strobe bool
-
-        Joy2 -> do
-            --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
-            return ()
-
-    where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
-
-----------------------------------------------------------------------
--- CpuMemMapEff
-
-data CpuMemMapEff a where
-    MM_Ret :: a -> CpuMemMapEff a
-    MM_Bind :: CpuMemMapEff a -> (a -> CpuMemMapEff b) -> CpuMemMapEff b
-    MM_Con :: Controller.Effect a -> CpuMemMapEff a
-    MM_Reg :: Regs.Effect a -> CpuMemMapEff a
-    MM_Ram :: Ram2k.Effect a -> CpuMemMapEff a
-
-instance Functor CpuMemMapEff where fmap = liftM
-instance Applicative CpuMemMapEff where pure = return; (<*>) = ap
-instance Monad CpuMemMapEff where return = MM_Ret; (>>=) = MM_Bind
-
-iCpuMemMapEff :: Cycles -> CHR.ROM -> Buttons -> CpuMemMapEff a -> StateT NesState NesRam.Effect a
-iCpuMemMapEff cc chr buttons = \case
-    MM_Ret x -> return x
-    MM_Bind e f -> do v <- iCpuMemMapEff cc chr buttons e; iCpuMemMapEff cc chr buttons (f v)
-
-    MM_Con eff -> do
-        StateT $ \ns@NesState{con} -> NesRam.EmbedIO $ do
-            (v,con') <- Log.interIO cc $ Controller.inter buttons con eff
-            return (v, ns { con = con' })
-
-    MM_Reg eff -> do
-        StateT $ \ns@NesState{regs,pal} -> NesRam.InVram $ do
-            (pal',(regs',v)) <- PRam.interIO cc pal $ PMem.inter chr $ Regs.inter cc chr regs eff
-            return (v, ns { regs = regs', pal = pal' })
-
-    MM_Ram eff -> lift $ NesRam.InWram eff

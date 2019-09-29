@@ -1,19 +1,30 @@
 
 module Six502.Mem( -- address space mapping for the CPU
     Effect(..), reads,
-    decode, Decode(..),
+    --decode, Decode(..),
+    inter,
     ) where
 
---import Data.Bits(testBit)
+import Data.Bits(testBit)
 import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
 
 import Six502.Values
-import qualified PPU.Regs
+import qualified PPU.Regs as Regs
+import qualified PRG
+import qualified Six502.MM as MM
+import qualified Ram2k
+import qualified Controller
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
+
+data Effect a where
+    Ret :: a -> Effect a
+    Bind :: Effect a -> (a -> Effect b) -> Effect b
+    Read :: Addr -> Effect Byte
+    Write :: Addr -> Byte -> Effect ()
 
 reads :: Addr -> Effect [Byte]
 reads addr = do  -- dislike this multi Reads interface now. only use for max of 3
@@ -22,11 +33,50 @@ reads addr = do  -- dislike this multi Reads interface now. only use for max of 
     byte2 <- Read $ addr `addAddr` 2
     return [byte0,byte1,byte2]
 
-data Effect a where
-    Ret :: a -> Effect a
-    Bind :: Effect a -> (a -> Effect b) -> Effect b
-    Read :: Addr -> Effect Byte
-    Write :: Addr -> Byte -> Effect ()
+
+
+
+type CpuMemEff a = Six502.Mem.Effect a
+
+
+inter :: (Maybe PRG.ROM,PRG.ROM) -> CpuMemEff a -> MM.Effect a
+inter s@(optPrg1,prg2) = \case
+
+    Ret x -> return x
+    Bind e f -> do v <- inter s e; inter s (f v)
+
+    Read addr -> case decode "read" addr of
+        Ram x -> MM.Ram (Ram2k.Read x)
+        Rom1 x -> return $ PRG.read prg1 x
+        Rom2 x -> return $ PRG.read prg2 x
+        PPU reg -> MM.Reg (Regs.Read reg)
+        -- ???
+        IgnoreFineScrollWrite -> error $ "CPU.Mem, suprising read from fine-scroll reg"
+        IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
+        Dma -> error $ "CPU.Mem, Read DmaTODO"
+        Joy1 -> MM.Con $ Controller.Read
+        Joy2 -> do
+            let b :: Byte = 0 -- no joystick 2
+            return b
+
+    Write addr v -> case decode "write" addr of
+        Ram x -> MM.Ram (Ram2k.Write x v)
+        Rom1 _ -> error $ "CPU.Mem, illegal write to Rom bank 1 : " <> show addr
+        Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
+        PPU reg -> MM.Reg (Regs.Write reg v)
+        IgnoreFineScrollWrite -> return ()
+        IgnoreSound -> return ()
+        Dma -> return () -- TODO: support DMA !!!
+        Joy1 -> do
+            let bool = testBit v 0
+            MM.Con $ Controller.Strobe bool
+
+        Joy2 -> do
+            --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
+            return ()
+
+    where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
+
 
 decode :: String -> Addr -> Decode
 decode tag a = if
@@ -35,13 +85,13 @@ decode tag a = if
     -- 3 mirrors -- wait to see if they are used...
     -- | a < 0x1000 -> Ram $ a `minusAddr` 0x800
 
-    | a == 0x2000 -> PPU PPU.Regs.Control
-    | a == 0x2001 -> PPU PPU.Regs.Mask
-    | a == 0x2002 -> PPU PPU.Regs.Status
-    | a == 0x2003 -> PPU PPU.Regs.OAMADDR
+    | a == 0x2000 -> PPU Regs.Control
+    | a == 0x2001 -> PPU Regs.Mask
+    | a == 0x2002 -> PPU Regs.Status
+    | a == 0x2003 -> PPU Regs.OAMADDR
     | a == 0x2005 -> IgnoreFineScrollWrite
-    | a == 0x2006 -> PPU PPU.Regs.PPUADDR
-    | a == 0x2007 -> PPU PPU.Regs.PPUDATA
+    | a == 0x2006 -> PPU Regs.PPUADDR
+    | a == 0x2007 -> PPU Regs.PPUDATA
 
     | a == 0x2425 -> IgnoreFineScrollWrite -- ????
 
@@ -67,7 +117,7 @@ data Decode
     = Ram Int
     | Rom1 Int
     | Rom2 Int
-    | PPU PPU.Regs.Name
+    | PPU Regs.Name
     | IgnoreFineScrollWrite
     | IgnoreSound
     | Dma
