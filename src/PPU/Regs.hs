@@ -7,14 +7,14 @@ module PPU.Regs(
     inter,
     ) where
 
-import Control.Monad (ap,liftM)
 import Data.Bits
 
 import Six502.Values
 import Six502.Cycles
-import qualified Ram2k
 import qualified CHR
+import qualified PPU.PMem as PMem
 
+import Control.Monad (ap,liftM)
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
@@ -56,10 +56,9 @@ setVBlank state@State{control} bool =
 isEnabledNMI :: State -> Bool
 isEnabledNMI State{control} = testBit control 7
 
-
 data AddrLatch = Hi | Lo deriving (Show)
 
-inter :: Cycles -> CHR.ROM -> State -> Effect a -> Ram2k.Effect (State, a) -- effect on VRAM
+inter :: Cycles -> CHR.ROM -> State -> Effect a -> PMem.Effect (State, a)
 inter cc chr state@State{control, mask, status
                ,ppu_addr_latch
                ,ppu_addr_hi, ppu_addr_lo
@@ -78,17 +77,9 @@ inter cc chr state@State{control, mask, status
     Read PPUADDR -> error "Read PPUADDR"
 
     Read PPUDATA -> do
-        let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
-        case decode cc addr of
-            Rom x ->
-                --error $ "TODO: Read PPUDADA, pattern table: " <>  show addr
-                return (bumpAddr state, CHR.read chr x)
-            Ram a -> do
-                b <- Ram2k.Read a
-                return (bumpAddr state, b)
-            PaletteRam ->
-                error "Read PPUDATA, PaletteRam"
-
+        let addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        b <- PMem.Read addr
+        return (bumpAddr state, b)
 
     Read OAMADDR -> error "Read OAMADDR"
 
@@ -102,41 +93,18 @@ inter cc chr state@State{control, mask, status
             Lo -> return (state { ppu_addr_lo = b, ppu_addr_latch = Hi }, ())
 
     Write PPUDATA b -> do
-        let addr :: Addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
-        case (decode cc addr) of
-            Rom _ -> error $ "Write PPUDADA, cant write to pattern table: " <>  show addr
-            Ram a -> Ram2k.Write a b
-            PaletteRam -> return ()
-
+        let addr = addrOfHiLo ppu_addr_hi ppu_addr_lo
+        PMem.Write addr b
         return (bumpAddr state, ())
 
     Write OAMADDR _ -> do
         --error "Write OAMADDR"
         return (state, ()) -- TODO: dont ignore when handling sprites!
 
-bumpAddr :: State -> State -- TODO: bump should be H/V depending on some status bit
+bumpAddr :: State -> State
 bumpAddr s@State{control,ppu_addr_hi=hi, ppu_addr_lo=lo} = do
     let bumpV = testBit control 2
     let bump = if bumpV then 32 else 1
     let a = addrOfHiLo hi lo
     let (hi',lo') = addrToHiLo (a `addAddr` bump)
     s { ppu_addr_hi=hi', ppu_addr_lo=lo'}
-
-decode :: Cycles -> Addr -> Decode
-decode cc a = if
-    | a < 0x2000 -> Rom $ fromIntegral $ unAddr a
-    | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
-    | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
-
-    | a >= 0x3F00 && a <= 0x3F1F -> PaletteRam
-
-    -- mirrors... wait and see if they are used
---    | a < 0x3800 ->  a `minusAddr` 0x3000
---    | a < 0x4000 ->  a `minusAddr` 0x3800
-
-    | otherwise ->  error $ show cc <> " - Regs.decode, too high: " <> show a
-
-data Decode
-    = Ram Int
-    | Rom Int
-    | PaletteRam

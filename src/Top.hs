@@ -32,6 +32,8 @@ import qualified Controller
 import qualified Ram2k
 import qualified NesRam
 import qualified PPU.Regs as Regs
+import qualified PPU.PMem as PMem
+import qualified PPU.PRam as PRam
 import qualified Six502.Emu
 import qualified Graphics
 import qualified CHR
@@ -493,7 +495,8 @@ iCpuMemMapEff cc chr buttons = \case
 
     MM_Reg eff -> do
         StateT $ \(consState,regsState) -> NesRam.InVram $ do
-            (regsState',v) <- Regs.inter cc chr regsState eff
+            let pal = undefined -- TODO: thread pal
+            (_pal',(regsState',v)) <- PRam.interIO cc pal $ PMem.inter chr $ Regs.inter cc chr regsState eff
             return (v,(consState,regsState'))
 
     MM_Ram eff -> lift $ NesRam.InWram eff
