@@ -4,8 +4,8 @@
 
 Many 6502 emulators already exist, including some in Haskell. I am coding this one for the fun and challenge of it. And with the hope that the resulting code will have some kind of elegence.
 
-So far the disassember is complete. Working on the emulator...
-Maybe when it's working, I will attempt a full NES.
+So far the disassember is complete. Working on the emulator... [emulator complete!]
+Maybe when it's working, I will attempt a full NES. [yup, this is started now!]
 
 #### Following these tutorials and references:
 
@@ -36,6 +36,10 @@ Run/test with:
 
 
 ## NES notes
+
+#### References
+
+- [Colours: RGB mapping](http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php/NES_Palette)
 
 Have most of a full NES emulator wired up now. Now the debugging starts...
 
