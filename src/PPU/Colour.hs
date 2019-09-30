@@ -5,6 +5,7 @@ module PPU.Colour(
     toRGB,
     ) where
 
+import Data.Array(Array,(!),listArray)
 import Byte
 
 newtype Colour = Colour Byte
@@ -16,10 +17,10 @@ toRGB :: Colour -> (Int,Int,Int)
 toRGB (Colour byte) = do
     let i = fromIntegral $ unByte byte
     if i>=64 then error $ "Colour.toGloss(>=64)," <> show i else do
-    decimalMapping !! i -- TODO: array indexing
+    decimalMapping ! i
 
-decimalMapping :: [(Int,Int,Int)]
-decimalMapping =
+decimalMapping :: Array Int (Int,Int,Int)
+decimalMapping = listArray (0,63)
     [(124,124,124)
     ,(0,0,252)
     ,(0,0,188)
