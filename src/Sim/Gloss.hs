@@ -7,12 +7,16 @@ import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
-import PPU.Colour(Colour)
+import Graphics.Gloss.Data.Bitmap
+
+--import PPU.Colour(Colour)
 import PPU.Render(Display(..))
 import Sim.World
 import qualified Controller
 import qualified PPU.Colour
 import qualified PPU.Graphics as Graphics
+
+import qualified Data.ByteString as BS
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
@@ -65,16 +69,29 @@ pictureWorld World{frameCount,display,buttons} = pictures
     ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1,bg2,tiles1,tiles2} = do
+makePicture Display{bg1} = do --,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
-        , translate 300 0 $ pictureScreen bg2
-        , translate 600 0 $ pictureScreen tiles1
-        , translate 600 150 $ pictureScreen tiles2
+        --, translate 300 0 $ pictureScreen bg2
+        --, translate 600 0 $ pictureScreen tiles1
+        --, translate 600 150 $ pictureScreen tiles2
         ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
-pictureScreen (Graphics.Screen grid) =
+pictureScreen (Graphics.Screen css) = translate (fromIntegral w/2) (fromIntegral h/2) bitmap
+    where
+        bitmap = bitmapOfByteString w h format byteString False
+        format = BitmapFormat { rowOrder = BottomToTop, pixelFormat = PxRGBA }
+        w  = length (head css)
+        h = length css
+        byteString = BS.pack $ map fromIntegral $ concat $ do
+            col <- concat css
+            let (r,g,b) = PPU.Colour.toRGB col
+            return [r,g,b,255]
+
+{-
+_pictureScreen :: Graphics.Screen -> Gloss.Picture
+_pictureScreen (Graphics.Screen grid) =
     Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
@@ -90,3 +107,4 @@ toGlossColor col = do
 
 pixel :: Gloss.Point -> Gloss.Picture
 pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
+-}
