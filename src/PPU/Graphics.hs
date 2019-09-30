@@ -1,7 +1,8 @@
 
 module PPU.Graphics(
     PAT, patFromBS,
-    Screen(..),
+    Screen, forceScreen,
+    screenToBitmapByteString,screenWidth,screenHeight,
     screenTiles,
     screenBG,
     Palettes(..),Palette(..),
@@ -14,9 +15,36 @@ import Data.Array((!),listArray)
 import Data.Bits(testBit)
 import Data.List.Split(chunksOf)
 import Data.Tuple.Extra((***))
+import qualified Data.ByteString as BS
+import qualified Data.List as List
 
 import Byte(Byte,byteToUnsigned)
 import PPU.Colour as Colour
+
+
+
+newtype Screen = Screen { unScreen :: [[Colour]] } --240,256 (full screen), but we can manage smaller frags
+
+forceScreen :: Screen -> Int
+forceScreen (Screen css) = do
+    let xs = map fromIntegral $ concat $ do
+            col <- concat css
+            let (r,g,b) = Colour.toRGB col
+            return [r,g,b]
+    List.foldr (+) 0 xs
+
+screenToBitmapByteString :: Screen -> BS.ByteString
+screenToBitmapByteString (Screen css) = BS.pack $ map fromIntegral $ concat $ do
+    col <- concat css
+    let (r,g,b) = Colour.toRGB col
+    return [r,g,b,255]
+
+screenWidth :: Screen -> Int
+screenWidth (Screen css) = length (head css)
+
+screenHeight :: Screen -> Int
+screenHeight (Screen css) = length css
+
 
 -- TODO: kill/disable this crazy expensive checking...?
 expect :: Char -> Int -> [a] -> [a]
@@ -163,6 +191,7 @@ selectPalette Palettes{p1,p2,p3,p4} = \case
     Pal3 -> p3
     Pal4 -> p4
 
+
 -- screens should be rectangular, but nothing enforces that.. still, we can have some combinators
 
 beside :: Screen -> Screen -> Screen -- chops taller screen
@@ -182,8 +211,6 @@ aboves = \case
     s1:screens -> foldr above s1 screens
 
 newtype PAT = PAT { unPAT :: [Tile] } --256
-
-newtype Screen = Screen { unScreen :: [[Colour]] } --240,256 (full screen), but we can manage smaller frags
 
 newtype Tile = Tile [[ColourSelect]] -- 8,8
 

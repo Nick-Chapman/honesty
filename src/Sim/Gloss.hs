@@ -6,17 +6,12 @@ import qualified Data.Set as Set
 import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
-
 import Graphics.Gloss.Data.Bitmap
 
---import PPU.Colour(Colour)
 import PPU.Render(Display(..))
 import Sim.World
 import qualified Controller
-import qualified PPU.Colour
 import qualified PPU.Graphics as Graphics
-
-import qualified Data.ByteString as BS
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
@@ -78,33 +73,10 @@ makePicture Display{bg1,bg2,tiles1,tiles2} = do
         ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
-pictureScreen (Graphics.Screen css) = translate (fromIntegral w/2) (fromIntegral h/2) bitmap
+pictureScreen screen = translate (fromIntegral w/2) (fromIntegral h/2) bitmap
     where
         bitmap = bitmapOfByteString w h format byteString False
         format = BitmapFormat { rowOrder = BottomToTop, pixelFormat = PxRGBA }
-        w  = length (head css)
-        h = length css
-        byteString = BS.pack $ map fromIntegral $ concat $ do
-            col <- concat css
-            let (r,g,b) = PPU.Colour.toRGB col
-            return [r,g,b,255]
-
-{-
-_pictureScreen :: Graphics.Screen -> Gloss.Picture
-_pictureScreen (Graphics.Screen grid) =
-    Gloss.pictures $ zipWith doLine [0..] grid
-    where
-        doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
-        doPixel y x c = point x y c
-
-point :: Int -> Int -> Colour -> Gloss.Picture
-point x y c = Gloss.color (toGlossColor c) (pixel (fromIntegral x,fromIntegral y))
-
-toGlossColor :: Colour -> Gloss.Color
-toGlossColor col = do
-    let (r,g,b) = PPU.Colour.toRGB col
-    Gloss.makeColorI r g b 255
-
-pixel :: Gloss.Point -> Gloss.Picture
-pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
--}
+        w = Graphics.screenWidth screen
+        h = Graphics.screenHeight screen
+        byteString = Graphics.screenToBitmapByteString screen

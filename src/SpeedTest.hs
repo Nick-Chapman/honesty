@@ -2,13 +2,11 @@
 module SpeedTest(run) where
 
 import Data.Fixed(Fixed(..),HasResolution,resolution)
-import Data.List as List
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
 
 import PPU.Render(Display(..))
-import PPU.Graphics(Screen(..))
-import qualified PPU.Colour
+import PPU.Graphics(forceScreen)
 import Sim.World(World(..),world0,updateWorld)
 
 run :: String -> IO ()
@@ -18,12 +16,7 @@ run path = do
     testStepper time0 0 w0 time0 (updateWorld False 0) forceWorld
 
 forceWorld :: World -> Int
-forceWorld World{display=Display{bg1=Screen css}} = do
-    let xs = map fromIntegral $ concat $ do
-            col <- concat css
-            let (r,g,b) = PPU.Colour.toRGB col
-            return [r,g,b]
-    List.foldr (+) 0 xs
+forceWorld World{display=Display{bg1}} = forceScreen bg1
 
 testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
 testStepper time frames state time0 step force = do
