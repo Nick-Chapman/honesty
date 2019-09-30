@@ -1,28 +1,41 @@
 
 module SpeedTest(run) where
 
+import Data.Fixed(Fixed(..),HasResolution,resolution)
+import Data.List as List
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
-import Data.Fixed
 
-import Sim.World(world0,updateWorld)
+import PPU.Render(Display(..))
+import PPU.Graphics(Screen(..))
+import qualified PPU.Colour
+import Sim.World(World(..),world0,updateWorld)
 
 run :: String -> IO ()
 run path = do
     time0 <- getCurrentTime
     w0 <- world0 path
-    testStepper time0 0 w0 time0 (updateWorld False 0)
+    testStepper time0 0 w0 time0 (updateWorld False 0) forceWorld
 
-testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> IO ()
-testStepper time frames state time0 step = do
+forceWorld :: World -> Int
+forceWorld World{display=Display{bg1=Screen css}} = do
+    let xs = map fromIntegral $ concat $ do
+            col <- concat css
+            let (r,g,b) = PPU.Colour.toRGB col
+            return [r,g,b]
+    List.foldr (+) 0 xs
+
+testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
+testStepper time frames state time0 step force = do
     state' <- step state
+    let forced = force state'
     time' <- getCurrentTime
     let frames' = frames + 1
     let fpsX = makeFps frames' time0 time'
     let fpsY = makeFps 1       time  time'
-    putStrLn $ show frames <> (if (True) then "x" else ".")
+    putStrLn $ show frames <> " (" <> show forced <> ") "
         <> "[" <> show fpsX <> "] " <> show fpsY
-    testStepper time' frames' state' time0 step
+    testStepper time' frames' state' time0 step force
 
 newtype Fps = Fps Float
 
