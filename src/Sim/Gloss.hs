@@ -69,12 +69,12 @@ pictureWorld World{frameCount,display,buttons} = pictures
     ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1} = do --,bg2,tiles1,tiles2} = do
+makePicture Display{bg1,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
-        --, translate 300 0 $ pictureScreen bg2
-        --, translate 600 0 $ pictureScreen tiles1
-        --, translate 600 150 $ pictureScreen tiles2
+        , translate 300 0 $ pictureScreen bg2
+        , translate 600 0 $ pictureScreen tiles1
+        , translate 600 150 $ pictureScreen tiles2
         ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture

@@ -45,7 +45,6 @@ inter s@(optPrg1,prg2) = \case
         Rom2 x -> return $ PRG.read prg2 x
         PPU reg -> MM.Reg (Regs.Read reg)
         IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
-        Dma -> error $ "CPU.Mem, Read DmaTODO"
         Joy1 -> MM.Con $ Controller.Read
         Joy2 -> do
             let b :: Byte = 0 -- no joystick 2
@@ -57,7 +56,6 @@ inter s@(optPrg1,prg2) = \case
         Rom2 _ -> error $ "CPU.Mem, illegal write to Rom bank 2 : " <> show addr
         PPU reg -> MM.Reg (Regs.Write reg v)
         IgnoreSound -> return ()
-        Dma -> return () -- TODO: support DMA !!!
         Joy1 -> do
             let bool = testBit v 0
             MM.Con $ Controller.Strobe bool
@@ -80,7 +78,7 @@ decode tag a = if
     | a == 0x2001 -> PPU Regs.PPUMASK
     | a == 0x2002 -> PPU Regs.PPUSTATUS
     | a == 0x2003 -> PPU Regs.OAMADDR
-    -- 2004 -> OAMDATA (not seen yet)
+    | a == 0x2004 -> error "Mem, 0x2004" -- PPU Regs.OAMDATA -- not seen yet
     | a == 0x2005 -> PPU Regs.PPUSCROLL
     | a == 0x2006 -> PPU Regs.PPUADDR
     | a == 0x2007 -> PPU Regs.PPUDATA
@@ -91,7 +89,7 @@ decode tag a = if
     -- sound is from 0x4000--0x4013, 0x4015, and 0x4017 (overlappiong Joy2)
     | a >= 0x4000 && a <= 0x4013 -> IgnoreSound
 
-    | a == 0x4014 -> Dma
+    | a == 0x4014 -> PPU Regs.OAMDMA
     | a == 0x4015 -> IgnoreSound
     | a == 0x4016 -> Joy1
     | a == 0x4017 -> Joy2
@@ -108,6 +106,5 @@ data Decode
     | Rom2 Int
     | PPU Regs.Name
     | IgnoreSound
-    | Dma
     | Joy1
     | Joy2

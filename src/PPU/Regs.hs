@@ -100,7 +100,7 @@ inter cc chr state@State{control, mask, status ,addr_latch ,addr_hi, addr_lo} = 
         let addr = addrOfHiLo addr_hi addr_lo
         PMem.Write addr b
         return (bumpAddr state, ())
-    Write OAMDMA _ -> error "Write OAMDMA"
+    Write OAMDMA _ -> do return (state, ()) -- error "Write OAMDMA" - TODO NEXT
 
 bumpAddr :: State -> State
 bumpAddr s@State{control,addr_hi=hi, addr_lo=lo} = do
