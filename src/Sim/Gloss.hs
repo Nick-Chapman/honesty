@@ -1,6 +1,7 @@
 
 module Sim.Gloss(run) where
 
+import Data.IORef
 import qualified Data.Set as Set
 
 import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
@@ -17,8 +18,11 @@ run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
     let debug = True
     model <- world0 path
+
+    lastFrameCountRef <- newIORef 0
+
     Gloss.playIO dis (Gloss.greyN 0.3) fps model
-        (\  m -> return $ doPosition (pictureWorld m))
+        (\  m -> do pic <- pictureWorld lastFrameCountRef m; return $ doPosition pic)
         (\e m -> handleEventWorld e m)
         (\d m -> updateWorld debug d m)
     where
@@ -56,12 +60,17 @@ handleEventWorld event world@World{buttons} = do
         press but = world { buttons = Set.insert but buttons }
         release but = world { buttons = Set.delete but buttons }
 
-pictureWorld :: World -> Gloss.Picture
-pictureWorld World{frameCount,display,buttons} = pictures
-    [ scale 1 (-1) $ makePicture display
-    , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
-    , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
-    ]
+pictureWorld :: IORef Int -> World -> IO Gloss.Picture
+pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
+    lastFrameCount <- readIORef lastFrameCountRef
+    writeIORef lastFrameCountRef frameCount
+    let droppedFrames = frameCount - lastFrameCount
+    return $ pictures
+        [ scale 1 (-1) $ makePicture display
+        , translate 0 (-320) $ scale 0.5 0.5 $ color cyan $ Text (show droppedFrames)
+        , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
+        , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
+        ]
 
 makePicture :: Display -> Gloss.Picture
 makePicture Display{bg1,bg2,tiles1,tiles2} = do
