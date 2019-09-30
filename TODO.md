@@ -24,7 +24,6 @@
 
 ## Debug
 
-- synchronization of button events / picture display / logging -- still very laggy
 - Logging for important events (i.e. read a button press!)
 - Graphical Display: cycles
 - show cycle/pc reached on any crash + dump other status (pp regs state, control state, etc) + mem status
@@ -34,10 +33,7 @@
 
 ## Refactoring
 
-- Gloss picture code to sep file
 - Step continuation mess in Top.hs
-- render code to own file
-- Byte/Addr -> Top level
 
 
 ## Optimization ideas
