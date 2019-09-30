@@ -2,7 +2,7 @@
 module PPU.Graphics(
     PAT, patFromBS,
     Screen(..),
-    --screenTiles,
+    screenTiles,
     screenBG,
     Palettes(..),Palette(..),
     ) where
@@ -16,7 +16,7 @@ import Data.List.Split(chunksOf)
 import Data.Tuple.Extra((***))
 
 import Byte(Byte,byteToUnsigned)
-import PPU.Colour
+import PPU.Colour as Colour
 
 -- TODO: kill/disable this crazy expensive checking...?
 expect :: Char -> Int -> [a] -> [a]
@@ -27,20 +27,23 @@ expect _ _ xs = xs
 patFromBS :: [Byte] -> PAT
 patFromBS = PAT . map tileFromBS . expect '3' 256 . chunksOf 16 . expect '4' 0x1000
 
-{-screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
+screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
 screenTiles =
     aboves
     . map (besides . map screenFromTile)
     . chunksOf 16
     . expect '9' 256
-    . unPAT-}
+    . unPAT
 
-{-screenFromTile :: Tile -> Screen
+screenFromTile :: Tile -> Screen
 screenFromTile (Tile xss) = do
+    let black = Colour.ofByte 0x0F
+    let red = Colour.ofByte 0x06
+    let green = Colour.ofByte 0x2a
+    let white = Colour.ofByte 0x20
     let bg = black
     let pal = Palette { c1 = red, c2 = green, c3 = white }
     Screen $ map (map (selectColour bg pal)) xss
--}
 
 screenBG :: Palettes -> [Byte] -> PAT -> Screen
 screenBG palettes kilobyte pat = do

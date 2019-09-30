@@ -2,6 +2,7 @@
 module CHR(
     ROM,
     init, read,
+    bytes,
     ) where
 
 import Data.Array(Array,(!),listArray)

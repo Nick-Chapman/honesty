@@ -7,11 +7,12 @@ import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
-import qualified Controller
-import Sim.World
 import PPU.Colour(Colour)
+import PPU.Render(Display(..))
+import Sim.World
+import qualified Controller
 import qualified PPU.Colour
-import qualified PPU.Graphics
+import qualified PPU.Graphics as Graphics
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
@@ -56,31 +57,24 @@ handleEventWorld event world@World{buttons} = do
         press but = world { buttons = Set.insert but buttons }
         release but = world { buttons = Set.delete but buttons }
 
-
 pictureWorld :: World -> Gloss.Picture
-pictureWorld World{frameCount,rr,display,buttons} = pictures
-    [ scale 1 (-1) $ makePicture rr display
+pictureWorld World{frameCount,display,buttons} = pictures
+    [ scale 1 (-1) $ makePicture display
     , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
     , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
     ]
 
-
-makePicture :: NesRamRom -> Display -> Gloss.Picture
---makePicture NesRamRom{pat1,pat2} Display{bg1,bg2} = do
-makePicture _ Display{bg1} = do
-    --let _ = screenTiles
-    --let left = screenTiles pat1
-    --let right = screenTiles pat2
+makePicture :: Display -> Gloss.Picture
+makePicture Display{bg1,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
-        --, translate 300 0 $ pictureScreen bg2
-        --, translate 600 0 $ pictureScreen left
-        --, translate 600 150 $ pictureScreen right
+        , translate 300 0 $ pictureScreen bg2
+        , translate 600 0 $ pictureScreen tiles1
+        , translate 600 150 $ pictureScreen tiles2
         ]
 
-
-pictureScreen :: PPU.Graphics.Screen -> Gloss.Picture
-pictureScreen (PPU.Graphics.Screen grid) =
+pictureScreen :: Graphics.Screen -> Gloss.Picture
+pictureScreen (Graphics.Screen grid) =
     Gloss.pictures $ zipWith doLine [0..] grid
     where
         doLine y scan = Gloss.pictures $ zipWith (doPixel y) [0..] scan
@@ -96,4 +90,3 @@ toGlossColor col = do
 
 pixel :: Gloss.Point -> Gloss.Picture
 pixel (x,y) = Gloss.polygon [(x,y),(x,y+1),(x+1,y+1),(x+1,y)]
-
