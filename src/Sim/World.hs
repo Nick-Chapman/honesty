@@ -99,19 +99,11 @@ updateWorld n trace _debug _delta world@World{frameCount,sys,buttons,rr} = loop 
                 when _debug $ print (_showDelta _delta, frameCount,_cc)
                 sys <- sysIO
                 return (n, world { frameCount = frameCount + 1, display, sys })
-            Sys_Log (Log_NesState nesState) sysIO -> do
+            Sys_Trace nesState sysIO -> do
                 when trace $ printNS rr nesState
                 if n == 1 then return (0,world) else do
                     sys <- sysIO
                     loop (n-1) sys
-            Sys_Log Log_NMI sysIO -> do
-                --print "--------------------NMI--------------------"
-                sys <- sysIO
-                loop n sys
-            Sys_Log (Log_Info s) sysIO -> do
-                putStrLn $ "***INFO: " <> s
-                sys <- sysIO
-                loop n sys
             Sys_SampleButtons f -> do
                 sys <- f buttons
                 loop n sys
@@ -126,7 +118,7 @@ printRun n w = do
         printRun n' w'
 
 printNS :: Nes.RamRom -> Nes.State -> IO ()
-printNS rr ns@Nes.State{cpu,cc,regs=_} = do
+printNS rr ns@Nes.State{cpu,cc} = do
     let Six502.Cpu.State{Six502.Cpu.pc} = cpu
     bytes <- readFromAddr ns rr pc
     let op = Six502.Decode.decode1 bytes
@@ -178,18 +170,15 @@ data Step a where
     RunCpuInstruction :: Buttons -> Step Cycles
     IsNmiEnabled :: Step Bool
     TriggerNMI :: Step ()
-    Log :: String -> Step ()
 
 instance Functor Step where fmap = liftM
 instance Applicative Step where pure = return; (<*>) = ap
 instance Monad Step where return = Step_Ret; (>>=) = Step_Bind
 
-data Logged = Log_NesState Nes.State | Log_NMI | Log_Info String
-
 -- TODO: this continutaion based type is overly complex
 data Sys
     = Sys_Render Nes.State Display (IO Sys)
-    | Sys_Log Logged (IO Sys)
+    | Sys_Trace Nes.State (IO Sys)
     | Sys_SampleButtons (Buttons -> IO Sys)
 
 interpretStep :: Nes.RamRom -> Nes.State -> Step a -> (Nes.State -> a -> IO Sys) -> IO Sys
@@ -205,20 +194,16 @@ interpretStep rr@Nes.RamRom{ram,prg} s@Nes.State{regs,pal} step k = case step of
     Buttons ->
         return $ Sys_SampleButtons $ \buttons -> k s buttons
     RunCpuInstruction buttons -> do
-        return $ Sys_Log (Log_NesState s) $ do
+        return $ Sys_Trace s $ do
             (s',cycles) <- NesRam.inter ram (cpuInstruction rr prg buttons s)
             k s' cycles
     IsNmiEnabled -> do
         let e = Regs.isEnabledNMI regs
         k s e
     TriggerNMI -> do
-        return $ Sys_Log (Log_NesState s) $ return $ Sys_Log Log_NMI $ do
+        return $ Sys_Trace s $ do
             s' <- NesRam.inter ram $ triggerNMI rr prg s
             k s' ()
-    Log info ->
-        return $ Sys_Log (Log_Info info) $ do
-            k s ()
-
 
 -- TODO: move this code into Six502.Emu. Factor common code from the 3 defs
 
