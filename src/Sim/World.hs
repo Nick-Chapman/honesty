@@ -89,61 +89,41 @@ chrOfNesFile NesFile{chrs} =
         _  ->
             error "emu, unexpected number of chr"
 
--- TODO: updateWorld & printRun functions should be combined
-
-updateWorld :: Bool -> Float -> World -> IO World
-updateWorld _debug _delta world@World{frameCount,sys,buttons} = loop sys
+updateWorld :: Int -> Bool -> Bool -> Float -> World -> IO (Int,World)
+updateWorld n trace _debug _delta world@World{frameCount,sys,buttons,rr} = loop n sys
     where
-        loop :: Sys -> IO World
-        loop = \case
+        loop :: Int -> Sys -> IO (Int,World)
+        loop n = \case
             Sys_Render nesState display sysIO -> do
                 let Nes.State{cc=_cc,pal=_pal} = nesState
                 when _debug $ print (_showDelta _delta, frameCount,_cc)
                 sys <- sysIO
-                -- TODO: force to WHNF here?
-                return $ world { frameCount = frameCount + 1, display, sys }
-            Sys_Log (Log_NesState _nesState) sysIO -> do
-                sys <- sysIO
-                loop sys
+                return (n, world { frameCount = frameCount + 1, display, sys })
+            Sys_Log (Log_NesState nesState) sysIO -> do
+                when trace $ printNS rr nesState
+                if n == 1 then return (0,world) else do
+                    sys <- sysIO
+                    loop (n-1) sys
             Sys_Log Log_NMI sysIO -> do
                 --print "--------------------NMI--------------------"
                 sys <- sysIO
-                loop sys
+                loop n sys
             Sys_Log (Log_Info s) sysIO -> do
                 putStrLn $ "***INFO: " <> s
                 sys <- sysIO
-                loop sys
+                loop n sys
             Sys_SampleButtons f -> do
                 sys <- f buttons
-                loop sys
+                loop n sys
 
 _showDelta :: Float -> String
 _showDelta = printf "%.03g"
 
 printRun :: Int -> World -> IO ()
-printRun n World{buttons,sys,rr} = loop n sys
-    where
-        loop :: Int -> Sys -> IO ()
-        loop n sys = case sys of
-            Sys_Render _ _ sysIO -> do
-                sys <- sysIO
-                loop n sys
-            Sys_Log (Log_NesState nesState) sysIO -> do
-                printNS rr nesState
-                if n == 1 then return () else do
-                    sys <- sysIO
-                    loop (n-1) sys
-            Sys_Log Log_NMI sysIO -> do
-                print "--------------------NMI--------------------"
-                sys <- sysIO
-                loop n sys
-            Sys_Log (Log_Info s) sysIO -> do
-                putStrLn $ "***INFO: " <> s
-                sys <- sysIO
-                loop n sys
-            Sys_SampleButtons f -> do
-                sys <- f buttons
-                loop n sys
+printRun n w = do
+    (n',w') <- updateWorld n True False 0 w
+    if n'==0 then return () else
+        printRun n' w'
 
 printNS :: Nes.RamRom -> Nes.State -> IO ()
 printNS rr ns@Nes.State{cpu,cc,regs=_} = do

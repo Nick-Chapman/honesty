@@ -16,6 +16,7 @@ import qualified PPU.Graphics as Graphics
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
+    let trace = False
     let debug = True
     model <- world0 path
 
@@ -24,7 +25,7 @@ run path fs sc = do
     Gloss.playIO dis (Gloss.greyN 0.3) fps model
         (\  m -> do pic <- pictureWorld lastFrameCountRef m; return $ doPosition pic)
         (\e m -> handleEventWorld e m)
-        (\d m -> updateWorld debug d m)
+        (\d m -> do (_,m) <- updateWorld 0 trace debug d m; return m)
     where
         dis = if fs
               then Gloss.FullScreen
