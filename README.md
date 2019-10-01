@@ -74,3 +74,9 @@ Here:
 Now DK reaches the next crash/not-implemented yet point
 
     nes: CYC:10632429 - Regs.decode, too high: 3F1F
+
+## 1/10/19
+
+- Nice article on r/emudev
+[nes rendering overview/](https://www.reddit.com/r/EmuDev/comments/dblwr2/nes_rendering_overview/)
+and I see that my DK colours are wrong!
