@@ -16,9 +16,7 @@ run path = do
     testStepper time0 0 w0 time0 stepWorld forceWorld
 
 stepWorld :: World -> IO World
-stepWorld w = do
-    (_,w') <- updateWorld 0 False False 0 w
-    return w'
+stepWorld = updateWorld False 0
 
 forceWorld :: World -> Int
 forceWorld World{display=Display{bg1}} = forceScreen bg1

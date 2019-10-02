@@ -16,7 +16,6 @@ import qualified PPU.Graphics as Graphics
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
-    let trace = False
     let debug = True
     model <- world0 path
 
@@ -25,13 +24,13 @@ run path fs sc = do
     Gloss.playIO dis (Gloss.greyN 0.3) fps model
         (\  m -> do pic <- pictureWorld lastFrameCountRef m; return $ doPosition pic)
         (\e m -> handleEventWorld e m)
-        (\d m -> do (_,m) <- updateWorld 0 trace debug d m; return m)
+        (\d m -> updateWorld debug d m)
     where
         dis = if fs
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 20 -- 60
+        fps = 10 -- 60
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)

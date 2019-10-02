@@ -4,13 +4,13 @@ module Sim.World(
     printRun
     ) where
 
-import Control.Monad (ap,liftM)
-import Control.Monad (forever)
-import Data.Tuple.Extra( (***) )
+import Control.Monad(ap,liftM)
+import Control.Monad(forever,when)
+import Control.Monad.State(runStateT)
 import Data.Set(Set)
-import qualified Data.Set as Set
-import Control.Monad.State
+import Data.Tuple.Extra((***))
 import Text.Printf(printf)
+import qualified Data.Set as Set
 
 import Addr
 import Byte
@@ -37,9 +37,9 @@ type Buttons = Set Controller.Button
 data World = World
     { frameCount :: Int
     , display :: Display
-    , sys :: Sys
     , buttons :: Buttons
     , rr :: Nes.RamRom
+    , sysIO :: IO Sys
     }
 
 world0 :: String -> IO World
@@ -52,13 +52,12 @@ world0 path = do
     let (pat1,pat2) = patPairFromBS (CHR.bytes chr)
     let rr = Nes.RamRom { ram, prg, chr, pat1, pat2 }
     let ns@Nes.State{regs,pal} = Nes.state0 pc0
-    sys <- sysOfNesState rr ns
     display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal)
     return $ World { frameCount = 0
                    , display
-                   , sys
                    , buttons = Set.empty
                    , rr
+                   , sysIO = interpretStep rr ns stepForever
                    }
 
 patPairFromBS :: [Byte] -> (Graphics.PAT,Graphics.PAT)
@@ -89,47 +88,9 @@ chrOfNesFile NesFile{chrs} =
         _  ->
             error "emu, unexpected number of chr"
 
-updateWorld :: Int -> Bool -> Bool -> Float -> World -> IO (Int,World)
-updateWorld n trace _debug _delta world@World{frameCount,sys,buttons,rr} = loop n sys
-    where
-        loop :: Int -> Sys -> IO (Int,World)
-        loop n = \case
-            Sys_Render nesState display sysIO -> do
-                let Nes.State{cc=_cc,pal=_pal} = nesState
-                when _debug $ print (_showDelta _delta, frameCount,_cc)
-                sys <- sysIO
-                return (n, world { frameCount = frameCount + 1, display, sys })
-            Sys_Trace nesState sysIO -> do
-                when trace $ printNS rr nesState
-                if n == 1 then return (0,world) else do
-                    sys <- sysIO
-                    loop (n-1) sys
-            Sys_SampleButtons f -> do
-                sys <- f buttons
-                loop n sys
+showDelta :: Float -> String
+showDelta = printf "%.03g"
 
-_showDelta :: Float -> String
-_showDelta = printf "%.03g"
-
-printRun :: Int -> World -> IO ()
-printRun n w = do
-    (n',w') <- updateWorld n True False 0 w
-    if n'==0 then return () else
-        printRun n' w'
-
-printNS :: Nes.RamRom -> Nes.State -> IO ()
-printNS rr ns@Nes.State{cpu,cc} = do
-    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
-    bytes <- readFromAddr ns rr pc
-    let op = Six502.Decode.decode1 bytes
-    let col = 48
-    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
-    putStrLn s
-
-sysOfNesState :: Nes.RamRom -> Nes.State -> IO Sys
-sysOfNesState rr nesState = do
-    let finished (_::Nes.State) () = error "we finished"
-    interpretStep rr nesState nesForever finished
 
 cyclesPerFrame :: Cycles
 cyclesPerFrame = 29780
@@ -137,29 +98,25 @@ cyclesPerFrame = 29780
 cyclesInVBlank :: Cycles
 cyclesInVBlank = fromIntegral ((8200::Int) `div` 3)
 
-framesUntilPPuWarmsUp :: Int
-framesUntilPPuWarmsUp = 0
 
-nesForever :: Step ()
-nesForever = do
-    runCpu (cyclesPerFrame * fromIntegral framesUntilPPuWarmsUp)
-    forever nesOneFrame
+stepForever :: Step ()
+stepForever = forever stepOneFrame
+    where
+        stepOneFrame = do
+            buttons <- Buttons
+            SetVBlank False
+            Render
+            runCpu buttons (cyclesPerFrame - cyclesInVBlank)
+            SetVBlank True
+            e <- IsNmiEnabled
+            if e then TriggerNMI else return ()
+            runCpu buttons (cyclesInVBlank)
 
-nesOneFrame :: Step ()
-nesOneFrame = do
-    SetVBlank False
-    Render
-    runCpu (cyclesPerFrame - cyclesInVBlank)
-    SetVBlank True
-    e <- IsNmiEnabled
-    if e then TriggerNMI else return ()
-    runCpu (cyclesInVBlank)
-
-runCpu :: Cycles -> Step ()
-runCpu n = if n < 0 then return () else do
-    buttons <- Buttons
+runCpu :: Buttons -> Cycles -> Step ()
+runCpu buttons n = if n < 0 then return () else do
+    --buttons <- Buttons
     cc <- RunCpuInstruction buttons
-    runCpu (n - cc)
+    runCpu buttons (n - cc)
 
 data Step a where
     Step_Ret :: a -> Step a
@@ -175,16 +132,16 @@ instance Functor Step where fmap = liftM
 instance Applicative Step where pure = return; (<*>) = ap
 instance Monad Step where return = Step_Ret; (>>=) = Step_Bind
 
--- TODO: this continutaion based type is overly complex
-data Sys
-    = Sys_Render Nes.State Display (IO Sys)
-    | Sys_Trace Nes.State (IO Sys)
-    | Sys_SampleButtons (Buttons -> IO Sys)
 
-interpretStep :: Nes.RamRom -> Nes.State -> Step a -> (Nes.State -> a -> IO Sys) -> IO Sys
-interpretStep rr@Nes.RamRom{ram,prg} s@Nes.State{regs,pal} step k = case step of
+interpretStep :: Nes.RamRom -> Nes.State -> Step () -> IO Sys
+interpretStep rr nesState step = do
+    let halt (_::Nes.State) () = error "unexpected halt"
+    interpretStepK rr nesState step halt
+
+interpretStepK :: Nes.RamRom -> Nes.State -> Step a -> (Nes.State -> a -> IO Sys) -> IO Sys
+interpretStepK rr@Nes.RamRom{ram,prg} s@Nes.State{regs,pal} step k = case step of
     Step_Ret x -> k s x
-    Step_Bind e f -> interpretStep rr s e $ \s v -> interpretStep rr s (f v) k
+    Step_Bind e f -> interpretStepK rr s e $ \s v -> interpretStepK rr s (f v) k
     SetVBlank bool -> do
         let s' = s {regs = Regs.setVBlank regs bool}
         k s' ()
@@ -204,6 +161,50 @@ interpretStep rr@Nes.RamRom{ram,prg} s@Nes.State{regs,pal} step k = case step of
         return $ Sys_Trace s $ do
             s' <- NesRam.inter ram $ triggerNMI rr prg s
             k s' ()
+
+data Sys
+    = Sys_Render Nes.State Display (IO Sys)
+    | Sys_Trace Nes.State (IO Sys)
+    | Sys_SampleButtons (Buttons -> IO Sys)
+
+
+updateWorld :: Bool -> Float -> World -> IO World
+updateWorld debug delta world@World{frameCount,buttons,sysIO} = sysIO >>= loop
+    where
+        loop :: Sys -> IO World
+        loop = \case
+            Sys_SampleButtons get -> get buttons >>= loop
+            Sys_Trace _ sysIO -> sysIO >>= loop
+            Sys_Render nesState display sysIO -> do
+                let Nes.State{cc} = nesState
+                when debug $ print (showDelta delta, frameCount, cc)
+                return $ world { frameCount = frameCount + 1, display, sysIO }
+
+
+printRun :: Int -> World -> IO ()
+printRun n World{buttons,rr,sysIO} = sysIO >>= loop n
+    where
+        loop :: Int -> Sys -> IO ()
+        loop n = \case
+            Sys_SampleButtons get -> get buttons >>= loop n
+            Sys_Render _ _ sysIO -> sysIO >>= loop n
+            Sys_Trace nesState sysIO -> do
+                printNS rr nesState
+                if n == 1 then return () else do sysIO >>= loop (n-1)
+
+
+printNS :: Nes.RamRom -> Nes.State -> IO ()
+printNS rr ns@Nes.State{cpu,cc} = do
+    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
+    bytes <- readFromAddr ns rr pc
+    let op = Six502.Decode.decode1 bytes
+    let col = 48
+    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
+    putStrLn s
+
+
+----------------------------------------------------------------------
+
 
 -- TODO: move this code into Six502.Emu. Factor common code from the 3 defs
 
