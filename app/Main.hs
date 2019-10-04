@@ -11,7 +11,7 @@ import Six502.Disassembler (displayOpLines)
 import Six502.Operations (Op)
 import qualified PRG
 import qualified Sim.Gloss(run)
-import qualified Sim.World(world0,printRun)
+import qualified Sim.TraceCpu(printRun)
 import qualified SpeedTest(run)
 
 main :: IO ()
@@ -36,7 +36,6 @@ main = do
       path :: String -- default (for stack run)
       path = "data/dk.nes"
       --path = "data/nestest.nes"
-
 
 speed :: String -> IO () -- test the speed of simulation (without gloss graphics)
 speed path = SpeedTest.run path
@@ -73,8 +72,7 @@ disPRG addr prg = do
 -- simple, non graphical entry point, used for nestest.nes regression test
 emu :: String -> IO ()
 emu path = do
-    world <- Sim.World.world0 path
-    Sim.World.printRun numSteps world
+    Sim.TraceCpu.printRun numSteps path
   where
     numSteps :: Int
     numSteps =

@@ -1,23 +1,51 @@
 
 module Six502.Emu(
-    stepInstruction,
+    cpuInstruction,
     triggerNMI,
     ) where
 
 import Control.Monad (ap,liftM)
+import Control.Monad.State(runStateT)
 import Data.Bits
+import Data.Set as Set
 
 import Addr
 import Byte
+import Nes
 import Six502.Cpu as Cpu
 import Six502.Cycles
-import Six502.Operations
 import Six502.Decode (decode1,opSize)
-
+import Six502.Operations
+import qualified Controller
+import qualified NesRam
+import qualified PRG
+import qualified Six502.MM as MM
+import qualified Six502.Mem
 import qualified Six502.Mem as Mem
 
-triggerNMI :: Cpu.State -> Mem.Effect Cpu.State
-triggerNMI cpu = do
+type Buttons = Set Controller.Button
+
+cpuInstruction :: Nes.RamRom -> PRG.ROM -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
+cpuInstruction Nes.RamRom{chr} prg2 buttons ns@Nes.State{cpu,cc} = do
+    let opPrg1 = Nothing-- TODO
+    let mm_eff = Six502.Mem.inter (opPrg1,prg2) (Six502.Emu.six_stepInstruction cpu)
+    do
+        ((cpu',cycles),ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
+        let ns'' = ns' { cpu = cpu', cc = cc+cycles }
+        return (ns'',cycles)
+
+triggerNMI :: Nes.RamRom -> PRG.ROM -> Nes.State -> NesRam.Effect Nes.State
+triggerNMI Nes.RamRom{chr} prg2 ns@Nes.State{cpu,cc} = do
+    let opPrg1 = Nothing-- TODO
+    let mm_eff = Six502.Mem.inter (opPrg1,prg2) (Six502.Emu.six_triggerNMI cpu)
+    let buttons = Set.empty -- ok?
+    do
+        (cpu',ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
+        return ns' { cpu = cpu' }
+
+
+six_triggerNMI :: Cpu.State -> Mem.Effect Cpu.State
+six_triggerNMI cpu = do
     (cpu,()) <- interpret nmi cpu
     return cpu
     where
@@ -31,8 +59,8 @@ triggerNMI cpu = do
             hi <- ReadMem 0xfffb
             SetPC $ addrOfHiLo hi lo
 
-stepInstruction :: Cpu.State -> Mem.Effect (Cpu.State,Cycles)
-stepInstruction = interpret fetchDecodeExec
+six_stepInstruction :: Cpu.State -> Mem.Effect (Cpu.State,Cycles)
+six_stepInstruction = interpret fetchDecodeExec
 
 fetchDecodeExec :: Act Cycles
 fetchDecodeExec = do
