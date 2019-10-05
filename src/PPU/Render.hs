@@ -17,6 +17,8 @@ data Display = Display
     , bg2 :: Screen
     , tiles1 :: Screen
     , tiles2 :: Screen
+    , at1 :: Screen
+    , pals :: [Screen]
     }
 
 render :: Nes.RamRom -> Regs.State -> Palette.State -> Ram2k.Effect Display
@@ -38,7 +40,9 @@ render Nes.RamRom{pat1,pat2} _regs pal = do
     let pat = if patPick then pat2 else pat1
     let bg1 = Graphics.screenBG palettes kilobyte1 pat
     let bg2 = Graphics.screenBG palettes kilobyte2 pat
-    let display = Display { bg1, bg2, tiles1, tiles2 }
+    let at1 = Graphics.screenAT palettes (drop 960 kilobyte1)
+    let pals = Graphics.screenPalettes palettes
+    let display = Display { bg1, bg2, tiles1, tiles2, at1, pals }
     return $ display
 
 

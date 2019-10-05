@@ -75,12 +75,17 @@ pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
         ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1} = do --,bg2,tiles1,tiles2} = do
+makePicture Display{bg1,at1,pals} = do --,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
+        , translate 300 0 $ pictureScreen at1
 --        , translate 300 0 $ pictureScreen bg2
 --        , translate 600 0 $ pictureScreen tiles1
 --        , translate 600 150 $ pictureScreen tiles2
+
+        , translate 600 0 $ pictures $
+          map (\(pal,i) -> translate 0 (30*i) $ pictureScreen pal) (zip pals [0..])
+
         ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture

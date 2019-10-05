@@ -6,6 +6,8 @@ module PPU.NewGraphics(
     screenTiles,
     screenBG,
     Palettes(..),Palette(..),
+    screenAT,
+    screenPalettes,
     ) where
 
 import Data.Array
@@ -65,6 +67,7 @@ selectPalette Palettes{p0,p1,p2,p3} = \case
     Pal2 -> p2
     Pal3 -> p3
 
+
 screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
 screenTiles (PAT pt) = do
     let (bg,somePalette) = do
@@ -109,8 +112,8 @@ screenBG pals kb (PAT pt) = do
             let x76543 = x765 * 4 + x43
             let x4 = x43 `testBit` 1
             let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 2 else 0) -- 0..3
-            let atBitA = atByte `testBit` (7 - 2*quad)
-            let atBitB = atByte `testBit` (6 - 2*quad)
+            let atBitA = atByte `testBit` (2*quad + 1)
+            let atBitB = atByte `testBit` (2*quad)
             let pSel =
                     if atBitA
                     then (if atBitB then Pal3 else Pal2)
@@ -131,6 +134,55 @@ screenBG pals kb (PAT pt) = do
             return $ selectColour bg pal cSel
     Screen { height = 240, width = 256, cols }
 
+
+screenPalettes :: Palettes -> [Screen]
+screenPalettes (Palettes {bg,p0,p1,p2,p3}) = map (screenPalette bg) [p0,p1,p2,p3]
+
+screenPalette :: Colour -> Palette -> Screen
+screenPalette bg pal = do
+    let Palette { c1,c2,c3 } = pal
+    let cols = do
+            y <- [0..15::Int]
+            x <- [0..15::Int]
+            let x3 = x `testBit` 3
+            let y3 = y `testBit` 3
+            let col =
+                    if y3
+                    then (if x3 then c3 else c2)
+                    else (if x3 then c1 else bg)
+            return col
+    Screen { height = 16, width = 16, cols }
+
+
+screenAT :: Palettes -> [Byte] -> Screen
+screenAT pals atBytes = do
+    let Palettes{bg} = pals
+    let at = listArray (0,63::Int) atBytes
+    let cols = do
+            y <- [0..239]
+            x <- [0..255]
+            let ati = 8*(y`div`32) + x`div`32
+            let atByte  = at ! ati
+            let x4 = x `testBit` 4
+            let y4 = y `testBit` 4
+            let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 2 else 0) -- 0..3
+            let atBitA = atByte `testBit` (2*quad + 1)
+            let atBitB = atByte `testBit` (2*quad)
+            let pSel =
+                    if atBitA
+                    then (if atBitB then Pal3 else Pal2)
+                    else (if atBitB then Pal1 else Pal0)
+            let pal = selectPalette pals pSel
+            let Palette { c1,c2,c3 } = pal
+            let x3 = x `testBit` 3
+            let y3 = y `testBit` 3
+            let col =
+                    if y3
+                    then (if x3 then c3 else c2)
+                    else (if x3 then c1 else bg)
+            return col
+
+    Screen { height = 240, width = 256, cols }
 
 
 _preOpt_screenBG :: Palettes -> [Byte] -> PAT -> Screen
@@ -156,8 +208,8 @@ _preOpt_screenBG pals kb (PAT pt) = do
             let x4 = x `testBit` 4
             let y4 = y `testBit` 4
             let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 2 else 0) -- 0..3
-            let atBitA = atByte `testBit` (7 - 2*quad)
-            let atBitB = atByte `testBit` (6 - 2*quad)
+            let atBitA = atByte `testBit` (2*quad + 1)
+            let atBitB = atByte `testBit` (2*quad)
             let pSel =
                     if atBitA
                     then (if atBitB then Pal3 else Pal2)
