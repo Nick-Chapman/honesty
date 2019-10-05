@@ -46,8 +46,17 @@ decode a = if
     | a < 0x2000 -> Rom $ fromIntegral $ unAddr a
     | a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
+
 --    | a >= 0x3F00 && a < 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00 -- BUG 0x3F1F
+
+    -- palette mirrors, thought these might fix DK, but no :(
+    | a == 0x3F10 -> PaletteRam 0
+    | a == 0x3F14 -> PaletteRam 4
+    | a == 0x3F18 -> PaletteRam 8
+    | a == 0x3F1C -> PaletteRam 12
+
     | a >= 0x3F00 && a <= 0x3F1F -> PaletteRam $ a `minusAddr` 0x3F00
+
     -- mirrors... wait and see if they are used
 --    | a < 0x3800 ->  a `minusAddr` 0x3000
 --    | a < 0x4000 ->  a `minusAddr` 0x3800
