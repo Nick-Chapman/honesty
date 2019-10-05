@@ -27,8 +27,8 @@
 - Logging for important events (i.e. read a button press!)
 - Graphical Display: cycles
 - show cycle/pc reached on any crash + dump other status (pp regs state, control state, etc) + mem status
-- Byte support undefined elements (for unitialized ram reads etc)
-- Support undefined sub-bits of a byte
+- Byte support un-defined elements (for unitialized ram reads etc)
+- Support un-defined sub-bits of a byte
 
 
 ## Refactoring
