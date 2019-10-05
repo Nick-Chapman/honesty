@@ -47,11 +47,11 @@ makePalettes :: Palette.State -> Palettes
 makePalettes pal = do
     let eff = do
             bg <- readCol 0
-            p1 <- readPal 1
-            p2 <- readPal 5
-            p3 <- readPal 9
-            p4 <- readPal 13
-            return $ Palettes { p1,p2,p3,p4, bg }
+            p0 <- readPal 1
+            p1 <- readPal 5
+            p2 <- readPal 9
+            p3 <- readPal 13
+            return $ Palettes { bg, p0,p1,p2,p3 }
     snd $ Palette.inter pal eff
     where readCol a = do
               b <- Palette.Read a

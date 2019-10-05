@@ -47,9 +47,9 @@ forceScreen Screen{cols} = do
     List.foldr (+) 0 xs
 
 data ColourSelect = BG | CS1 | CS2 | CS3
-data PaletteSelect = Pal1 | Pal2 | Pal3 | Pal4
+data PaletteSelect = Pal0 | Pal1 | Pal2 | Pal3
 data Palette = Palette { c1,c2,c3 :: Colour }
-data Palettes = Palettes { p1,p2,p3,p4 :: Palette, bg :: Colour }
+data Palettes = Palettes { bg :: Colour, p0,p1,p2,p3 :: Palette }
 
 selectColour :: Colour -> Palette -> ColourSelect -> Colour
 selectColour bg Palette{c1,c2,c3} = \case
@@ -59,11 +59,11 @@ selectColour bg Palette{c1,c2,c3} = \case
     CS3 -> c3
 
 selectPalette :: Palettes -> PaletteSelect -> Palette
-selectPalette Palettes{p1,p2,p3,p4} = \case
+selectPalette Palettes{p0,p1,p2,p3} = \case
+    Pal0 -> p0
     Pal1 -> p1
     Pal2 -> p2
     Pal3 -> p3
-    Pal4 -> p4
 
 screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
 screenTiles (PAT pt) = do
@@ -113,14 +113,14 @@ screenBG pals kb (PAT pt) = do
             let atBitB = atByte `testBit` (6 - 2*quad)
             let pSel =
                     if atBitA
-                    then (if atBitB then Pal4 else Pal3)
-                    else (if atBitB then Pal2 else Pal1)
+                    then (if atBitB then Pal3 else Pal2)
+                    else (if atBitB then Pal1 else Pal0)
             let pal = selectPalette pals pSel
             let nti = 32 * y76543 + x76543
             let ti = fromIntegral $ unByte $ nt ! nti
             let pti = 16*ti + yMod8
-            let tileByteA = pt ! pti
-            let tileByteB = pt ! (pti+8)
+            let tileByteA = pt ! (pti+8)
+            let tileByteB = pt ! pti
             xMod8 <- [0..7::Int]
             let tileBitA = tileByteA `testBit` (7 - xMod8)
             let tileBitB = tileByteB `testBit` (7 - xMod8)
@@ -132,9 +132,9 @@ screenBG pals kb (PAT pt) = do
     Screen { height = 240, width = 256, cols }
 
 
-{-
-screenBG :: Palettes -> [Byte] -> PAT -> Screen
-screenBG pals kb (PAT pt) = do
+
+_preOpt_screenBG :: Palettes -> [Byte] -> PAT -> Screen
+_preOpt_screenBG pals kb (PAT pt) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let cols = do
@@ -143,8 +143,8 @@ screenBG pals kb (PAT pt) = do
             let nti = 32*(y`div`8) + x`div`8
             let ti = fromIntegral $ unByte $ nt ! nti
             let pti = 16*ti + y`mod`8
-            let tileByteA = pt ! pti
-            let tileByteB = pt ! (pti+8)
+            let tileByteA = pt ! (pti+8)
+            let tileByteB = pt ! pti
             let tileBitA = tileByteA `testBit` (7 - x`mod`8)
             let tileBitB = tileByteB `testBit` (7 - x`mod`8)
             let cSel =
@@ -160,11 +160,11 @@ screenBG pals kb (PAT pt) = do
             let atBitB = atByte `testBit` (6 - 2*quad)
             let pSel =
                     if atBitA
-                    then (if atBitB then Pal4 else Pal3)
-                    else (if atBitB then Pal2 else Pal1)
+                    then (if atBitB then Pal3 else Pal2)
+                    else (if atBitB then Pal1 else Pal0)
             let pal = selectPalette pals pSel
             let Palettes{bg} = pals
             return $ selectColour bg pal cSel
     Screen { height = 240, width = 256, cols }
--}
+
 
