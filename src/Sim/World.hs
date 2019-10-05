@@ -25,6 +25,7 @@ data World = World
     , buttons :: Buttons
     , rr :: Nes.RamRom
     , frames :: Sim.Frames Display
+    , paused :: Bool
     }
 
 world0 :: String -> IO World
@@ -37,9 +38,10 @@ world0 path = do
     display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal)
     let buttons = Set.empty
     let frames = Sim.frames buttons $ Nes.Emu.interpret rr ns neverStopping
-    return $ World { frameCount, display, buttons, rr, frames }
+    return $ World { frameCount, display, buttons, rr, frames, paused = False }
 
 updateWorld :: Bool -> Float -> World -> IO World
-updateWorld _debug _delta world@World{frameCount,buttons,frames} = do
-    (display,frames) <- Sim.unFrames frames buttons
-    return $ world { frameCount = frameCount + 1, display, frames }
+updateWorld _debug _delta world@World{frameCount,buttons,frames,paused} =
+    if paused then return world else do
+        (display,frames) <- Sim.unFrames frames buttons
+        return $ world { frameCount = frameCount + 1, display, frames }

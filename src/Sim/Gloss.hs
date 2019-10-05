@@ -42,7 +42,7 @@ run path fs sc = do
         y = 400
 
 handleEventWorld :: Gloss.Event -> World -> IO World
-handleEventWorld event world@World{buttons} = do
+handleEventWorld event world@World{buttons,paused} = do
     --print event
     return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
@@ -54,11 +54,13 @@ handleEventWorld event world@World{buttons} = do
         EventKey (SpecialKey KeyDown) ud _ _ -> joy ud Controller.Down
         EventKey (SpecialKey KeyLeft) ud _ _ -> joy ud Controller.Left
         EventKey (SpecialKey KeyRight) ud _ _ -> joy ud Controller.Right
+        EventKey (SpecialKey KeySpace) Down _ _ -> flipPause
         _ -> world
   where
         joy = \case Down -> press; Up -> release
         press but = world { buttons = Set.insert but buttons }
         release but = world { buttons = Set.delete but buttons }
+        flipPause = world { paused = not paused }
 
 pictureWorld :: IORef Int -> World -> IO Gloss.Picture
 pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
