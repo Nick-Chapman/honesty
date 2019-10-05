@@ -73,17 +73,17 @@ screenTiles (PAT pt) = do
             let green = Colour.ofByte 0x2a
             let white = Colour.ofByte 0x20
             (black, Palette { c1 = red, c2 = green, c3 = white })
-    let ntSmall = listArray (0,255) [0..255]
     let cols = do
-            y <- [0..127]
-            x <- [0..127]
-            let nti = 8*(y`div`8) + x`div`8
-            let ti = fromIntegral $ unByte $ ntSmall ! nti
-            let pti = 16*ti + y`mod`8
+            y6543 <- [0..15::Int]
+            y210 <- [0..7::Int]
+            x6543 <- [0..15::Int]
+            let ti = 16 * y6543 + x6543
+            let pti = 16*ti + y210
             let tileByteA = pt ! pti
             let tileByteB = pt ! (pti+8)
-            let tileBitA = tileByteA `testBit` (7 - x`mod`8)
-            let tileBitB = tileByteB `testBit` (7 - x`mod`8)
+            x210 <- [0..7::Int]
+            let tileBitA = tileByteA `testBit` (7 - x210)
+            let tileBitB = tileByteB `testBit` (7 - x210)
             let cSel =
                     if tileBitA
                     then (if tileBitB then CS3 else CS2)
@@ -98,14 +98,15 @@ screenBG pals kb (PAT pt) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let cols = do
-            yDiv8 <- [0..29::Int]
-            let y4 = yDiv8 `testBit` 1
-            let yDiv32 = yDiv8 `div` 4
+            y76543 <- [0..29::Int]
+            let y4 = y76543 `testBit` 1
+            let y765 = y76543 `div` 4
             yMod8 <- [0..7::Int]
-            xDiv32 <- [0..7] -- x765
-            let ati = 8 * yDiv32 + xDiv32
+            x765 <- [0..7]
+            let ati = 8 * y765 + x765
             let atByte  = at ! ati
-            x43 <- [0..3]
+            x43 <- [0..3::Int]
+            let x76543 = x765 * 4 + x43
             let x4 = x43 `testBit` 1
             let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 2 else 0) -- 0..3
             let atBitA = atByte `testBit` (7 - 2*quad)
@@ -115,13 +116,12 @@ screenBG pals kb (PAT pt) = do
                     then (if atBitB then Pal4 else Pal3)
                     else (if atBitB then Pal2 else Pal1)
             let pal = selectPalette pals pSel
-            let xDiv8 = xDiv32 * 4 + x43
-            let nti = 32 * yDiv8 + xDiv8
+            let nti = 32 * y76543 + x76543
             let ti = fromIntegral $ unByte $ nt ! nti
             let pti = 16*ti + yMod8
             let tileByteA = pt ! pti
             let tileByteB = pt ! (pti+8)
-            xMod8 <- [0..7]
+            xMod8 <- [0..7::Int]
             let tileBitA = tileByteA `testBit` (7 - xMod8)
             let tileBitB = tileByteB `testBit` (7 - xMod8)
             let cSel =
