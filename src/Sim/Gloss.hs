@@ -30,7 +30,7 @@ run path fs sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 10 -- 60
+        fps = 20 -- 60
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)
@@ -73,12 +73,12 @@ pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
         ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1,bg2,tiles1,tiles2} = do
+makePicture Display{bg1} = do --,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
-        , translate 300 0 $ pictureScreen bg2
-        , translate 600 0 $ pictureScreen tiles1
-        , translate 600 150 $ pictureScreen tiles2
+--        , translate 300 0 $ pictureScreen bg2
+--        , translate 600 0 $ pictureScreen tiles1
+--        , translate 600 150 $ pictureScreen tiles2
         ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
