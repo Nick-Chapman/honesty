@@ -94,7 +94,7 @@ seeSprites pals oamBytes pat = do
 
 seeSprite :: Palettes -> (Byte,Byte,Byte,Byte) -> PAT -> Sprite
 seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
-    let y = byteToUnsigned b0
+    let y = byteToUnsigned b0 + 1 -- sprite data is delayed by one scanline
     let x = byteToUnsigned b3
     let priority = if b2 `testBit` 5 then Behind else InFront
 
