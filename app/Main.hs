@@ -28,8 +28,11 @@ main = do
         ["--emu",path] -> emu path
 
         -- NES emulation, using Gloss
-        [] -> nes path
-        [path] -> nes path
+        ["--fs"] -> nes fs path
+        [path,"--fs"] -> nes fs path
+
+        [] -> nes small path
+        [path] -> nes small path
 
         args -> error $ "args: " <> show args
   where
@@ -40,14 +43,13 @@ main = do
 speed :: String -> IO () -- test the speed of simulation (without gloss graphics)
 speed path = SpeedTest.run path
 
-nes :: String -> IO ()
-nes path = Sim.Gloss.run path fs scale
+nes :: (Bool,Int) -> String -> IO ()
+nes (fs,scale) path = Sim.Gloss.run path fs scale
 
-fs :: Bool -- full-screen
-fs = False
-
-scale :: Int
-scale = 2
+type Setup = (Bool,Int)
+small,fs :: Setup
+small = (False,2)
+fs = (True,3)
 
 dis :: String -> IO ()
 dis path = do

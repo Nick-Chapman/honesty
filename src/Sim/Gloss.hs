@@ -39,8 +39,8 @@ run path fs sc = do
         doBorder = translate 10 (-10)
         doTransOriginUL = translate (- ((fromIntegral x)/2)) ( ((fromIntegral y)/2))
 
-        x = 800
-        y = 400
+        x = 640
+        y = 360
 
 handleEventWorld :: Gloss.Event -> World -> IO World
 handleEventWorld event world@World{buttons,paused} = do
@@ -70,24 +70,24 @@ pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
     let droppedFrames = frameCount - lastFrameCount
     return $ pictures
         [ scale 1 (-1) $ makePicture display
-        , translate 0 (-320) $ scale 0.5 0.5 $ color cyan $ Text (show droppedFrames)
-        , translate 0 (-380) $ scale 0.5 0.5 $ color cyan $ Text (show frameCount)
-        , translate 150 (-380) $ scale 0.5 0.5 $ color cyan $ Text (Controller.showPressed buttons)
+        , translate 0 (-290) $ scale 0.3 0.3 $ color cyan $ Text (show droppedFrames)
+        , translate 0 (-330) $ scale 0.3 0.3 $ color cyan $ Text (show frameCount)
+        , translate 150 (-330) $ scale 0.3 0.3 $ color cyan $ Text (Controller.showPressed buttons)
         ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1,at1,pals,sprites} = do --,bg2,tiles1,tiles2} = do
+makePicture Display{bg1,at1,sprites} = do --at1,pals,sprites} = do --,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
-        , translate 300 0 $ pictureScreen at1
+        , translate 280 0 $ pictureScreen at1
 --        , translate 300 0 $ pictureScreen bg2
 --        , translate 600 0 $ pictureScreen tiles1
 --        , translate 600 150 $ pictureScreen tiles2
 
-        , translate 600 0 $ pictures $
-          map (\(pal,i) -> translate 0 (30*i) $ pictureScreen pal) (zip pals [0..])
+--        , translate 600 0 $ pictures $
+--          map (\(pal,i) -> translate 0 (30*i) $ pictureScreen pal) (zip pals [0..])
 
-        , translate 650 0 $ pictures $
+        , translate 560 0 $ pictures $
           map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite sprite) (zip sprites [0..])
 
         ]
