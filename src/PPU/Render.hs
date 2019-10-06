@@ -22,6 +22,7 @@ data Display = Display
     , at2 :: Screen
     , pals :: [Screen]
     , sprites :: [Sprite]
+    , spr :: Screen
     }
 
 render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
@@ -38,9 +39,13 @@ render Nes.RamRom{pat1,pat2} _regs pal oam = do
     let bg2 = Graphics.screenBG palettes kilobyte2 pat2
     let at1 = Graphics.screenAT palettes (drop 960 kilobyte1)
     let at2 = Graphics.screenAT palettes (drop 960 kilobyte2)
+
     let pals = Graphics.screenPalettes palettes
     let sprites = Graphics.seeSprites palettes (OAM.contents oam) pat1
-    let display = Display { bg1, bg2, tiles1, tiles2, at1, at2, pals, sprites }
+
+    let spr = Graphics.screenSprites palettes (OAM.contents oam) pat1
+
+    let display = Display { bg1, bg2, tiles1, tiles2, at1, at2, pals, sprites, spr }
     return $ display
 
 

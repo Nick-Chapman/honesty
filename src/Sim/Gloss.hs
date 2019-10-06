@@ -76,13 +76,14 @@ pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
         ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{tiles1=_,tiles2=_,bg1,bg2,at1,at2,sprites} = do
+makePicture Display{tiles1=_,tiles2=_,bg1,bg2,at1,at2,sprites,spr} = do
     let pick = True
     let bg = if pick then bg1 else bg2
-    let at = if pick then at1 else at2
+    let _at = if pick then at1 else at2
     pictures
         [ pictureScreen bg
-        , translate 280 0 $ pictureScreen at
+--        , translate 280 0 $ pictureScreen at
+        , translate 280 0 $ pictureScreen spr
 --        , translate 600 0 $ pictureScreen tiles1
 --        , translate 600 150 $ pictureScreen tiles2
 --        , translate 600 0 $ pictures $

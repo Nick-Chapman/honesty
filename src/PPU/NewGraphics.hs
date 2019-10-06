@@ -8,11 +8,13 @@ module PPU.NewGraphics(
     Palettes(..),Palette(..),
     screenAT,
     screenPalettes,
-    Sprite(..), Priority(..), seeSprites
+    Sprite(..), Priority(..), seeSprites,
+    screenSprites,
     ) where
 
 import Data.Array
 import Data.Bits
+import Data.Maybe (listToMaybe)
 import qualified Data.List as List
 import qualified Data.ByteString as BS
 
@@ -87,6 +89,10 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
     let y = byteToUnsigned b0
     let x = byteToUnsigned b3
     let priority = if b2 `testBit` 5 then Behind else InFront
+
+    let flipV = b2 `testBit` 7
+    let flipH = b2 `testBit` 6
+
     let atBitA = b2 `testBit` 1
     let atBitB = b2 `testBit` 0
     let pSel =
@@ -96,13 +102,13 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
     let pal = selectPalette pals pSel
     let Palettes{bg} = pals
     let cols = do
-            y <- [0..7]
+            y <- (if flipV then id else reverse) [0..7]
             let pti = 16 * byteToUnsigned b1 + y
             let tileByteA = pt ! pti
             let tileByteB = pt ! (pti+8)
-            x210 <- [0..7::Int]
-            let tileBitA = tileByteA `testBit` (7 - x210)
-            let tileBitB = tileByteB `testBit` (7 - x210)
+            x <- (if flipH then id else reverse) [0..7]
+            let tileBitA = tileByteA `testBit` (7 - x)
+            let tileBitB = tileByteB `testBit` (7 - x)
             let cSel =
                     if tileBitA
                     then (if tileBitB then CS3 else CS2)
@@ -140,8 +146,8 @@ screenTiles (PAT pt) = do
     Screen { height = 128, width = 128, cols}
 
 
-screenBG :: Palettes -> [Byte] -> PAT -> Screen
-screenBG pals kb (PAT pt) = do
+_opt_screenBG :: Palettes -> [Byte] -> PAT -> Screen
+_opt_screenBG pals kb (PAT pt) = do
     let Palettes{bg} = pals
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
@@ -230,8 +236,8 @@ screenAT pals atBytes = do
     Screen { height = 240, width = 256, cols }
 
 
-_preOpt_screenBG :: Palettes -> [Byte] -> PAT -> Screen
-_preOpt_screenBG pals kb (PAT pt) = do
+screenBG :: Palettes -> [Byte] -> PAT -> Screen
+screenBG pals kb (PAT pt) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let cols = do
@@ -262,6 +268,30 @@ _preOpt_screenBG pals kb (PAT pt) = do
             let pal = selectPalette pals pSel
             let Palettes{bg} = pals
             return $ selectColour bg pal cSel
+    Screen { height = 240, width = 256, cols }
+
+
+
+screenSprites :: Palettes -> [Byte] -> PAT -> Screen
+screenSprites pals oamBytes pat = do
+    let Palettes{bg} = pals
+    let sprites = seeSprites pals oamBytes pat
+    let cols = do
+            y <- [0..239::Int]
+            x <- [0..255::Int]
+            let sOpt =
+                    listToMaybe $
+                    flip filter sprites $ \Sprite{x=xp,y=yp} ->
+                                              yp>=y && yp<y+8 && xp>=x && xp<x+8
+            case sOpt of
+                Nothing -> return bg
+                Just Sprite{x=xp,y=yp,screen=Screen{cols}} -> do
+                    let yi = yp - y
+                    let xi = xp - x
+                    let i = 8 * yi + xi
+                    let col = cols !! i
+                    return col
+
     Screen { height = 240, width = 256, cols }
 
 
