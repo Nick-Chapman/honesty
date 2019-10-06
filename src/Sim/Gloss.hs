@@ -32,7 +32,7 @@ run path fs sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 15
+        fps = 20
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)

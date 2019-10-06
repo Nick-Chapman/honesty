@@ -1,7 +1,7 @@
 
 module PPU.Graphics(
     PAT, patFromBS,
-    Screen(..), forceScreen,
+    Screen(..),
     screenToBitmapByteString,screenWidth,screenHeight,
     screenTiles,
     screenPF,
@@ -16,8 +16,9 @@ module PPU.Graphics(
 import Data.Array
 import Data.Bits
 import Data.Maybe (listToMaybe)
-import qualified Data.List as List
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Builder as BSB
 
 import Byte
 import PPU.Colour as Colour
@@ -28,10 +29,10 @@ patFromBS :: [Byte] -> PAT
 patFromBS = PAT . listArray (0,4095)
 
 mkBS :: [Colour] -> BS.ByteString
-mkBS cols = BS.pack $ map fromIntegral $ concat $ do
-    col <- cols
-    let (r,g,b) = Colour.toRGB col
-    return [r,g,b,255]
+mkBS cols = do
+    let ws = map Colour.toRGB cols
+    let builder = mconcat (map BSB.word32BE ws)
+    BSL.toStrict (BSB.toLazyByteString builder)
 
 data Screen = Screen {height,width :: Int, cols :: [Colour] }
 
@@ -43,14 +44,6 @@ screenWidth Screen{width} = width
 
 screenHeight :: Screen -> Int
 screenHeight Screen{height} = height
-
-forceScreen :: Screen -> Int
-forceScreen Screen{cols} = do
-    let xs = map fromIntegral $ concat $ do
-            col <- cols
-            let (r,g,b) = Colour.toRGB col
-            return [r,g,b]
-    List.foldr (+) 0 xs
 
 data ColourSelect = BG | CS1 | CS2 | CS3
 data PaletteSelect = Pal0 | Pal1 | Pal2 | Pal3 | Pal4 | Pal5 | Pal6 | Pal7

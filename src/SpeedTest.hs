@@ -1,12 +1,14 @@
 
 module SpeedTest(run) where
 
+import qualified Data.ByteString as BS
+import qualified Data.List as List
 import Data.Fixed(Fixed(..),HasResolution,resolution)
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
 
 import PPU.Render(Display(..))
-import PPU.Graphics(forceScreen)
+import PPU.Graphics(screenToBitmapByteString)
 import Sim.World(World(..),world0,updateWorld)
 
 run :: String -> IO ()
@@ -19,7 +21,10 @@ stepWorld :: World -> IO World
 stepWorld = updateWorld False 0
 
 forceWorld :: World -> Int
-forceWorld World{display=Display{pf}} = forceScreen pf
+forceWorld World{display=Display{combined}} = do
+    let bs = screenToBitmapByteString combined
+    let ws = BS.unpack bs
+    fromIntegral $ List.foldr (+) 0 ws
 
 testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
 testStepper time frames state time0 step force = do
