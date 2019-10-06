@@ -10,16 +10,16 @@ import Data.Word
 
 import Byte
 
-newtype Colour = Colour Byte
-
-ofByte :: Byte -> Colour
-ofByte = Colour
+newtype Colour = Colour Word32
 
 toRGB :: Colour -> Word32
-toRGB (Colour byte) = do
+toRGB (Colour w) = w
+
+ofByte :: Byte -> Colour
+ofByte byte = do
     let i = fromIntegral $ unByte byte
     if i>=64 then error $ "Colour.toGloss(>=64)," <> show i else do
-    wordMapping ! i
+    Colour (wordMapping ! i)
 
 wordMapping :: Array Int Word32
 wordMapping = listArray (0,63)
