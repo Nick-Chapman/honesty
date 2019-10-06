@@ -12,7 +12,7 @@ import Prelude hiding (Left,Right)
 import Data.Set(Set)
 
 import Byte
-import Log(message)
+--import Log(message)
 import qualified Log
 
 data State = Strobing | Sampled [(Button,Bool)] deriving (Show)
@@ -37,8 +37,8 @@ inter pressed state = \case
             Strobing -> return (bool2byte $ A `elem` pressed, Strobing)
             Sampled bools -> case bools of
                 [] -> return (1, Sampled [])
-                (but,down):bs' -> do
-                    when down (message but)
+                (_but,down):bs' -> do
+                    --when down (message but)
                     return (bool2byte down, Sampled bs')
 
 bool2byte :: Bool -> Byte
