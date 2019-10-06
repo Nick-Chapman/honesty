@@ -1,5 +1,6 @@
 
 module Sim.World(
+    ChooseToDisplay(..),
     World(..),
     world0,
     updateWorld,
@@ -19,6 +20,14 @@ import qualified Sim
 
 type Buttons = Set Controller.Button
 
+data ChooseToDisplay
+    = ChooseNothing
+    | ChooseAT
+    | ChoosePlayfield
+    | ChooseOnlySprites
+    -- | ChooseCombined
+    deriving (Enum)
+
 data World = World
     { frameCount :: Int
     , display :: Display
@@ -26,6 +35,9 @@ data World = World
     , rr :: Nes.RamRom
     , frames :: Sim.Frames Display
     , paused :: Bool
+    , chooseL :: [ChooseToDisplay]
+    , chooseR :: [ChooseToDisplay]
+    , debugSprites :: Bool
     }
 
 world0 :: String -> IO World
@@ -38,7 +50,14 @@ world0 path = do
     display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames buttons $ Nes.Emu.interpret rr ns neverStopping
-    return $ World { frameCount, display, buttons, rr, frames, paused = False }
+
+    let chooseL = drop 2 $ cycle [ChooseNothing .. ChooseOnlySprites]
+    let chooseR = drop 3 $ cycle [ChooseNothing .. ChooseOnlySprites]
+
+    return $ World { frameCount, display, buttons, rr, frames,
+                     paused = False, chooseL, chooseR, debugSprites = False }
+
+    where cycle xs = ys where ys = xs <> ys
 
 updateWorld :: Bool -> Float -> World -> IO World
 updateWorld _debug _delta world@World{frameCount,buttons,frames,paused} =

@@ -19,7 +19,7 @@ stepWorld :: World -> IO World
 stepWorld = updateWorld False 0
 
 forceWorld :: World -> Int
-forceWorld World{display=Display{bg1}} = forceScreen bg1
+forceWorld World{display=Display{pf}} = forceScreen pf
 
 testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
 testStepper time frames state time0 step force = do

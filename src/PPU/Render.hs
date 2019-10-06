@@ -14,13 +14,13 @@ import qualified PPU.OAM as OAM
 import qualified PPU.Palette as Palette
 
 data Display = Display
-    { tiles1 :: Screen
-    , tiles2 :: Screen
-    , bg1 :: Screen
-    , bg2 :: Screen
-    , at1 :: Screen
-    , at2 :: Screen
-    , pals :: [Screen]
+    { --tiles1 :: Screen
+    --  tiles2 :: Screen
+     pf :: Screen
+    --, bg2 :: Screen
+    , at :: Screen
+    --, at2 :: Screen
+    --, pals :: [Screen]
     , sprites :: [Sprite]
     , spr :: Screen
     }
@@ -29,23 +29,23 @@ render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect
 render Nes.RamRom{pat1,pat2} _regs pal oam = do
 
     let palettes = makePalettes pal
-    let tiles1 = Graphics.screenTiles pat1
-    let tiles2 = Graphics.screenTiles pat2
+    --let tiles1 = Graphics.screenTiles pat1
+    --let tiles2 = Graphics.screenTiles pat2
 
     kilobyte1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
-    kilobyte2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
+    --kilobyte2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-    let bg1 = Graphics.screenBG palettes kilobyte1 pat2
-    let bg2 = Graphics.screenBG palettes kilobyte2 pat2
-    let at1 = Graphics.screenAT palettes (drop 960 kilobyte1)
-    let at2 = Graphics.screenAT palettes (drop 960 kilobyte2)
+    let pf = Graphics.screenBG palettes kilobyte1 pat2
+    --let bg2 = Graphics.screenBG palettes kilobyte2 pat2
+    let at = Graphics.screenAT palettes (drop 960 kilobyte1)
+    --let at2 = Graphics.screenAT palettes (drop 960 kilobyte2)
 
-    let pals = Graphics.screenPalettes palettes
+    --let pals = Graphics.screenPalettes palettes
     let sprites = Graphics.seeSprites palettes (OAM.contents oam) pat1
 
     let spr = Graphics.screenSprites palettes (OAM.contents oam) pat1
 
-    let display = Display { bg1, bg2, tiles1, tiles2, at1, at2, pals, sprites, spr }
+    let display = Display { at, pf, spr, sprites }
     return $ display
 
 

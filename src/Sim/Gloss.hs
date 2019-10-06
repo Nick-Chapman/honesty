@@ -31,7 +31,7 @@ run path fs sc = do
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
 
-        fps = 20 -- 60
+        fps = 15
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)
@@ -43,7 +43,7 @@ run path fs sc = do
         y = 360
 
 handleEventWorld :: Gloss.Event -> World -> IO World
-handleEventWorld event world@World{buttons,paused} = do
+handleEventWorld event world@World{buttons,paused,chooseL,chooseR,debugSprites} = do
     --print event
     return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
@@ -55,42 +55,52 @@ handleEventWorld event world@World{buttons,paused} = do
         EventKey (SpecialKey KeyDown) ud _ _ -> joy ud Controller.Down
         EventKey (SpecialKey KeyLeft) ud _ _ -> joy ud Controller.Left
         EventKey (SpecialKey KeyRight) ud _ _ -> joy ud Controller.Right
-        EventKey (SpecialKey KeySpace) Down _ _ -> flipPause
+
+        EventKey (SpecialKey KeySpace) Down _ _ -> world { paused = not paused }
+        EventKey (SpecialKey KeyF1) Down _ _ -> world { chooseL = tail chooseL }
+        EventKey (SpecialKey KeyF2) Down _ _ -> world { chooseR = tail chooseR }
+        EventKey (SpecialKey KeyF3) Down _ _ -> world { debugSprites = not debugSprites }
         _ -> world
   where
         joy = \case Down -> press; Up -> release
         press but = world { buttons = Set.insert but buttons }
         release but = world { buttons = Set.delete but buttons }
-        flipPause = world { paused = not paused }
 
 pictureWorld :: IORef Int -> World -> IO Gloss.Picture
-pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
+pictureWorld lastFrameCountRef world@World{frameCount,buttons} = do
     lastFrameCount <- readIORef lastFrameCountRef
     writeIORef lastFrameCountRef frameCount
     let droppedFrames = frameCount - lastFrameCount
     return $ pictures
-        [ scale 1 (-1) $ makePicture display
+        [ scale 1 (-1) $ makePicture world
         , translate 0 (-290) $ scale 0.3 0.3 $ color cyan $ Text (show droppedFrames)
         , translate 0 (-330) $ scale 0.3 0.3 $ color cyan $ Text (show frameCount)
         , translate 150 (-330) $ scale 0.3 0.3 $ color cyan $ Text (Controller.showPressed buttons)
         ]
 
-makePicture :: Display -> Gloss.Picture
-makePicture Display{tiles1=_,tiles2=_,bg1,bg2,at1,at2,sprites,spr} = do
-    let pick = True
-    let bg = if pick then bg1 else bg2
-    let _at = if pick then at1 else at2
+makePicture :: World -> Gloss.Picture
+makePicture World{chooseL,chooseR,debugSprites,display=display@Display{sprites}} = do
     pictures
-        [ pictureScreen bg
---        , translate 280 0 $ pictureScreen at
-        , translate 280 0 $ pictureScreen spr
+        [ choosePicture display (head chooseL)
+        , translate 280 0 $ choosePicture display (head chooseR)
 --        , translate 600 0 $ pictureScreen tiles1
 --        , translate 600 150 $ pictureScreen tiles2
 --        , translate 600 0 $ pictures $
 --          map (\(pal,i) -> translate 0 (30*i) $ pictureScreen pal) (zip pals [0..])
-        , translate 560 0 $ pictures $
-          map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite sprite) (zip sprites [0..])
+        ,
+          if debugSprites
+          then
+              translate 560 0 $ pictures $
+              map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite sprite) (zip sprites [0..])
+          else pictures []
         ]
+
+choosePicture :: Display -> ChooseToDisplay -> Picture
+choosePicture Display{at,pf,spr} = \case
+    ChooseNothing -> pictures []
+    ChooseAT -> pictureScreen at
+    ChoosePlayfield -> pictureScreen pf
+    ChooseOnlySprites -> pictureScreen spr
 
 pictureSprite :: Graphics.Sprite -> Gloss.Picture
 pictureSprite Sprite{screen,x,y,priority} =
