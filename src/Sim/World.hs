@@ -25,7 +25,7 @@ data ChooseToDisplay
     | ChooseAT
     | ChoosePlayfield
     | ChooseOnlySprites
-    -- | ChooseCombined
+    | ChooseCombined
     deriving (Enum)
 
 data World = World
@@ -51,8 +51,8 @@ world0 path = do
     let buttons = Set.empty
     let frames = Sim.frames buttons $ Nes.Emu.interpret rr ns neverStopping
 
-    let chooseL = drop 2 $ cycle [ChooseNothing .. ChooseOnlySprites]
-    let chooseR = drop 3 $ cycle [ChooseNothing .. ChooseOnlySprites]
+    let chooseL = drop 4 $ cycle [ChooseNothing .. ChooseCombined]
+    let chooseR = drop 3 $ cycle [ChooseNothing .. ChooseCombined]
 
     return $ World { frameCount, display, buttons, rr, frames,
                      paused = False, chooseL, chooseR, debugSprites = False }

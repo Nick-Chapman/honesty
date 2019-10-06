@@ -96,11 +96,12 @@ makePicture World{chooseL,chooseR,debugSprites,display=display@Display{sprites}}
         ]
 
 choosePicture :: Display -> ChooseToDisplay -> Picture
-choosePicture Display{at,pf,spr} = \case
+choosePicture Display{at,pf,spr,combined} = \case
     ChooseNothing -> pictures []
     ChooseAT -> pictureScreen at
     ChoosePlayfield -> pictureScreen pf
     ChooseOnlySprites -> pictureScreen spr
+    ChooseCombined -> pictureScreen combined
 
 pictureSprite :: Graphics.Sprite -> Gloss.Picture
 pictureSprite Sprite{screen,x,y,priority} =
