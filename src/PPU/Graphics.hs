@@ -103,11 +103,11 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
     let pal = selectPalette pals pSel
     let Palettes{bg} = pals
     let cols = do
-            y <- (if flipV then id else reverse) [0..7]
+            y <- (if flipV then reverse else id) [0..7]
             let pti = 16 * byteToUnsigned b1 + y
             let tileByteA = pt ! pti
             let tileByteB = pt ! (pti+8)
-            x <- (if flipH then id else reverse) [0..7]
+            x <- (if flipH then reverse else id) [0..7]
             let tileBitA = tileByteA `testBit` (7 - x)
             let tileBitB = tileByteB `testBit` (7 - x)
             let cSel =
@@ -283,12 +283,12 @@ screenSprites pals oamBytes pat = do
             let sOpt =
                     listToMaybe $
                     flip filter sprites $ \Sprite{x=xp,y=yp} ->
-                                              yp>=y && yp<y+8 && xp>=x && xp<x+8
+                                              yp<=y && y<yp+8 && xp<=x && x<xp+8
             case sOpt of
                 Nothing -> return bg
                 Just Sprite{x=xp,y=yp,screen=Screen{cols}} -> do
-                    let yi = yp - y
-                    let xi = xp - x
+                    let yi = y - yp
+                    let xi = x - xp
                     let i = 8 * yi + xi
                     let col = cols !! i
                     return col
@@ -309,11 +309,12 @@ screenCombined pals (oamBytes,pat1) (kb,pat2) = do
             let sOpt =
                     listToMaybe $
                     flip filter sprites $ \Sprite{x=xp,y=yp} ->
-                                              yp>=y && yp<y+8 && xp>=x && xp<x+8
+                                              yp<=y && y<yp+8 && xp<=x && x<xp+8
+
             case sOpt of
                 Just Sprite{x=xp,y=yp,screen=Screen{cols}} -> do
-                    let yi = yp - y
-                    let xi = xp - x
+                    let yi = y - yp
+                    let xi = x - xp
                     let i = 8 * yi + xi
                     let col = cols !! i
                     return col
