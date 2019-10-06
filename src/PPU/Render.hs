@@ -14,7 +14,8 @@ import qualified PPU.OAM as OAM
 import qualified PPU.Palette as Palette
 
 data Display = Display
-    { at :: Screen
+    { bg :: Colour
+    , at :: Screen
     , pf :: Screen
     , spr :: Screen
     , combined :: Screen
@@ -24,7 +25,7 @@ data Display = Display
 render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
 render Nes.RamRom{pat1,pat2} _regs pal oam = do
 
-    let palettes = makePalettes pal
+    let (bg,palettes) = makePalettes pal
     let oamBytes = OAM.contents oam
 
     --let tiles1 = Graphics.screenTiles pat1
@@ -36,16 +37,16 @@ render Nes.RamRom{pat1,pat2} _regs pal oam = do
     --let pals = Graphics.screenPalettes palettes
     let sprites = Graphics.seeSprites palettes oamBytes pat1
 
-    let at = Graphics.screenAT palettes (drop 960 kb)
-    let pf = Graphics.screenBG palettes kb pat2
-    let spr = Graphics.screenSprites palettes oamBytes pat1
-    let combined = Graphics.screenCombined palettes (oamBytes,pat1) (kb,pat2)
+    let at = Graphics.screenAT bg palettes (drop 960 kb)
+    let pf = Graphics.screenPF bg palettes kb pat2
+    let spr = Graphics.screenSprites bg palettes oamBytes pat1
+    let combined = Graphics.screenCombined bg palettes (oamBytes,pat1) (kb,pat2)
 
-    return $ Display { at, pf, spr, sprites, combined }
+    return $ Display { bg, at, pf, spr, sprites, combined }
 
 
 -- TODO: move this code into Palette module?
-makePalettes :: Palette.State -> Palettes
+makePalettes :: Palette.State -> (Colour,Palettes)
 makePalettes pal = do
     let eff = do
             bg <- readCol 0
@@ -57,7 +58,7 @@ makePalettes pal = do
             p5 <- readPal 0x15
             p6 <- readPal 0x19
             p7 <- readPal 0x1D
-            return $ Palettes { bg, p0,p1,p2,p3,p4,p5,p6,p7 }
+            return (bg, Palettes { p0,p1,p2,p3,p4,p5,p6,p7 })
     snd $ Palette.inter pal eff
     where readCol a = do
               b <- Palette.Read a

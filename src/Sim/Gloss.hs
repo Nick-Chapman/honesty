@@ -9,11 +9,12 @@ import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyStat
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import Graphics.Gloss.Data.Bitmap
 
+import PPU.Colour
 import PPU.Render(Display(..))
 import Sim.World
 import qualified Controller
 import qualified PPU.Graphics as Graphics
-import PPU.Graphics(Sprite(..),Priority(..))
+import PPU.Graphics(Sprite(..),Priority(..),Screen(..))
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
@@ -79,7 +80,7 @@ pictureWorld lastFrameCountRef world@World{frameCount,buttons} = do
         ]
 
 makePicture :: World -> Gloss.Picture
-makePicture World{chooseL,chooseR,debugSprites,display=display@Display{sprites}} = do
+makePicture World{chooseL,chooseR,debugSprites,display=display@Display{bg,sprites}} = do
     pictures
         [ choosePicture display (head chooseL)
         , translate 280 0 $ choosePicture display (head chooseR)
@@ -91,7 +92,7 @@ makePicture World{chooseL,chooseR,debugSprites,display=display@Display{sprites}}
           if debugSprites
           then
               translate 560 0 $ pictures $
-              map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite sprite) (zip sprites [0..])
+              map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite bg sprite) (zip sprites [0..])
           else pictures []
         ]
 
@@ -103,13 +104,14 @@ choosePicture Display{at,pf,spr,combined} = \case
     ChooseOnlySprites -> pictureScreen spr
     ChooseCombined -> pictureScreen combined
 
-pictureSprite :: Graphics.Sprite -> Gloss.Picture
-pictureSprite Sprite{screen,x,y,priority} =
+pictureSprite :: Colour -> Graphics.Sprite -> Gloss.Picture
+pictureSprite bg Sprite{ocs,x,y,priority} = do
+    let cols = map (\case Just col -> col; Nothing -> bg) ocs
     pictures
-    [ pictureScreen screen
-    , translate 20 5 $ scale 0.05 (-0.05) $ color cyan
-      $ Text (show x <> ", " <> show y <> case priority of InFront -> ", f"; Behind -> ", b")
-    ]
+        [ pictureScreen $ Screen { height = 8, width = 8, cols }
+        , translate 20 5 $ scale 0.05 (-0.05) $ color cyan
+          $ Text (show x <> ", " <> show y <> case priority of InFront -> ", f"; Behind -> ", b")
+        ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
 pictureScreen screen = translate (fromIntegral w/2) (fromIntegral h/2) bitmap

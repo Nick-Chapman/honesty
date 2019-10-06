@@ -1,10 +1,10 @@
 
 module PPU.Graphics(
     PAT, patFromBS,
-    Screen, forceScreen,
+    Screen(..), forceScreen,
     screenToBitmapByteString,screenWidth,screenHeight,
     screenTiles,
-    screenBG,
+    screenPF,
     Palettes(..),Palette(..),
     screenAT,
     screenPalettes,
@@ -55,7 +55,7 @@ forceScreen Screen{cols} = do
 data ColourSelect = BG | CS1 | CS2 | CS3
 data PaletteSelect = Pal0 | Pal1 | Pal2 | Pal3 | Pal4 | Pal5 | Pal6 | Pal7
 data Palette = Palette { c1,c2,c3 :: Colour }
-data Palettes = Palettes { bg :: Colour, p0,p1,p2,p3,p4,p5,p6,p7 :: Palette }
+data Palettes = Palettes { p0,p1,p2,p3,p4,p5,p6,p7 :: Palette }
 
 selectColour :: Colour -> Palette -> ColourSelect -> Colour
 selectColour bg Palette{c1,c2,c3} = \case
@@ -63,6 +63,13 @@ selectColour bg Palette{c1,c2,c3} = \case
     CS1 -> c1
     CS2 -> c2
     CS3 -> c3
+
+selectOptColour :: Palette -> ColourSelect -> Maybe Colour
+selectOptColour Palette{c1,c2,c3} = \case
+    BG -> Nothing
+    CS1 -> Just c1
+    CS2 -> Just c2
+    CS3 -> Just c3
 
 selectPalette :: Palettes -> PaletteSelect -> Palette
 selectPalette Palettes{p0,p1,p2,p3,p4,p5,p6,p7} = \case
@@ -76,7 +83,7 @@ selectPalette Palettes{p0,p1,p2,p3,p4,p5,p6,p7} = \case
     Pal7 -> p7
 
 data Priority = InFront | Behind
-data Sprite = Sprite { screen :: Screen, x,y::Int, priority :: Priority }
+data Sprite = Sprite { ocs :: [Maybe Colour], x,y::Int, priority :: Priority }
 
 seeSprites :: Palettes -> [Byte] -> PAT -> [Sprite]
 seeSprites pals oamBytes pat = do
@@ -101,8 +108,7 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
             then (if atBitB then Pal7 else Pal6)
             else (if atBitB then Pal5 else Pal4)
     let pal = selectPalette pals pSel
-    let Palettes{bg} = pals
-    let cols = do
+    let ocs = do
             y <- (if flipV then reverse else id) [0..7]
             let pti = 16 * byteToUnsigned b1 + y
             let tileByteA = pt ! pti
@@ -114,10 +120,10 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
                     if tileBitA
                     then (if tileBitB then CS3 else CS2)
                     else (if tileBitB then CS1 else BG)
-            return $ selectColour bg pal cSel
+            return $ selectOptColour pal cSel
 
-    let screen = Screen { height = 8, width = 8, cols }
-    Sprite { screen, x, y, priority }
+    --let screen = Screen { height = 8, width = 8, cols }
+    Sprite { ocs, x, y, priority }
 
 
 screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT
@@ -147,9 +153,8 @@ screenTiles (PAT pt) = do
     Screen { height = 128, width = 128, cols}
 
 
-_opt_screenBG :: Palettes -> [Byte] -> PAT -> Screen
-_opt_screenBG pals kb (PAT pt) = do
-    let Palettes{bg} = pals
+_opt_screenBG :: Colour -> Palettes -> [Byte] -> PAT -> Screen
+_opt_screenBG bg pals kb (PAT pt) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let cols = do
@@ -187,8 +192,8 @@ _opt_screenBG pals kb (PAT pt) = do
     Screen { height = 240, width = 256, cols }
 
 
-screenPalettes :: Palettes -> [Screen]
-screenPalettes (Palettes {bg,p0,p1,p2,p3}) = map (screenPalette bg) [p0,p1,p2,p3]
+screenPalettes :: Colour -> Palettes -> [Screen]
+screenPalettes bg (Palettes {p0,p1,p2,p3}) = map (screenPalette bg) [p0,p1,p2,p3]
 
 screenPalette :: Colour -> Palette -> Screen
 screenPalette bg pal = do
@@ -206,9 +211,8 @@ screenPalette bg pal = do
     Screen { height = 16, width = 16, cols }
 
 
-screenAT :: Palettes -> [Byte] -> Screen
-screenAT pals atBytes = do
-    let Palettes{bg} = pals
+screenAT :: Colour ->  Palettes -> [Byte] -> Screen
+screenAT bg pals atBytes = do
     let at = listArray (0,63::Int) atBytes
     let cols = do
             y <- [0..239]
@@ -237,8 +241,8 @@ screenAT pals atBytes = do
     Screen { height = 240, width = 256, cols }
 
 
-screenBG :: Palettes -> [Byte] -> PAT -> Screen
-screenBG pals kb (PAT pt) = do
+screenPF :: Colour -> Palettes -> [Byte] -> PAT -> Screen
+screenPF bg pals kb (PAT pt) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let cols = do
@@ -267,15 +271,13 @@ screenBG pals kb (PAT pt) = do
                     then (if atBitB then Pal3 else Pal2)
                     else (if atBitB then Pal1 else Pal0)
             let pal = selectPalette pals pSel
-            let Palettes{bg} = pals
             return $ selectColour bg pal cSel
     Screen { height = 240, width = 256, cols }
 
 
 
-screenSprites :: Palettes -> [Byte] -> PAT -> Screen
-screenSprites pals oamBytes pat = do
-    let Palettes{bg} = pals
+screenSprites :: Colour -> Palettes -> [Byte] -> PAT -> Screen
+screenSprites bg pals oamBytes pat = do
     let sprites = seeSprites pals oamBytes pat
     let cols = do
             y <- [0..239::Int]
@@ -286,20 +288,18 @@ screenSprites pals oamBytes pat = do
                                               yp<=y && y<yp+8 && xp<=x && x<xp+8
             case sOpt of
                 Nothing -> return bg
-                Just Sprite{x=xp,y=yp,screen=Screen{cols}} -> do
+                Just Sprite{x=xp,y=yp,ocs} -> do
                     let yi = y - yp
                     let xi = x - xp
                     let i = 8 * yi + xi
-                    let col = cols !! i
-                    return col
+                    return $ case ocs !! i of Just col -> col; Nothing -> bg
 
     Screen { height = 240, width = 256, cols }
 
 
 
-screenCombined :: Palettes -> ([Byte],PAT) -> ([Byte],PAT) -> Screen
-screenCombined pals (oamBytes,pat1) (kb,pat2) = do
-    let Palettes{bg} = pals
+screenCombined :: Colour -> Palettes -> ([Byte],PAT) -> ([Byte],PAT) -> Screen
+screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let sprites = seeSprites pals oamBytes pat1
@@ -311,13 +311,16 @@ screenCombined pals (oamBytes,pat1) (kb,pat2) = do
                     flip filter sprites $ \Sprite{x=xp,y=yp} ->
                                               yp<=y && y<yp+8 && xp<=x && x<xp+8
 
-            case sOpt of
-                Just Sprite{x=xp,y=yp,screen=Screen{cols}} -> do
-                    let yi = y - yp
-                    let xi = x - xp
-                    let i = 8 * yi + xi
-                    let col = cols !! i
-                    return col
+            let oc = case sOpt of
+                         Nothing -> Nothing
+                         Just Sprite{x=xp,y=yp,ocs} -> do
+                             let yi = y - yp
+                             let xi = x - xp
+                             let i = 8 * yi + xi
+                             ocs !! i
+
+            case oc of
+                Just col -> return col
                 Nothing -> do
                     let (PAT pt) = pat2
                     let nti = 32*(y`div`8) + x`div`8
