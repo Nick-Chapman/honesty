@@ -14,40 +14,33 @@ import qualified PPU.OAM as OAM
 import qualified PPU.Palette as Palette
 
 data Display = Display
-    { bg1 :: Screen
-    , bg2 :: Screen
-    , tiles1 :: Screen
+    { tiles1 :: Screen
     , tiles2 :: Screen
+    , bg1 :: Screen
+    , bg2 :: Screen
     , at1 :: Screen
+    , at2 :: Screen
     , pals :: [Screen]
     , sprites :: [Sprite]
     }
 
 render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
 render Nes.RamRom{pat1,pat2} _regs pal oam = do
-    -- Depending on nametable mirroring (V/H) as selected in PPUCTRL
-    -- shoud read 1st or 2nd K of the vram.
-    -- Probably better to go via the memory map!
 
+    let palettes = makePalettes pal
     let tiles1 = Graphics.screenTiles pat1
     let tiles2 = Graphics.screenTiles pat2
 
     kilobyte1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
     kilobyte2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-    let oamBytes = OAM.contents oam
-
-    -- depending on some other flag in the Regs,
-    -- should pick pat1 or pat2
-    let palettes = makePalettes pal
-    let patPick = True
-    let pat = if patPick then pat2 else pat1
-    let bg1 = Graphics.screenBG palettes kilobyte1 pat
-    let bg2 = Graphics.screenBG palettes kilobyte2 pat
+    let bg1 = Graphics.screenBG palettes kilobyte1 pat2
+    let bg2 = Graphics.screenBG palettes kilobyte2 pat2
     let at1 = Graphics.screenAT palettes (drop 960 kilobyte1)
+    let at2 = Graphics.screenAT palettes (drop 960 kilobyte2)
     let pals = Graphics.screenPalettes palettes
-    let sprites = Graphics.seeSprites palettes oamBytes pat2 -- TODO: pat1 or pat2
-    let display = Display { bg1, bg2, tiles1, tiles2, at1, pals, sprites }
+    let sprites = Graphics.seeSprites palettes (OAM.contents oam) pat1
+    let display = Display { bg1, bg2, tiles1, tiles2, at1, at2, pals, sprites }
     return $ display
 
 
