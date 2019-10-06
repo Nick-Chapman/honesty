@@ -12,6 +12,7 @@ import Six502.Cycles
 import qualified Six502.Cpu as Cpu
 import qualified Controller
 import qualified PPU.Regs as Regs
+import qualified PPU.OAM as OAM
 import qualified PPU.Palette as Palette
 import qualified PRG
 import qualified NesRam
@@ -26,6 +27,7 @@ data State = State
     , regs :: Regs.State
     , cc :: Cycles
     , pal :: Palette.State
+    , oam :: OAM.State
     }
     deriving (Show)
 
@@ -36,6 +38,7 @@ state0 pc0 = Nes.State
     , regs = Regs.state0
     , cc = 7 -- for nestest.nes
     , pal = Palette.state0
+    , oam = OAM.state0
     }
 
 data RamRom = RamRom

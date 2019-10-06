@@ -49,6 +49,7 @@ inter s@(optPrg1,prg2) = \case
         Joy2 -> do
             let b :: Byte = 0 -- no joystick 2
             return b
+        Dma -> error $ "CPU.Mem, suprising read from DMA"
 
     Write addr v -> case decode "write" addr of
         Ram x -> MM.Ram (Ram2k.Write x v)
@@ -59,13 +60,19 @@ inter s@(optPrg1,prg2) = \case
         Joy1 -> do
             let bool = testBit v 0
             MM.Con $ Controller.Strobe bool
-
         Joy2 -> do
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
             return ()
+        Dma -> inter s (dma v)
 
     where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
 
+dma :: Byte -> Effect ()
+dma b = do
+    flip mapM_ [0..255] $ \i -> do
+        let a = addrOfHiLo b i
+        v <- Read a
+        Write 0x2004 v --OAMDATA
 
 decode :: String -> Addr -> Decode
 decode tag a = if
@@ -78,7 +85,7 @@ decode tag a = if
     | a == 0x2001 -> PPU Regs.PPUMASK
     | a == 0x2002 -> PPU Regs.PPUSTATUS
     | a == 0x2003 -> PPU Regs.OAMADDR
-    | a == 0x2004 -> error "Mem, 0x2004" -- PPU Regs.OAMDATA -- not seen yet
+    | a == 0x2004 -> PPU Regs.OAMDATA
     | a == 0x2005 -> PPU Regs.PPUSCROLL
     | a == 0x2006 -> PPU Regs.PPUADDR
     | a == 0x2007 -> PPU Regs.PPUDATA
@@ -89,7 +96,7 @@ decode tag a = if
     -- sound is from 0x4000--0x4013, 0x4015, and 0x4017 (overlappiong Joy2)
     | a >= 0x4000 && a <= 0x4013 -> IgnoreSound
 
-    | a == 0x4014 -> PPU Regs.OAMDMA
+    | a == 0x4014 -> Dma
     | a == 0x4015 -> IgnoreSound
     | a == 0x4016 -> Joy1
     | a == 0x4017 -> Joy2
@@ -108,3 +115,4 @@ data Decode
     | IgnoreSound
     | Joy1
     | Joy2
+    | Dma

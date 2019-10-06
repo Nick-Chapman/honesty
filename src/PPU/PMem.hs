@@ -10,6 +10,7 @@ import Addr
 import Byte
 import CHR
 import qualified Ram2k
+import qualified PPU.OAM as OAM
 import qualified PPU.Palette as Palette
 import qualified PPU.PRam as PRam
 
@@ -22,6 +23,7 @@ data Effect a where
     Bind :: Effect a -> (a -> Effect b) -> Effect b
     Read :: Addr -> Effect Byte
     Write :: Addr -> Byte -> Effect ()
+    WriteOam :: Byte -> Byte -> Effect ()
 
 inter :: CHR.ROM -> Effect a -> PRam.Effect a
 inter chr = \case
@@ -40,6 +42,10 @@ inter chr = \case
         Rom _ -> PRam.Error $ "Illegal write to Rom:" <> show addr
         PaletteRam a -> PRam.InPalette (Palette.Write a b)
         Error s -> PRam.Error $ "(write)" <> s
+
+    WriteOam a b ->
+        PRam.InOAM (OAM.Write a b)
+
 
 decode :: Addr -> Decode
 decode a = if

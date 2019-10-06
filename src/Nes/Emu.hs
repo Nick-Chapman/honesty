@@ -61,13 +61,13 @@ interpret :: Nes.RamRom -> Nes.State -> Effect () -> Simulation.Effect ()
 interpret rr@Nes.RamRom{ram,prg} state step = do (_state,()) <- loop state step; return () where
 
     loop :: Nes.State -> Effect a -> Simulation.Effect (Nes.State, a)
-    loop s@Nes.State{regs,pal} = \case
+    loop s@Nes.State{regs,pal,oam} = \case
         Ret x -> return (s,x)
         Bind e f -> do (s,v) <- loop s e;  loop s (f v)
         SetVBlank bool ->
             return (s {regs = Regs.setVBlank regs bool}, ())
         Render -> do
-            display <- Simulation.IO $ NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal)
+            display <- Simulation.IO $ NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
             Simulation.Render display
             return (s,())
         Buttons -> do

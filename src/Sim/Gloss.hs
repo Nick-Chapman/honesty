@@ -13,6 +13,7 @@ import PPU.Render(Display(..))
 import Sim.World
 import qualified Controller
 import qualified PPU.Graphics as Graphics
+import PPU.Graphics(Sprite(..),Priority(..))
 
 run :: String -> Bool -> Int -> IO ()
 run path fs sc = do
@@ -75,7 +76,7 @@ pictureWorld lastFrameCountRef World{frameCount,display,buttons} = do
         ]
 
 makePicture :: Display -> Gloss.Picture
-makePicture Display{bg1,at1,pals} = do --,bg2,tiles1,tiles2} = do
+makePicture Display{bg1,at1,pals,sprites} = do --,bg2,tiles1,tiles2} = do
     pictures
         [ pictureScreen bg1
         , translate 300 0 $ pictureScreen at1
@@ -86,7 +87,18 @@ makePicture Display{bg1,at1,pals} = do --,bg2,tiles1,tiles2} = do
         , translate 600 0 $ pictures $
           map (\(pal,i) -> translate 0 (30*i) $ pictureScreen pal) (zip pals [0..])
 
+        , translate 650 0 $ pictures $
+          map (\(sprite,i) -> translate 0 (10*i) $ pictureSprite sprite) (zip sprites [0..])
+
         ]
+
+pictureSprite :: Graphics.Sprite -> Gloss.Picture
+pictureSprite Sprite{screen,x,y,priority} =
+    pictures
+    [ pictureScreen screen
+    , translate 20 5 $ scale 0.05 (-0.05) $ color cyan
+      $ Text (show x <> ", " <> show y <> case priority of InFront -> ", f"; Behind -> ", b")
+    ]
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
 pictureScreen screen = translate (fromIntegral w/2) (fromIntegral h/2) bitmap

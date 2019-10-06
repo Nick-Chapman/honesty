@@ -43,10 +43,9 @@ inter cc chr buttons = \case
             return (v, ns { con = con' })
 
     Reg eff -> do
-        StateT $ \ns@Nes.State{regs,pal} -> NesRam.InVram $ do
+        StateT $ \ns@Nes.State{regs,pal,oam} -> NesRam.InVram $ do
             -- TODO: these 3 PPU interpreters should be merged and moved in to PPU subdir
-            (pal',(regs',v)) <- PRam.inter cc pal $ PMem.inter chr $ Regs.inter cc chr regs eff
-            return (v, ns { regs = regs', pal = pal' })
+            ((pal',oam'),(regs',v)) <- PRam.inter cc (pal,oam) $ PMem.inter chr $ Regs.inter cc chr regs eff
+            return (v, ns { regs = regs', pal = pal', oam = oam' })
 
     Ram eff -> lift $ NesRam.InWram eff
-

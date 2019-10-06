@@ -8,6 +8,7 @@ module PPU.NewGraphics(
     Palettes(..),Palette(..),
     screenAT,
     screenPalettes,
+    Sprite(..), Priority(..), seeSprites
     ) where
 
 import Data.Array
@@ -49,9 +50,9 @@ forceScreen Screen{cols} = do
     List.foldr (+) 0 xs
 
 data ColourSelect = BG | CS1 | CS2 | CS3
-data PaletteSelect = Pal0 | Pal1 | Pal2 | Pal3
+data PaletteSelect = Pal0 | Pal1 | Pal2 | Pal3 | Pal4 | Pal5 | Pal6 | Pal7
 data Palette = Palette { c1,c2,c3 :: Colour }
-data Palettes = Palettes { bg :: Colour, p0,p1,p2,p3 :: Palette }
+data Palettes = Palettes { bg :: Colour, p0,p1,p2,p3,p4,p5,p6,p7 :: Palette }
 
 selectColour :: Colour -> Palette -> ColourSelect -> Colour
 selectColour bg Palette{c1,c2,c3} = \case
@@ -61,11 +62,55 @@ selectColour bg Palette{c1,c2,c3} = \case
     CS3 -> c3
 
 selectPalette :: Palettes -> PaletteSelect -> Palette
-selectPalette Palettes{p0,p1,p2,p3} = \case
+selectPalette Palettes{p0,p1,p2,p3,p4,p5,p6,p7} = \case
     Pal0 -> p0
     Pal1 -> p1
     Pal2 -> p2
     Pal3 -> p3
+    Pal4 -> p4
+    Pal5 -> p5
+    Pal6 -> p6
+    Pal7 -> p7
+
+data Priority = InFront | Behind
+data Sprite = Sprite { screen :: Screen, x,y::Int, priority :: Priority }
+
+seeSprites :: Palettes -> [Byte] -> PAT -> [Sprite]
+seeSprites pals oamBytes pat = do
+    let oam = listArray (0,255) oamBytes
+    i <- [0..63::Int]
+    let sprite@Sprite{y} = seeSprite pals (oam!(4*i), oam!(4*i+1), oam!(4*i+2), oam!(4*i+3)) pat
+    if y < 0xEF then [sprite] else []
+
+seeSprite :: Palettes -> (Byte,Byte,Byte,Byte) -> PAT -> Sprite
+seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
+    let y = byteToUnsigned b0
+    let x = byteToUnsigned b3
+    let priority = if b2 `testBit` 5 then Behind else InFront
+    let atBitA = b2 `testBit` 1
+    let atBitB = b2 `testBit` 0
+    let pSel =
+            if atBitA
+            then (if atBitB then Pal7 else Pal6)
+            else (if atBitB then Pal5 else Pal4)
+    let pal = selectPalette pals pSel
+    let Palettes{bg} = pals
+    let cols = do
+            y <- [0..7]
+            let pti = 16 * byteToUnsigned b1 + y
+            let tileByteA = pt ! pti
+            let tileByteB = pt ! (pti+8)
+            x210 <- [0..7::Int]
+            let tileBitA = tileByteA `testBit` (7 - x210)
+            let tileBitB = tileByteB `testBit` (7 - x210)
+            let cSel =
+                    if tileBitA
+                    then (if tileBitB then CS3 else CS2)
+                    else (if tileBitB then CS1 else BG)
+            return $ selectColour bg pal cSel
+
+    let screen = Screen { height = 8, width = 8, cols }
+    Sprite { screen, x, y, priority }
 
 
 screenTiles :: PAT -> Screen -- see all 256 tiles in the PAT

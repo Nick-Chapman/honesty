@@ -33,9 +33,9 @@ world0 path = do
     (rr,pc0) <- rr0pc0 path
     let ns = state0 pc0
     let Nes.RamRom{ram} = rr
-    let Nes.State{regs,pal} = ns
+    let Nes.State{regs,pal,oam} = ns
     let frameCount = 0
-    display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal)
+    display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames buttons $ Nes.Emu.interpret rr ns neverStopping
     return $ World { frameCount, display, buttons, rr, frames, paused = False }

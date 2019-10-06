@@ -29,7 +29,6 @@ data Name
     | PPUSCROLL
     | PPUADDR
     | PPUDATA
-    | OAMDMA
 
 data Effect a where
     Ret :: a -> Effect a
@@ -44,6 +43,7 @@ data State = State
     , addr_latch :: AddrLatch
     , addr_hi :: Byte
     , addr_lo :: Byte
+    , oam_addr :: Byte
     } deriving Show
 
 state0 :: State
@@ -54,6 +54,7 @@ state0 = State
     , addr_latch = Hi
     , addr_hi= 0x0
     , addr_lo = 0x0
+    , oam_addr = 0x0
     }
 
 setVBlank :: State -> Bool -> State
@@ -66,7 +67,7 @@ isEnabledNMI State{control} = testBit control 7
 data AddrLatch = Hi | Lo deriving (Show)
 
 inter :: Cycles -> CHR.ROM -> State -> Effect a -> PMem.Effect (State, a)
-inter cc chr state@State{control, mask, status ,addr_latch ,addr_hi, addr_lo} = \case
+inter cc chr state@State{control,mask,status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
 
     Ret x -> return (state,x)
     Bind e f -> do (state',a) <- inter cc chr state e; inter cc chr state' (f a)
@@ -84,13 +85,18 @@ inter cc chr state@State{control, mask, status ,addr_latch ,addr_hi, addr_lo} = 
         let addr = addrOfHiLo addr_hi addr_lo
         b <- PMem.Read addr
         return (bumpAddr state, b)
-    Read OAMDMA -> error "Read OAMDMA"
 
     Write PPUCTRL b -> return (state { control = b }, ())
     Write PPUMASK b -> return (state { mask = b }, ())
     Write PPUSTATUS b -> return (state { status = b }, ())
-    Write OAMADDR _ -> do return (state, ()) -- TODO: dont ignore when handling sprites!
-    Write OAMDATA _ -> error "Write OAMDATA"
+
+    Write OAMADDR b -> return (state { oam_addr = b }, ())
+
+    Write OAMDATA b -> do
+        PMem.WriteOam oam_addr b
+        return (state { oam_addr = oam_addr + 1 }, ()) -- TODO: does this do required byte wrap?
+
+
     Write PPUSCROLL _ -> do return (state, ()) -- TODO: dont ignore for scrolling
     Write PPUADDR b -> do
         case addr_latch of
@@ -100,7 +106,6 @@ inter cc chr state@State{control, mask, status ,addr_latch ,addr_hi, addr_lo} = 
         let addr = addrOfHiLo addr_hi addr_lo
         PMem.Write addr b
         return (bumpAddr state, ())
-    Write OAMDMA _ -> do return (state, ()) -- error "Write OAMDMA" - TODO NEXT
 
 bumpAddr :: State -> State
 bumpAddr s@State{control,addr_hi=hi, addr_lo=lo} = do
