@@ -8,12 +8,12 @@ RTS=
 
 echo tests started
 
-stack run -- $RTS --dis data/nestest.nes > dis.log
-diff dis.log{.expected,} | head
+stack run -- $RTS --dis data/nestest.nes > data/dis.log
+diff data/dis.log{.expected,} | head
 echo - dis-nestest passed
 
-stack run -- $RTS --emu data/nestest.nes > em.log
-cmp em.log{.expected,}
+stack run -- $RTS --emu data/nestest.nes > data/em.log
+cmp data/em.log{.expected,}
 echo - emu-nestest passed
 
 echo tests done

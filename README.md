@@ -14,6 +14,8 @@ Where possible I am using good old fashioned functional/persistent state, for ex
 
 The 6502 emulator is done. And matches the golden log for the `nestest.nes` rom. And the remaining system (PPU Registers, NMI, OAM, DMA, Rendering, Controller, etc) is just about complete enough to allow Donkey Kong to run, albeit rather slowly.
 
+For a more detailed description of the development progress, see the [devloper log](diary.md).
+
 There is still much todo. The following are probably the next things:
 
 - Increase speed: Currently it runs at about 1/3 speed required
@@ -22,9 +24,10 @@ There is still much todo. The following are probably the next things:
 - Revisit the spec for the PPU regs: `PPUCTRL`, `PPUMASK`, `PPUSTATUS`
 - Support sprite-0 collision
 - Support sprite overflow
+- Nametable mirroring
 - Scrolling
 - Mappers
-- Cycle accuracy for PPU
+- PPU cycle accuracy
 - Sound, maybe!
 
 Also: _Make something other than DK work!_
