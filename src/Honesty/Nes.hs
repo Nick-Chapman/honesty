@@ -21,12 +21,12 @@ import qualified Honesty.PRG as PRG
 import qualified Honesty.Six502.Cpu as Cpu
 
 data State = State
-    { cpu :: Cpu.State
-    , con :: Controller.State
-    , regs :: Regs.State
-    , cc :: Cycles
-    , pal :: Palette.State
-    , oam :: OAM.State
+    { cpu :: !Cpu.State
+    , con :: !Controller.State
+    , regs :: !Regs.State
+    , cc :: !Cycles
+    , pal :: !Palette.State
+    , oam :: !OAM.State
     }
     deriving (Show)
 
@@ -41,11 +41,11 @@ state0 pc0 = State
     }
 
 data RamRom = RamRom
-    { ram :: NesRam.MState,
-      prg :: PRG.ROM,
-      chr :: CHR.ROM,
-      pat1 :: Graphics.PAT,
-      pat2 :: Graphics.PAT
+    { ram :: !NesRam.MState,
+      prg :: !PRG.ROM,
+      chr :: !CHR.ROM,
+      pat1 :: !Graphics.PAT,
+      pat2 :: !Graphics.PAT
     }
 
 rr0pc0 :: String -> IO (RamRom, Addr)

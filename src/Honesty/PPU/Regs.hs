@@ -37,13 +37,13 @@ data Effect a where
     Write :: Name -> Byte -> Effect ()
 
 data State = State
-    { control :: Byte
-    , mask :: Byte
-    , status :: Byte
-    , addr_latch :: AddrLatch
-    , addr_hi :: Byte
-    , addr_lo :: Byte
-    , oam_addr :: Byte
+    { control :: !Byte
+    , mask :: !Byte
+    , status :: !Byte
+    , addr_latch :: !AddrLatch
+    , addr_hi :: !Byte
+    , addr_lo :: !Byte
+    , oam_addr :: !Byte
     } deriving Show
 
 state0 :: State

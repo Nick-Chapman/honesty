@@ -7,12 +7,12 @@ import Honesty.Addr
 import Honesty.Byte
 
 data State = State
-    { pc :: Addr
-    , accumulator :: Byte
-    , xreg :: Byte
-    , yreg :: Byte
+    { pc :: !Addr
+    , accumulator :: !Byte
+    , xreg :: !Byte
+    , yreg :: !Byte
     , status :: Byte
-    , sp :: Byte
+    , sp :: !Byte
     }
 
 state0 :: Addr -> State

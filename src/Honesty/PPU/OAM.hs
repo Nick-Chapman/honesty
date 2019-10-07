@@ -6,7 +6,7 @@ module Honesty.PPU.OAM(
     ) where
 
 import Data.Map(Map)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 import Honesty.Byte
 

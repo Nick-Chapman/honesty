@@ -29,15 +29,15 @@ data ChooseToDisplay
     deriving (Enum)
 
 data World = World
-    { frameCount :: Int
-    , display :: Display
-    , buttons :: Buttons
-    , rr :: Nes.RamRom
+    { frameCount :: !Int
+    , display :: !Display
+    , buttons :: !Buttons
+    , rr :: !Nes.RamRom
     , frames :: Sim.Frames Display
-    , paused :: Bool
+    , paused :: !Bool
     , chooseL :: [ChooseToDisplay]
     , chooseR :: [ChooseToDisplay]
-    , debugSprites :: Bool
+    , debugSprites :: !Bool
     }
 
 world0 :: String -> IO World

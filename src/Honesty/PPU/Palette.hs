@@ -6,7 +6,8 @@ module Honesty.PPU.Palette(
     ) where
 
 import Control.Monad (ap,liftM)
-import Data.Map.Strict as Map
+import Data.Map(Map)
+import qualified Data.Map.Strict as Map
 
 import Honesty.Byte
 
