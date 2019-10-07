@@ -14,7 +14,7 @@ Where possible I am using good old fashioned functional/persistent state, for ex
 
 The 6502 emulator is done. And matches the golden log for the `nestest.nes` rom. And the remaining system (PPU Registers, NMI, OAM, DMA, Rendering, Controller, etc) is just about complete enough to allow Donkey Kong to run, albeit rather slowly.
 
-For a more detailed description of the development progress, see the [devloper log](diary.md).
+For a more detailed description of the development progress, see the [developer log](diary.md).
 
 There is still much todo. The following are probably the next things:
 
@@ -78,3 +78,37 @@ And the `nestest` rom and log from
     ./test.sh
     stack run -- --speed
     stack run
+    stack run -- --fs
+
+
+### Keys for NES controller emulation
+
+The standard NES controller had 8 buttons: Up, Down, Left, Right, A, B, START, SELECT.
+
+These are mapped to the keyboard as:
+
+- `Up` : Up
+- `Down` : Down
+- `Left` : Left
+- `Right` : Right
+- `x` : A
+- `y` : B
+- `Enter` : START
+- `Tab` : SELECT
+
+
+### Keys to control the simulator
+
+- `Escape` : quit
+- `Space` : pause simulation
+- `F1` : cycle LHS display (initially blank):
+- `F2` : cycle RHS display (initially full display: playfield + sprites)
+- `F3` : toggle active sprite debug
+
+The display mode cycles though various debug displays and the full display:
+
+- Blank
+- Attribute table palette selection
+- Just playfield
+- Just sprites (on an empty background)
+- Combined playfield & sprites
