@@ -4,15 +4,15 @@ module Main (main) where
 import Control.Monad (when)
 import System.Environment (getArgs)
 
-import Addr
-import NesFile
-import Six502.Decode (decode,reEncode)
-import Six502.Disassembler (displayOpLines)
-import Six502.Operations (Op)
-import qualified PRG
-import qualified Sim.Gloss(run)
-import qualified Sim.TraceCpu(printRun)
-import qualified SpeedTest(run)
+import Honesty.Addr
+import Honesty.NesFile
+import Honesty.Six502.Decode (decode,reEncode)
+import Honesty.Six502.Disassembler (displayOpLines)
+import Honesty.Six502.Operations (Op)
+import qualified Honesty.PRG as PRG
+import qualified Honesty.Gloss as Gloss(run)
+import qualified Honesty.TraceCpu as TraceCpu(printRun)
+import qualified Honesty.SpeedTest as SpeedTest(run)
 
 main :: IO ()
 main = do
@@ -44,7 +44,7 @@ speed :: String -> IO () -- test the speed of simulation (without gloss graphics
 speed path = SpeedTest.run path
 
 nes :: (Bool,Int) -> String -> IO ()
-nes (fs,scale) path = Sim.Gloss.run path fs scale
+nes (fs,scale) path = Gloss.run path fs scale
 
 type Setup = (Bool,Int)
 small,fs :: Setup
@@ -74,7 +74,7 @@ disPRG addr prg = do
 -- simple, non graphical entry point, used for nestest.nes regression test
 emu :: String -> IO ()
 emu path = do
-    Sim.TraceCpu.printRun numSteps path
+    TraceCpu.printRun numSteps path
   where
     numSteps :: Int
     numSteps =

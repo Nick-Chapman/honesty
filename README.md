@@ -46,7 +46,7 @@ And the `nestest` rom and log from
 ### Help on specific issues during 6502 emulation
 
 - [OpCode <-> Instruction/Addressing-Mode mapping](http://www.emulator101.com/reference/6502-reference.html)
-*Used as the basis of my [Opcode.hs](https://github.com/Nick-Chapman/six-five-oh-two/blob/master/src/Six502/OpCode.hs).*
+*Used as the basis of my [Opcode.hs](/src/Honesty/Six502/OpCode.hs).*
 - [Flag effects & cycle times](http://www.obelisk.me.uk/6502/reference.html)
 *Easiest navigation.*
 - [Status Flags behaviour](https://wiki.nesdev.com/w/index.php/Status_flags)
