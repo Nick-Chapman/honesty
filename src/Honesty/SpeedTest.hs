@@ -5,7 +5,6 @@ import Data.Fixed(Fixed(..),HasResolution,resolution)
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Text.Printf (printf)
 import qualified Data.ByteString as BS
-import qualified Data.List as List
 
 import Honesty.PPU.Graphics(screenToBitmapByteString)
 import Honesty.PPU.Render(Display(..))
@@ -23,8 +22,7 @@ stepWorld = updateWorld False 0
 forceWorld :: World -> Int
 forceWorld World{display=Display{combined}} = do
     let bs = screenToBitmapByteString combined
-    let ws = BS.unpack bs
-    fromIntegral $ List.foldr (+) 0 ws
+    fromIntegral $ BS.foldl' (+) 0 bs
 
 testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
 testStepper time frames state time0 step force = do
