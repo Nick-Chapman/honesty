@@ -1,9 +1,9 @@
-name:                six-five-oh-two
+name:                honesty
 version:             0.1.0.0
-description:         Dissembler/Emulator for 6502 cpu
+description:         NES Emulator
 author:              Nick Chapman
 maintainer:          nic@amadido.co.uk
-github:              https://github.com/Nick-Chapman/six-five-oh-two.git
+github:              https://github.com/Nick-Chapman/honesty.git
 
 extra-source-files:
 - README.md
@@ -28,16 +28,10 @@ default-extensions:
 - LambdaCase
 - MultiWayIf
 - NamedFieldPuns
-- NumericUnderscores
-- ScopedTypeVariables
-- RankNTypes
-
 - NondecreasingIndentation
-#- OverloadedStrings
-#- RecordWildCards
-#- BangPatterns
-#- StandaloneDeriving # Is this dangerous in any way?
-#- FlexibleInstances
+- NumericUnderscores
+- RankNTypes
+- ScopedTypeVariables
 
 library:
   source-dirs: src
@@ -56,4 +50,4 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - six-five-oh-two
+    - honesty
