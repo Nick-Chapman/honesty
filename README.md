@@ -1,13 +1,36 @@
-# six-five-oh-two
+# honesty
 
-## 6502 disassembler/emulator in Haskell.
+`honesty` is a NES emulator written in Haskell. Very much a WIP.
 
-Many 6502 emulators already exist, including some in Haskell. I am coding this one for the fun and challenge of it. And with the hope that the resulting code will have some kind of elegence.
+Perhaps it's named for _"Haskell un-Optimized NES emulator using TYpes"_
 
-So far the disassember is complete. Working on the emulator... [emulator complete!]
-Maybe when it's working, I will attempt a full NES. [yup, this is started now!]
 
-#### Following these tutorials and references:
+I'm writing it for fun, and to get more experience in how best to structure a reasonably complicated Haskell application.
+During the development, I've fallen into a style of describing `Effect`s for different parts of the system, which get wired together using `inter`preter functions. Often the interpreter for one kind of effect will cause further effects.
+
+Where possible I am using good old fashioned functional/persistent state, for example for the state of the CPU and PPU registers. For the larger 2k-Rams I am interpreting their effects in `IO` to make use of mutable arrays.
+
+### Status
+
+The 6502 emulator is done. And matches the golden log for the `nestest.nes` rom. And the remaining system (PPU Registers, NMI, OAM, DMA, Rendering, Controller, etc) is just about complete enough to allow Donkey Kong to run, albeit rather slowly.
+
+There is still much todo. The following are probably the next things:
+
+- Increase speed: Currently it runs at about 1/3 speed required
+- Improve sprite rendering to properly support sprite overlap
+- Add cycle-count to DMA (currently this happens in 0-time!)
+- Revisit the spec for the PPU regs: `PPUCTRL`, `PPUMASK`, `PPUSTATUS`
+- Support sprite-0 collision
+- Support sprite overflow
+- Scrolling
+- Mappers
+- Cycle accuracy for PPU
+- Sound, maybe!
+
+Also: _Make something other than DK work!_
+
+
+### These tutorials and references were very helpful during 6502 emulation
 
 - [obelisk.me.uk](http://www.obelisk.me.uk/6502/index.html)
 - [6502.org](http://www.6502.org/tutorials/6502opcodes.html)
@@ -17,7 +40,7 @@ Maybe when it's working, I will attempt a full NES. [yup, this is started now!]
 And the `nestest` rom and log from
 [here](https://wiki.nesdev.com/w/index.php/Emulator_tests).
 
-#### Specific issues:
+### Help on specific issues during 6502 emulation
 
 - [OpCode <-> Instruction/Addressing-Mode mapping](http://www.emulator101.com/reference/6502-reference.html)
 *Used as the basis of my [Opcode.hs](https://github.com/Nick-Chapman/six-five-oh-two/blob/master/src/Six502/OpCode.hs).*
@@ -30,53 +53,25 @@ And the `nestest` rom and log from
 - [Overflag flag following ADC/SBC](http://forums.nesdev.com/viewtopic.php?t=6331)
 *"( (A ^ s) & (v ^ s) & 0x80 )."*
 
-Run/test with:
 
-    stack build --file-watch --exec ./go.sh
+### Most visited NesDev pages
+
+- [Top of the reference guide](http://wiki.nesdev.com/w/index.php/NES_reference_guide)
+- [Top of the PPU](http://wiki.nesdev.com/w/index.php/PPU)
+- [PPU registers](http://wiki.nesdev.com/w/index.php/PPU_registers)
 
 
-## NES notes
-
-#### References
-
+### Other helpful links for NES Graphics / PPU
+- [Dustmop on NES graphics: part 1](http://www.dustmop.io/blog/2015/04/28/nes-graphics-part-1/#chr-encoding),
+[part 2](http://www.dustmop.io/blog/2015/06/08/nes-graphics-part-2), and
+[part 3](http://www.dustmop.io/blog/2015/12/18/nes-graphics-part-3)
+- [Austin Morlan on NES rendering](https://austinmorlan.com/posts/nes_rendering_overview/)
 - [Colours: RGB mapping](http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php/NES_Palette)
 
-Have most of a full NES emulator wired up now. Now the debugging starts...
-
-Current problem...
-
-- When running an RTS instruction, the PC resumes at a very unexpected address.
-- The Cpu MemMap decode refuses to handle it, assuming it's a bug (which it is)
-- The resume address should come off the stack (from the last executed a JSR)
-- So how come it is corrupted?
-- Add some debug at the Mem Read/Write layer...
-- Then can see the last instruction which wrote to this address
-
-Here:
-
-    F1CE  8D 07 20  STA $2007                       A:24 X:03 Y:02 P:24 SP:FD CYC:38200
-    ("WRITE","wram",510,24)
-
-- which is very wrong!
-- This adress should be mem mapped to a PPU Reg -- PPUDATA -- which it is
-- And this should then cause a write into the vram.. not the wram!
-- fix it...
-- ignore a few more sound register writes...
-- Woo! see the DK title screen
 
 
-## First speed measurements
+## Run/test with:
 
-- getting 1.25 fps. Terrible.
-- obvious optimization to PRG ROM (to use array indexing): -> 15 fps
-- same optimization for op-decode via: -> 21 fps
-
-Now DK reaches the next crash/not-implemented yet point
-
-    nes: CYC:10632429 - Regs.decode, too high: 3F1F
-
-## 1/10/19
-
-- Nice article on r/emudev
-[nes rendering overview/](https://www.reddit.com/r/EmuDev/comments/dblwr2/nes_rendering_overview/)
-and I see that my DK colours are wrong!
+    ./test.sh
+    stack run -- --speed
+    stack run
