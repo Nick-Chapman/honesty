@@ -296,7 +296,7 @@ screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
     let sprites = seeSprites pals oamBytes pat1
-    let cols = do
+    let bs = mkBS $ do
             y <- [0..239]
             let spritesOnLine = take 8 $ flip filter sprites $ \Sprite{y=yp} -> yp<=y && y<yp+8
             x <- [0..255]
@@ -339,4 +339,4 @@ screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
                             else (if atBitB then Pal1 else Pal0)
                     let pal = selectPalette pals pSel
                     return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, bs = mkBS cols }
+    Screen { height = 240, width = 256, bs }
