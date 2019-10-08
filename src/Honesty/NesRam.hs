@@ -32,9 +32,11 @@ newMState = do
     return $ MState {vram,wram}
 
 inter :: MState -> Effect a -> IO a
-inter m@MState{vram,wram} = \case
+inter MState{vram,wram} = loop where
+  loop :: Effect a -> IO a
+  loop = \case
     Ret x -> return x
-    Bind e f -> do v <- inter m e; inter m (f v)
+    Bind e f -> do v <- loop e; loop (f v)
     InVram e -> Ram2k.interIO vram e
     InWram e -> Ram2k.interIO wram e
     EmbedIO io -> io
