@@ -91,8 +91,8 @@ These are mapped to the keyboard as:
 - `Down` : Down
 - `Left` : Left
 - `Right` : Right
-- `x` : A
-- `y` : B
+- `z` : A
+- `x` : B
 - `Enter` : START
 - `Tab` : SELECT
 
