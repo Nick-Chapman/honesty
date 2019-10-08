@@ -34,10 +34,11 @@ reads addr = do
     return [byte0,byte1,byte2]
 
 inter :: (Maybe PRG.ROM,PRG.ROM) -> Effect a -> MM.Effect a
-inter s@(optPrg1,prg2) = \case
-
+inter s@(optPrg1,prg2) = loop  where
+  loop :: Effect a -> MM.Effect a
+  loop = \case
     Ret x -> return x
-    Bind e f -> do v <- inter s e; inter s (f v)
+    Bind e f -> do v <- loop e; loop (f v)
 
     Read addr -> case decode "read" addr of
         Ram x -> MM.Ram (Ram2k.Read x)
