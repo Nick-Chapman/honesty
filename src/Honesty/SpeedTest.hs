@@ -10,11 +10,12 @@ import Honesty.PPU.Graphics(screenToBitmapByteString)
 import Honesty.PPU.Render(Display(..))
 import Honesty.World(World(..),world0,updateWorld)
 
-run :: String -> IO ()
-run path = do
+run :: String -> Maybe Int -> IO ()
+run path maxM = do
     time0 <- getCurrentTime
     w0 <- world0 path
-    testStepper time0 0 w0 time0 stepWorld forceWorld
+    let quit :: Int -> Bool = case maxM of Nothing -> const False; Just n -> (>n)
+    testStepper time0 0 w0 time0 stepWorld forceWorld quit
 
 stepWorld :: World -> IO World
 stepWorld = updateWorld False 0
@@ -24,8 +25,8 @@ forceWorld World{display=Display{combined}} = do
     let bs = screenToBitmapByteString combined
     fromIntegral $ BS.foldl' (+) 0 bs
 
-testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> IO ()
-testStepper time frames state time0 step force = do
+testStepper :: UTCTime -> Int -> a -> UTCTime -> (a -> IO a) -> (a -> Int) -> (Int -> Bool) -> IO ()
+testStepper time frames state time0 step force quit = if quit frames then return () else do
     state' <- step state
     let forced = force state'
     time' <- getCurrentTime
@@ -34,7 +35,7 @@ testStepper time frames state time0 step force = do
     let fpsY = makeFps 1       time  time'
     putStrLn $ show frames <> " (" <> show forced <> ") "
         <> "[" <> show fpsX <> "] " <> show fpsY
-    testStepper time' frames' state' time0 step force
+    testStepper time' frames' state' time0 step force quit
 
 newtype Fps = Fps Float
 

@@ -17,8 +17,8 @@ import qualified Honesty.SpeedTest as SpeedTest(run)
 main :: IO ()
 main = do
     getArgs >>= \case
-        ["--speed"] -> speed path
-        ["--speed",path] -> speed path
+        ["--speed"] -> speed path Nothing
+        ["--speed",max] -> speed path (Just (read max))
 
         ["--dis"] -> dis path
         ["--dis",path] -> dis path
@@ -40,7 +40,7 @@ main = do
       path = "data/dk.nes"
       --path = "data/nestest.nes"
 
-speed :: String -> IO () -- test the speed of simulation (without gloss graphics)
+speed :: String -> Maybe Int -> IO () -- test the speed of simulation (without gloss graphics)
 speed path = SpeedTest.run path
 
 nes :: (Bool,Int) -> String -> IO ()
