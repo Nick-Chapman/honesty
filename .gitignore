@@ -1,6 +1,8 @@
 .stack-work
+.stack-work-profile
 *.cabal
 *~
 .markdown-preview.html
 *.log
 *.dis
+*.prof
