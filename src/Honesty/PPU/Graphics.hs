@@ -298,15 +298,14 @@ screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
     let sprites = seeSprites pals oamBytes pat1
     let cols = do
             y <- [0..239]
+            let spritesOnLine = take 8 $ flip filter sprites $ \Sprite{y=yp} -> yp<=y && y<yp+8
             x <- [0..255]
-            let sOpt =
-                    listToMaybe $
-                    flip filter sprites $ \Sprite{x=xp,y=yp} ->
-                                              yp<=y && y<yp+8 && xp<=x && x<xp+8
 
-            let oc = case sOpt of
-                         Nothing -> Nothing
-                         Just Sprite{x=xp,y=yp,ocs} -> do
+            let spritesAtPoint = flip filter spritesOnLine $ \Sprite{x=xp} -> xp<=x && x<xp+8
+
+            let oc = case spritesAtPoint of
+                         [] -> Nothing
+                         Sprite{x=xp,y=yp,ocs}:_ -> do -- TODO: sprite transparency
                              let yi = y - yp
                              let xi = x - xp
                              let i = 8 * yi + xi
