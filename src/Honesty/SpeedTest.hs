@@ -33,7 +33,7 @@ testStepper time frames state time0 step force quit = if quit frames then return
     let frames' = frames + 1
     let fpsX = makeFps frames' time0 time'
     let fpsY = makeFps 1       time  time'
-    putStrLn $ show frames <> " (" <> show forced <> ") "
+    putStrLn $ show frames <> " (" <> printf "%03d" forced <> ") "
         <> "[" <> show fpsX <> "] " <> show fpsY
     testStepper time' frames' state' time0 step force quit
 
