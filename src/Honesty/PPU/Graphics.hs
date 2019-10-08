@@ -1,7 +1,7 @@
 
 module Honesty.PPU.Graphics(
     PAT, patFromBS,
-    Screen(..),
+    Screen(..), mkBS,
     screenToBitmapByteString,screenWidth,screenHeight,
     screenTiles,
     screenPF,
@@ -34,10 +34,10 @@ mkBS cols = do
     let builder = mconcat (map BSB.word32BE ws)
     BSL.toStrict (BSB.toLazyByteString builder)
 
-data Screen = Screen {height,width :: Int, cols :: [Colour] }
+data Screen = Screen {height,width :: Int, bs :: BS.ByteString }
 
 screenToBitmapByteString :: Screen -> BS.ByteString
-screenToBitmapByteString Screen{cols} = mkBS cols
+screenToBitmapByteString Screen{bs} = bs
 
 screenWidth :: Screen -> Int
 screenWidth Screen{width} = width
@@ -143,7 +143,7 @@ screenTiles (PAT pt) = do
                     then (if tileBitB then CS3 else CS2)
                     else (if tileBitB then CS1 else BG)
             return $ selectColour bg somePalette cSel
-    Screen { height = 128, width = 128, cols}
+    Screen { height = 128, width = 128, bs = mkBS cols}
 
 
 _opt_screenBG :: Colour -> Palettes -> [Byte] -> PAT -> Screen
@@ -182,7 +182,7 @@ _opt_screenBG bg pals kb (PAT pt) = do
                     then (if tileBitB then CS3 else CS2)
                     else (if tileBitB then CS1 else BG)
             return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, cols }
+    Screen { height = 240, width = 256, bs = mkBS cols }
 
 
 screenPalettes :: Colour -> Palettes -> [Screen]
@@ -201,7 +201,7 @@ screenPalette bg pal = do
                     then (if x3 then c3 else c2)
                     else (if x3 then c1 else bg)
             return col
-    Screen { height = 16, width = 16, cols }
+    Screen { height = 16, width = 16, bs = mkBS cols }
 
 
 screenAT :: Colour ->  Palettes -> [Byte] -> Screen
@@ -231,7 +231,7 @@ screenAT bg pals atBytes = do
                     else (if x3 then c1 else bg)
             return col
 
-    Screen { height = 240, width = 256, cols }
+    Screen { height = 240, width = 256, bs = mkBS cols }
 
 
 screenPF :: Colour -> Palettes -> [Byte] -> PAT -> Screen
@@ -265,7 +265,7 @@ screenPF bg pals kb (PAT pt) = do
                     else (if atBitB then Pal1 else Pal0)
             let pal = selectPalette pals pSel
             return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, cols }
+    Screen { height = 240, width = 256, bs = mkBS cols }
 
 
 
@@ -287,7 +287,7 @@ screenSprites bg pals oamBytes pat = do
                     let i = 8 * yi + xi
                     return $ case ocs !! i of Just col -> col; Nothing -> bg
 
-    Screen { height = 240, width = 256, cols }
+    Screen { height = 240, width = 256, bs = mkBS cols }
 
 
 
@@ -339,4 +339,4 @@ screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
                             else (if atBitB then Pal1 else Pal0)
                     let pal = selectPalette pals pSel
                     return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, cols }
+    Screen { height = 240, width = 256, bs = mkBS cols }

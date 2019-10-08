@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Honesty.PPU.Colour
-import Honesty.PPU.Graphics(Sprite(..),Priority(..),Screen(..))
+import Honesty.PPU.Graphics(Sprite(..),Priority(..),Screen(..),mkBS)
 import Honesty.PPU.Render(Display(..))
 import Honesty.World as World
 import qualified Honesty.Controller as Controller
@@ -107,7 +107,7 @@ pictureSprite :: Colour -> Graphics.Sprite -> Gloss.Picture
 pictureSprite bg Sprite{ocs,x,y,priority} = do
     let cols = map (\case Just col -> col; Nothing -> bg) ocs
     pictures
-        [ pictureScreen $ Screen { height = 8, width = 8, cols }
+        [ pictureScreen $ Screen { height = 8, width = 8, bs = mkBS cols }
         , translate 20 5 $ scale 0.05 (-0.05) $ color cyan
           $ Text (show x <> ", " <> show y <> case priority of InFront -> ", f"; Behind -> ", b")
         ]
