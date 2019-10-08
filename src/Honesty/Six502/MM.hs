@@ -33,9 +33,11 @@ instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
 
 inter :: Cycles -> CHR.ROM -> Buttons -> Effect a -> StateT Nes.State NesRam.Effect a
-inter cc chr buttons = \case
+inter cc chr buttons = loop where
+  loop :: Effect a -> StateT Nes.State NesRam.Effect a
+  loop = \case
     Ret x -> return x
-    Bind e f -> do v <- inter cc chr buttons e; inter cc chr buttons (f v)
+    Bind e f -> do v <- loop e; loop (f v)
 
     Con eff -> do
         StateT $ \ns@Nes.State{con} -> NesRam.EmbedIO $ do
