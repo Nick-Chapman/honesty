@@ -37,6 +37,7 @@ library:
   source-dirs: src
   ghc-options:
   - -Wall
+  - -O2
   - -Wno-name-shadowing
 
 executables:
@@ -45,6 +46,7 @@ executables:
     source-dirs: app
     ghc-options:
     - -Wall
+    - -O2
     - -Wno-name-shadowing
     - -threaded
     - -rtsopts
