@@ -38,6 +38,9 @@ data World = World
     , chooseL :: [ChooseToDisplay]
     , chooseR :: [ChooseToDisplay]
     , debugSprites :: !Bool
+    , debugFrames :: !Bool
+    , debugButtons :: !Bool
+    , debugRegs :: !Bool
     }
 
 world0 :: String -> IO World
@@ -54,8 +57,15 @@ world0 path = do
     let chooseL = cycle [ChooseNothing .. ChooseCombined]
     let chooseR = drop 4 $ cycle [ChooseNothing .. ChooseCombined]
 
-    return $ World { frameCount, display, buttons, rr, frames,
-                     paused = False, chooseL, chooseR, debugSprites = False }
+    return $ World { frameCount , display , buttons, rr, frames
+                   , paused = False
+                   , chooseL
+                   , chooseR
+                   , debugSprites = False
+                   , debugFrames = True
+                   , debugButtons = True
+                   , debugRegs = True
+                   }
 
     where cycle xs = ys where ys = xs <> ys
 

@@ -1,10 +1,12 @@
 
 module Honesty.PPU.Regs(
-    Effect(..),
     Name(..),
+    Effect(..),
+    inter,
     State, state0,
     setVBlank, isEnabledNMI,
-    inter,
+    Control(..), decodeControl,
+    Mask(..), decodeMask,
     ) where
 
 import Data.Bits
@@ -114,3 +116,52 @@ bumpAddr s@State{control,addr_hi=hi, addr_lo=lo} = do
     let a = addrOfHiLo hi lo
     let (hi',lo') = addrToHiLo (a `addAddr` bump)
     s { addr_hi=hi', addr_lo=lo'}
+
+
+data Control = Control
+    { nmiEnabled :: Bool
+    , masterSlave :: Bool
+    , spriteHeight :: Bool
+    , backgroundTileSelect :: Bool
+    , spriteTileSelect :: Bool
+    , incrementMode :: Bool
+    , nameTableSelect1 :: Bool
+    , nameTableSelect0 :: Bool
+    }
+
+decodeControl :: State -> Control
+decodeControl State{control} = Control
+    { nmiEnabled = sel 7
+    , masterSlave  = sel 6
+    , spriteHeight = sel 5
+    , backgroundTileSelect = sel 4
+    , spriteTileSelect = sel 3
+    , incrementMode = sel 2
+    , nameTableSelect1 = sel 1
+    , nameTableSelect0 = sel 0
+    }
+    where sel n = control `testBit` n
+
+data Mask = Mask
+    { blueEmphasis :: Bool
+    , greenEmphasis :: Bool
+    , redEmphasis :: Bool
+    , spriteEnable :: Bool
+    , backgroundEnable :: Bool
+    , spriteLeftColumnEnable :: Bool
+    , backgroundLeftColumnEnable :: Bool
+    , greyScale :: Bool
+    }
+
+decodeMask :: State -> Mask
+decodeMask State{mask} = Mask
+    { blueEmphasis = sel 7
+    , greenEmphasis = sel 6
+    , redEmphasis = sel 5
+    , spriteEnable = sel 4
+    , backgroundEnable = sel 3
+    , spriteLeftColumnEnable = sel 2
+    , backgroundLeftColumnEnable = sel 1
+    , greyScale = sel 0
+    }
+    where sel n = mask `testBit` n
