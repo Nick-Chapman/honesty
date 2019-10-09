@@ -10,46 +10,59 @@ import Honesty.Six502.Decode (decode,reEncode)
 import Honesty.Six502.Disassembler (displayOpLines)
 import Honesty.Six502.Operations (Op)
 import qualified Honesty.PRG as PRG
-import qualified Honesty.Gloss as Gloss(run)
+import qualified Honesty.Gloss as Gloss(Size(..),run)
 import qualified Honesty.TraceCpu as TraceCpu(printRun)
 import qualified Honesty.SpeedTest as SpeedTest(run)
 
 main :: IO ()
 main = do
-    getArgs >>= \case
-        ["--speed"] -> speed path Nothing
-        ["--speed",max] -> speed path (Just (read max))
+    args <- getArgs
+    let conf = parseArgs args
+    runConf conf
 
-        ["--dis"] -> dis path
-        ["--dis",path] -> dis path
+data Mode
+    = Disassemble6502
+    | Emulate6502
+    | SpeedTestNes
+    | GlossNes
 
-        -- Just see CPU states
-        ["--emu"] -> emu path
-        ["--emu",path] -> emu path
+data Conf = Conf
+    { mode :: Mode
+    , size :: Gloss.Size        -- only for Gloss
+    , fps :: Int                -- only for Gloss
+    , optMaxFrames :: Maybe Int -- only for SpeedTest
+    , path :: String
+    }
 
-        -- NES emulation, using Gloss
-        ["--fs"] -> nes fs path
-        [path,"--fs"] -> nes fs path
+defaultConf :: Conf
+defaultConf = Conf
+    { mode = GlossNes
+    , size = Gloss.Normal
+    , fps = 30                  -- try 45 on a faster machine
+    , optMaxFrames = Nothing
+    , path = "data/dk.nes"
+    }
 
-        [] -> nes small path
-        [path] -> nes small path
+parseArgs :: [String] -> Conf
+parseArgs args = loop args defaultConf
+    where
+        loop args conf = case args of
+            [] -> conf
+            "--dis":rest -> loop rest $ conf { mode = Disassemble6502 }
+            "--emu":rest -> loop rest $ conf { mode = Emulate6502 }
+            "--speed":rest -> loop rest $ conf { mode = SpeedTestNes }
+            "--tiny":rest -> loop rest $ conf { size = Gloss.Tiny }
+            "--full":rest -> loop rest $ conf { size = Gloss.Full }
+            "--fps":n:rest -> loop rest $ conf { fps = read n }
+            "--max-frames":n:rest -> loop rest $ conf { optMaxFrames = Just (read n) }
+            path:rest -> loop rest $ conf { path }
 
-        args -> error $ "args: " <> show args
-  where
-      path :: String -- default (for stack run)
-      path = "data/dk.nes"
-      --path = "data/nestest.nes"
-
-speed :: String -> Maybe Int -> IO () -- test the speed of simulation (without gloss graphics)
-speed path = SpeedTest.run path
-
-nes :: (Bool,Int) -> String -> IO ()
-nes (fs,scale) path = Gloss.run path fs scale
-
-type Setup = (Bool,Int)
-small,fs :: Setup
-small = (False,2)
-fs = (True,3)
+runConf :: Conf -> IO ()
+runConf = \case
+    Conf{mode=Disassemble6502,path} -> dis path
+    Conf{mode=Emulate6502,path} -> emu path
+    Conf{mode=SpeedTestNes,path,optMaxFrames} -> SpeedTest.run path optMaxFrames
+    Conf{mode=GlossNes,size,path,fps} -> Gloss.run path size fps
 
 dis :: String -> IO ()
 dis path = do
@@ -78,6 +91,7 @@ emu path = do
   where
     numSteps :: Int
     numSteps =
+        -- TODO: avoid this hack by passing as parameter from ./test.sh
         case path of
             "data/nestest.nes" -> 5828 -- until reach unimplemented DCP
             _ -> 0

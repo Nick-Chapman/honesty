@@ -78,7 +78,12 @@ And the `nestest` rom and log from
     ./test.sh
     stack run -- --speed
     stack run
-    stack run -- --fs
+    stack run -- --dis
+    stack run -- --emu          (6502 only)
+    stack run -- --tiny
+    stack run -- --full
+    stack run -- --full --fps 45
+    stack run -- --full --fps 45 path/to/rom
 
 
 ### Keys for NES controller emulation

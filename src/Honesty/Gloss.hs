@@ -1,5 +1,5 @@
 
-module Honesty.Gloss(run) where
+module Honesty.Gloss(Size(..),run) where
 
 import Data.IORef
 import Graphics.Gloss (translate,scale,pictures,color,cyan,Picture(..))
@@ -15,8 +15,10 @@ import Honesty.World as World
 import qualified Honesty.Controller as Controller
 import qualified Honesty.PPU.Graphics as Graphics
 
-run :: String -> Bool -> Int -> IO ()
-run path fs sc = do
+data Size = Tiny | Normal | Full
+
+run :: String -> Size -> Int -> IO ()
+run path size fps = do
     let debug = True
     model <- world0 path
 
@@ -27,11 +29,15 @@ run path fs sc = do
         (\e m -> handleEventWorld e m)
         (\d m -> updateWorld debug d m)
     where
-        dis = if fs
+
+        (sc,full) = case size of
+            Tiny -> (1,False)
+            Normal -> (2,False)
+            Full -> (3,True)
+
+        dis = if full
               then Gloss.FullScreen
               else Gloss.InWindow "NES" (sc * x,sc * y) (0,0)
-
-        fps = 30
 
         doPosition = doScale . doBorder . doTransOriginUL
         doScale = scale (fromIntegral sc) (fromIntegral sc)
