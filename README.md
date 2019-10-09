@@ -18,10 +18,10 @@ For a more detailed description of the development progress, see the [developer 
 
 There is still much todo. The following are probably the next things:
 
-+ Increase speed: Currently it runs at about 1/3 speed required.. UPDATE: now about 3/4 speed
+- Increase speed: Currently it runs at about 1/3 speed required.. UPDATE: now about 3/4 speed
 - Improve sprite rendering to properly support sprite overlap
 - Add cycle-count to DMA (currently this happens in 0-time!)
-+ Revisit the spec for the PPU regs: `PPUCTRL`, `PPUMASK`, `PPUSTATUS` -- done
+- Revisit the spec for the PPU regs: `PPUCTRL`, `PPUMASK`, `PPUSTATUS` -- done
 - Support sprite-0 collision
 - Support sprite overflow
 - Nametable mirroring
