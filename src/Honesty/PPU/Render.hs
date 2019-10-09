@@ -33,8 +33,8 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
     let control@Control
             { masterSlave
             , spriteHeight
-            --, backgroundTileSelect
-            --, spriteTileSelect
+            , backgroundTileSelect
+            , spriteTileSelect
             --, nameTableSelect1
             --, nameTableSelect0
             } = Regs.decodeControl regs
@@ -42,12 +42,15 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
     when (masterSlave) $ error "masterSlave/Master"
     when (spriteHeight) $ error "spriteHeight/8x16"
 
+    let patB = if backgroundTileSelect then pat2 else pat1
+    let patS = if spriteTileSelect then pat2 else pat1
+
     let mask@Mask
             { blueEmphasis
             , greenEmphasis
             , redEmphasis
-            --, spriteEnable
-            --, backgroundEnable
+            , spriteEnable
+            , backgroundEnable
             --, spriteLeftColumnEnable
             --, backgroundLeftColumnEnable
             , greyScale
@@ -64,12 +67,15 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
     kb <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
     --kb2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-    let sprites = Graphics.seeSprites palettes oamBytes pat1
+    let sprites = Graphics.seeSprites palettes oamBytes patS
 
     let at = Graphics.screenAT bg palettes (drop 960 kb)
-    let pf = Graphics.screenPF bg palettes kb pat2
-    let spr = Graphics.screenSprites bg palettes oamBytes pat1
-    let combined = Graphics.screenCombined bg palettes (oamBytes,pat1) (kb,pat2)
+    let pf = Graphics.screenPF bg palettes kb patB
+    let spr = Graphics.screenSprites bg palettes oamBytes patS
+    let combined =
+            Graphics.screenCombined bg palettes
+            (spriteEnable,oamBytes,patS)
+            (backgroundEnable,kb,patB)
 
     return $ Display { bg, at, pf, spr, sprites, combined, control, mask }
 

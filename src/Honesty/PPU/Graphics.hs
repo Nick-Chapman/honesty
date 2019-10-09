@@ -290,19 +290,16 @@ screenSprites bg pals oamBytes pat = do
     Screen { height = 240, width = 256, bs = mkBS cols }
 
 
-
-screenCombined :: Colour -> Palettes -> ([Byte],PAT) -> ([Byte],PAT) -> Screen
-screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
+screenCombined :: Colour -> Palettes -> (Bool,[Byte],PAT) -> (Bool,[Byte],PAT) -> Screen
+screenCombined bg pals (spriteEnable,oamBytes,patS) (backgroundEnable,kb,patB) = do
     let nt = listArray (0,959) (take 960 kb)
     let at = listArray (0,63) (drop 960 kb)
-    let sprites = seeSprites pals oamBytes pat1
+    let sprites = if spriteEnable then seeSprites pals oamBytes patS else []
     let bs = mkBS $ do
             y <- [0..239]
             let spritesOnLine = take 8 $ flip filter sprites $ \Sprite{y=yp} -> yp<=y && y<yp+8
             x <- [0..255]
-
             let spritesAtPoint = flip filter spritesOnLine $ \Sprite{x=xp} -> xp<=x && x<xp+8
-
             let oc = case spritesAtPoint of
                          [] -> Nothing
                          Sprite{x=xp,y=yp,ocs}:_ -> do -- TODO: sprite transparency
@@ -310,33 +307,47 @@ screenCombined bg pals (oamBytes,pat1) (kb,pat2) = do
                              let xi = x - xp
                              let i = 8 * yi + xi
                              ocs !! i
-
             case oc of
-                Just col -> return col
-                Nothing -> do
-                    let (PAT pt) = pat2
-                    let nti = 32*(y`div`8) + x`div`8
-                    let ti = fromIntegral $ unByte $ nt ! nti
-                    let pti = 16*ti + y`mod`8
-                    let tileByteA = pt ! (pti+8)
-                    let tileByteB = pt ! pti
-                    let tileBitA = tileByteA `testBit` (7 - x`mod`8)
-                    let tileBitB = tileByteB `testBit` (7 - x`mod`8)
-                    let cSel =
-                            if tileBitA
-                            then (if tileBitB then CS3 else CS2)
-                            else (if tileBitB then CS1 else BG)
-                    let ati = 8*(y`div`32) + x`div`32
-                    let atByte  = at ! ati
-                    let x4 = x `testBit` 4
-                    let y4 = y `testBit` 4
-                    let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 1 else 0) -- 0..3
-                    let atBitA = atByte `testBit` (2*quad + 1)
-                    let atBitB = atByte `testBit` (2*quad)
-                    let pSel =
-                            if atBitA
-                            then (if atBitB then Pal3 else Pal2)
-                            else (if atBitB then Pal1 else Pal0)
-                    let pal = selectPalette pals pSel
-                    return $ selectColour bg pal cSel
+                Just col -> [col]
+                Nothing ->
+                    if backgroundEnable
+                    then [screenPlayField bg nt at pals patB x y]
+                    else [bg]
     Screen { height = 240, width = 256, bs }
+
+
+screenPlayField ::
+    Colour
+    -> Array Int Byte
+    -> Array Int Byte
+    -> Palettes
+    -> PAT
+    -> Int
+    -> Int
+    -> Colour
+screenPlayField bg nt at pals patB x y = do
+    let (PAT pt) = patB
+    let nti = 32*(y`div`8) + x`div`8
+    let ti = fromIntegral $ unByte $ nt ! nti
+    let pti = 16*ti + y`mod`8
+    let tileByteA = pt ! (pti+8)
+    let tileByteB = pt ! pti
+    let tileBitA = tileByteA `testBit` (7 - x`mod`8)
+    let tileBitB = tileByteB `testBit` (7 - x`mod`8)
+    let cSel =
+            if tileBitA
+            then (if tileBitB then CS3 else CS2)
+            else (if tileBitB then CS1 else BG)
+    let ati = 8*(y`div`32) + x`div`32
+    let atByte  = at ! ati
+    let x4 = x `testBit` 4
+    let y4 = y `testBit` 4
+    let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 1 else 0) -- 0..3
+    let atBitA = atByte `testBit` (2*quad + 1)
+    let atBitB = atByte `testBit` (2*quad)
+    let pSel =
+            if atBitA
+            then (if atBitB then Pal3 else Pal2)
+            else (if atBitB then Pal1 else Pal0)
+    let pal = selectPalette pals pSel
+    selectColour bg pal cSel
