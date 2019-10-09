@@ -38,7 +38,7 @@ readFromAddr ns@Nes.State{cc} Nes.RamRom{prg,chr,ram} pc = do
     let opPrg1 = Nothing
     -- TODO: move seq of 3 interpreters into CPU/Emu code (and share)
     let mem_eff = Six502.Mem.reads pc
-    let mm_eff = Six502.Mem.inter  (opPrg1,prg) mem_eff
+    let mm_eff = Six502.Mem.inter (opPrg1,prg) mem_eff
     let buttons = Set.empty
     (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter cc chr buttons mm_eff) ns
     return bytes

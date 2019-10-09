@@ -105,3 +105,15 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 - Preparing to rename project/repo as `honesty`
 - Re-write the github README.md
 - Begin this diary.md (adding retrospective entries), looking at commits
+
+### Oct 8, 2019
+
+- profiling... get fps to about 30
+
+### Oct 9, 2019
+
+- get fps of 45 on a newer laptop!
+- focus on correct handling of PPU regs control/mask/status - and display values in gloss
+- investigate why ice/ballon dont seem to do anything
+- fix long standing bugs in setVBlank.. was updating control instead of status register!
+- YES.. see title page for and game demo for balloon.nes !!

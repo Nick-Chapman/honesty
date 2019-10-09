@@ -34,7 +34,7 @@ reads addr = do
     return [byte0,byte1,byte2]
 
 inter :: (Maybe PRG.ROM,PRG.ROM) -> Effect a -> MM.Effect a
-inter s@(optPrg1,prg2) = loop  where
+inter (optPrg1,prg2) = loop  where
   loop :: Effect a -> MM.Effect a
   loop = \case
     Ret x -> return x
@@ -64,7 +64,7 @@ inter s@(optPrg1,prg2) = loop  where
         Joy2 -> do
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
             return ()
-        Dma -> inter s (dma v)
+        Dma -> loop (dma v)
 
     where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
 

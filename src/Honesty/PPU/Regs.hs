@@ -52,7 +52,7 @@ state0 :: State
 state0 = State
     { control = 0x0
     , mask = 0x0
-    , status = 0x80 -- why must this be set?
+    , status = 0x00
     , addr_latch = Hi
     , addr_hi= 0x0
     , addr_lo = 0x0
@@ -60,8 +60,8 @@ state0 = State
     }
 
 setVBlank :: State -> Bool -> State
-setVBlank state@State{control} bool =
-    state { control = (if bool then setBit else clearBit) control 7 }
+setVBlank state@State{status} bool =
+    state { status = (if bool then setBit else clearBit) status 7 }
 
 isEnabledNMI :: State -> Bool
 isEnabledNMI State{control} = testBit control 7
@@ -69,13 +69,13 @@ isEnabledNMI State{control} = testBit control 7
 data AddrLatch = Hi | Lo deriving (Show)
 
 inter :: Cycles -> CHR.ROM -> State -> Effect a -> PMem.Effect (State, a)
-inter cc chr state@State{control,mask,status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
+inter cc chr state@State{status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
 
     Ret x -> return (state,x)
     Bind e f -> do (state',a) <- inter cc chr state e; inter cc chr state' (f a)
 
-    Read PPUCTRL -> return (state,control)
-    Read PPUMASK -> return (state,mask)
+    Read PPUCTRL -> error "Read PPUCTRL"
+    Read PPUMASK -> error "Read PPUMASK"
     Read PPUSTATUS -> do
         let state' = state { addr_latch = Hi , status = clearBit status 7 }
         return (state',status)
@@ -90,14 +90,13 @@ inter cc chr state@State{control,mask,status,addr_latch,addr_hi,addr_lo,oam_addr
 
     Write PPUCTRL b -> return (state { control = b }, ())
     Write PPUMASK b -> return (state { mask = b }, ())
-    Write PPUSTATUS b -> return (state { status = b }, ())
+    Write PPUSTATUS _ -> error "Write PPUSTATUS"
 
     Write OAMADDR b -> return (state { oam_addr = b }, ())
 
     Write OAMDATA b -> do
         PMem.WriteOam oam_addr b
         return (state { oam_addr = oam_addr + 1 }, ()) -- TODO: does this do required byte wrap?
-
 
     Write PPUSCROLL _ -> do return (state, ()) -- TODO: dont ignore for scrolling
     Write PPUADDR b -> do
