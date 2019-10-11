@@ -6,7 +6,10 @@ module Honesty.World(
     updateWorld,
     ) where
 
+import Data.Fixed(Fixed(..),HasResolution,resolution)
+import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
 import Data.Set(Set)
+import Text.Printf (printf)
 import qualified Data.Set as Set
 
 import Honesty.Emu (neverStopping)
@@ -30,6 +33,8 @@ data ChooseToDisplay
 
 data World = World
     { frameCount :: !Int
+    , time :: UTCTime
+    , fps :: Fps
     , display :: !Display
     , buttons :: !Buttons
     , rr :: !Nes.RamRom
@@ -49,15 +54,16 @@ world0 path = do
     let ns = state0 pc0
     let Nes.RamRom{ram} = rr
     let Nes.State{regs,pal,oam} = ns
-    let frameCount = 0
     display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames buttons $ Emu.interpret rr ns neverStopping
-
     let chooseL = cycle [ChooseNothing .. ChooseCombined]
     let chooseR = drop 4 $ cycle [ChooseNothing .. ChooseCombined]
-
-    return $ World { frameCount , display , buttons, rr, frames
+    time <- getCurrentTime
+    return $ World { frameCount = 0
+                   , time
+                   , fps = Fps $ 0
+                   , display , buttons, rr, frames
                    , paused = False
                    , chooseL
                    , chooseR
@@ -70,7 +76,30 @@ world0 path = do
     where cycle xs = ys where ys = xs <> ys
 
 updateWorld :: Bool -> Float -> World -> IO World
-updateWorld _debug _delta world@World{frameCount,buttons,frames,paused} =
+updateWorld _debug _delta world@World{frameCount,time,fps,buttons,frames,paused} =
     if paused then return world else do
         (display,frames) <- Sim.unFrames frames buttons
-        return $ world { frameCount = frameCount + 1, display, frames }
+        time' <- getCurrentTime
+        let fpsNow = makeFps 1 time time'
+        let fps' = smoothFps fps fpsNow
+        return $ world { frameCount = frameCount + 1, time = time', fps = fps', display, frames }
+
+
+newtype Fps = Fps Float
+
+instance Show Fps where show (Fps f) = printf "%.01g fps" f
+
+smoothFps :: Fps -> Fps -> Fps
+smoothFps (Fps prev) (Fps next) = Fps $ prev * decay + next * (1 - decay)
+    where decay = 0.99
+
+
+makeFps :: Int -> UTCTime -> UTCTime -> Fps
+makeFps frames a b = do
+    let nd = diffUTCTime b a
+    let f = fromFixed $ nominalDiffTimeToSeconds nd
+    Fps (fromIntegral frames / f)
+
+-- | Convert From Fixed to Fractional
+fromFixed :: (Fractional a, HasResolution b) => Fixed b -> a
+fromFixed fv@(MkFixed v) = (fromIntegral v) / (fromIntegral $ resolution fv)

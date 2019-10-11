@@ -78,7 +78,7 @@ handleEventWorld event world@World{buttons,paused,chooseL,chooseR,
         release but = world { buttons = Set.delete but buttons }
 
 pictureWorld :: IORef Int -> World -> IO Gloss.Picture
-pictureWorld lastFrameCountRef World{frameCount,buttons,
+pictureWorld lastFrameCountRef World{frameCount,fps,buttons,
                                      display=display@Display{bg,sprites,control,mask},
                                      chooseL,chooseR,
                                      debugSprites=ds,
@@ -95,8 +95,9 @@ pictureWorld lastFrameCountRef World{frameCount,buttons,
             , translate 280 0 $ choosePicture display (head chooseR)
             , showIf ds $ translate 560 0 $ picSprites bg sprites
             ]
-        , showIf df $ translate 0 (-290) $ scale 0.2 0.2 $ color cyan $ Text (show droppedFrames)
-        , showIf df $ translate 0 (-330) $ scale 0.2 0.2 $ color cyan $ Text (show frameCount)
+        , showIf df $ translate 0 (-290) $ scale 0.1 0.1 $ color cyan $ Text (show fps)
+        , showIf df $ translate 0 (-310) $ scale 0.1 0.1 $ color cyan $ Text (show droppedFrames)
+        , showIf df $ translate 0 (-330) $ scale 0.1 0.1 $ color cyan $ Text (show frameCount)
         , showIf db $ translate 150 (-330) $ scale 0.3 0.3 $ color cyan $ Text (Controller.showPressed buttons)
         , showIf dr $ translate 500 (-310) $ scale 0.1 0.1 $ picControl control
         , showIf dr $ translate 500 (-330) $ scale 0.1 0.1 $ picMask mask
