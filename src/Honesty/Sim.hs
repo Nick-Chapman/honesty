@@ -10,7 +10,11 @@ import Data.Set as Set
 
 import Honesty.Nes as Nes
 import Honesty.PPU.Render(Display)
+import Honesty.Six502.Disassembler(ljust,displayOpLine)
 import qualified Honesty.Controller as Controller
+import qualified Honesty.Six502.Cpu as Six502.Cpu
+import qualified Honesty.Six502.Emu as Six502.Emu
+import qualified Honesty.Six502.Decode as Six502.Decode
 
 type Buttons = Set Controller.Button
 
@@ -26,26 +30,39 @@ data Effect a where
     SampleButtons :: Effect Buttons
     IO :: IO a -> Effect a
 
-trace :: Int -> (Nes.State -> IO ()) -> Effect a -> IO ()
-trace n print eff = do _ <- loop n eff; return () where
+trace :: Int -> Nes.RamRom -> Effect a -> IO ()
+trace n rr eff = do _ <- loop n eff; return () where
     loop :: Int -> Effect a -> IO (Maybe (Int,a))
     loop n  = \case
         Ret a -> return $ Just (n,a)
         Bind e f -> loop n e >>= \case Nothing -> return Nothing; Just (n,v) -> loop n (f v)
         Render _ -> return $ Just (n,())
-        Trace ns -> do print ns; return $ if n==1 then Nothing else Just (n-1,())
+        Trace ns -> do printNS rr ns; return $ if n==1 then Nothing else Just (n-1,())
         SampleButtons -> return $ Just (n,Set.empty)
         IO io -> do v <- io; return $ Just (n,v)
 
 newtype Frames a = Frames { unFrames :: Buttons -> IO (a,Frames a) }
 
-frames :: Buttons -> Effect () -> Frames Display
-frames = loop $ \_ ()-> error "run out of frames" where
+frames :: Nes.RamRom -> Buttons -> Effect () -> Frames Display
+frames _rr = loop $ \_ ()-> error "run out of frames" where
     loop :: (Buttons -> a -> Frames Display) -> Buttons -> Effect a -> Frames Display
     loop k buttons = \case
         Ret a -> k buttons a
         Bind e f -> loop (\buttons v -> loop k buttons (f v)) buttons e
         Render display -> Frames $ \buttons -> return (display,k buttons ())
-        Trace _ns -> k buttons ()
+        Trace _ns -> do
+            Frames $ \buttons -> do
+                --printNS _rr _ns
+                unFrames (k buttons ()) buttons
+
         SampleButtons -> k buttons buttons
         IO io -> Frames $ \buttons -> do v <- io; unFrames (k buttons v) buttons
+
+printNS :: Nes.RamRom -> Nes.State -> IO ()
+printNS rr ns@Nes.State{cpu,cc} = do
+    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
+    bytes <- Six502.Emu.readFromAddr ns rr pc
+    let op = Six502.Decode.decode1 bytes
+    let col = 48
+    let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
+    putStrLn s

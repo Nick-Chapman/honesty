@@ -56,7 +56,7 @@ world0 path = do
     let Nes.State{regs,pal,oam} = ns
     display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
-    let frames = Sim.frames buttons $ Emu.interpret rr ns neverStopping
+    let frames = Sim.frames rr buttons $ Emu.interpret rr ns neverStopping
     let chooseL = cycle [ChooseNothing .. ChooseCombined]
     let chooseR = drop 4 $ cycle [ChooseNothing .. ChooseCombined]
     time <- getCurrentTime

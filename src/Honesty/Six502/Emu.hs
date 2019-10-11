@@ -1,5 +1,6 @@
 
 module Honesty.Six502.Emu(
+    readFromAddr,
     cpuInstruction,
     triggerNMI,
     ) where
@@ -23,6 +24,15 @@ import qualified Honesty.Six502.MM as MM
 import qualified Honesty.Six502.Mem as Mem
 
 type Buttons = Set Controller.Button
+
+readFromAddr :: Nes.State -> Nes.RamRom -> Addr -> IO [Byte]
+readFromAddr ns@Nes.State{cc} Nes.RamRom{prg,chr,ram} pc = do
+    let opPrg1 = Nothing
+    let mem_eff = Mem.reads pc
+    let mm_eff = Mem.inter (opPrg1,prg) mem_eff
+    let buttons = Set.empty
+    (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter cc chr buttons mm_eff) ns
+    return bytes
 
 cpuInstruction :: Nes.RamRom -> PRG.ROM -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
 cpuInstruction Nes.RamRom{chr} prg2 buttons ns@Nes.State{cpu,cc} = do
