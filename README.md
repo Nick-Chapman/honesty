@@ -16,7 +16,7 @@ The 6502 emulator is done. And matches the golden log for the `nestest.nes` rom.
 
 For a more detailed description of the development progress, see the [developer log](diary.md).
 
-There is still much todo. The following are probably the next things:
+There is still much todo:
 
 - Increase speed: Currently it runs at about 1/3 speed required.. UPDATE: now about 3/4 speed
 - Improve sprite rendering to properly support sprite overlap
@@ -108,7 +108,10 @@ These are mapped to the keyboard as:
 - `Space` : pause simulation
 - `F1` : cycle LHS display (initially blank):
 - `F2` : cycle RHS display (initially full display: playfield + sprites)
-- `F3` : toggle active sprite debug
+- `F3` : toggle active sprite display
+- `F4` : toggle fps/skipped/frame# display
+- `F5` : toggle buttons pressed display
+- `F6` : toggle PPU regs (Control/Mask) display
 
 The display mode cycles though various debug displays and the full display:
 
