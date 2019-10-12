@@ -61,13 +61,13 @@ interpret :: Bool -> Nes.RamRom -> Nes.State -> Effect () -> Simulation.Effect (
 interpret debug rr@Nes.RamRom{ram} state step = do (_state,()) <- loop state step; return () where
 
     loop :: Nes.State -> Effect a -> Simulation.Effect (Nes.State, a)
-    loop s@Nes.State{regs,pal,oam} = \case
+    loop s@Nes.State{cc,regs,pal,oam} = \case
         Ret x -> return (s,x)
         Bind e f -> do (s,v) <- loop s e;  loop s (f v)
         SetVBlank bool ->
             return (s {regs = Regs.setVBlank regs bool}, ())
         Render -> do
-            display <- Simulation.IO $ NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
+            display <- Simulation.IO $ NesRam.inter debug cc ram $ NesRam.InVram (PPU.render rr regs pal oam)
             Simulation.Render display
             return (s,())
         Buttons -> do
@@ -75,11 +75,11 @@ interpret debug rr@Nes.RamRom{ram} state step = do (_state,()) <- loop state ste
             return (s,buttons)
         RunCpuInstruction buttons -> do
             Simulation.Trace s
-            Simulation.IO $ NesRam.inter ram (Cpu.cpuInstruction debug rr buttons s)
+            Simulation.IO $ NesRam.inter debug cc ram (Cpu.cpuInstruction debug rr buttons s)
         IsNmiEnabled -> do
             let e = Regs.isEnabledNMI regs
             return (s,e)
         TriggerNMI -> do
             Simulation.Trace s
-            s <- Simulation.IO $ NesRam.inter ram $ Cpu.triggerNMI debug rr s
+            s <- Simulation.IO $ NesRam.inter debug cc ram $ Cpu.triggerNMI debug rr s
             return (s,())

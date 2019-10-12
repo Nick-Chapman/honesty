@@ -10,6 +10,7 @@ import Honesty.Six502.Cycles
 import qualified Honesty.PPU.OAM as OAM
 import qualified Honesty.PPU.Palette as Palette
 import qualified Honesty.Ram2k as Ram2k
+import qualified Honesty.Log as Log
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
@@ -23,6 +24,7 @@ data Effect a where
     InOAM :: OAM.Effect a -> Effect a
     Error :: String -> Effect a
     IO :: IO a -> Effect a
+    Log :: Log.Effect a -> Effect a
 
 type State = (Palette.State, OAM.State)
 
@@ -35,3 +37,4 @@ inter cc s@(pal,oam) = \case
     InOAM eff -> let (oam',v) = OAM.inter oam eff in return ((pal,oam'),v)
     Error mes  -> error $ show cc <> ":" <> mes
     IO e -> do v <- Ram2k.IO e; return (s,v)
+    Log e -> do v <- Ram2k.Log e; return (s,v)

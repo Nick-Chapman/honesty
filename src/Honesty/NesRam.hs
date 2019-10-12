@@ -8,6 +8,7 @@ module Honesty.NesRam(
 import Prelude hiding (init,read)
 import Control.Monad (ap,liftM)
 
+import Honesty.Six502.Cycles
 import qualified Honesty.Ram2k as Ram2k
 
 instance Functor Effect where fmap = liftM
@@ -27,16 +28,17 @@ data MState = MState
 
 newMState :: IO MState
 newMState = do
-    vram <- Ram2k.newMState "vram"
-    wram <- Ram2k.newMState "wram"
+    let (traceV,traceW) = (False,False)
+    vram <- Ram2k.newMState traceV "vram"
+    wram <- Ram2k.newMState traceW "wram"
     return $ MState {vram,wram}
 
-inter :: MState -> Effect a -> IO a
-inter MState{vram,wram} = loop where
+inter :: Bool -> Cycles -> MState -> Effect a -> IO a
+inter debug cc MState{vram,wram} = loop where
   loop :: Effect a -> IO a
   loop = \case
     Ret x -> return x
     Bind e f -> do v <- loop e; loop (f v)
-    InVram e -> Ram2k.interIO vram e
-    InWram e -> Ram2k.interIO wram e
+    InVram e -> Ram2k.interIO debug cc vram e
+    InWram e -> Ram2k.interIO debug cc wram e
     EmbedIO io -> io

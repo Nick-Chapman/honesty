@@ -65,7 +65,7 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
     let oamBytes = OAM.contents oam
 
     kb <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
-    --kb2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
+    --kb <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
     let sprites = Graphics.seeSprites palettes oamBytes patS
 

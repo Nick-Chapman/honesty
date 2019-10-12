@@ -29,7 +29,7 @@ readFromAddr ns@Nes.State{cc} Nes.RamRom{optPrg1,prg2,chr,ram} pc = do
     let mem_eff = Mem.reads pc
     let mm_eff = Mem.inter (optPrg1,prg2) mem_eff
     let buttons = Set.empty
-    (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter False cc chr buttons mm_eff) ns
+    (bytes,_) <- NesRam.inter False cc ram $ runStateT (MM.inter False cc chr buttons mm_eff) ns
     return bytes
 
 cpuInstruction :: Bool -> Nes.RamRom -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)

@@ -54,8 +54,8 @@ world0 path debug = do
     (rr,pc0) <- rr0pc0 path
     let ns = state0 pc0
     let Nes.RamRom{ram} = rr
-    let Nes.State{regs,pal,oam} = ns
-    display <- NesRam.inter ram $ NesRam.InVram (PPU.render rr regs pal oam)
+    let Nes.State{regs,pal,oam,cc} = ns
+    display <- NesRam.inter debug cc ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames trace rr buttons $ Emu.interpret debug rr ns neverStopping
     let chooseL = cycle [ChooseNothing .. ChooseCombined]

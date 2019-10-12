@@ -10,6 +10,7 @@ import Control.Monad (ap,liftM)
 
 import Honesty.Addr
 import Honesty.Byte
+import qualified Honesty.Log as Log
 import qualified Honesty.Controller as Controller
 import qualified Honesty.PPU.Regs as Regs
 import qualified Honesty.PRG as PRG
@@ -51,6 +52,9 @@ inter (optPrg1,prg2) = loop  where
             let b :: Byte = 0 -- no joystick 2
             return b
         Dma -> error $ "CPU.Mem, suprising read from DMA"
+        NoIdea -> do
+            MM.Log $ Log.message $ "CPU.Mem, suprising read from NoIdea: " <> show addr
+            return 0
 
     Write addr v -> case decode "write" addr of
         Ram x -> MM.Ram (Ram2k.Write x v)
@@ -65,8 +69,14 @@ inter (optPrg1,prg2) = loop  where
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
             return ()
         Dma -> loop (dma v)
+        NoIdea ->
+            error $ "CPU.Mem, suprising write to NoIdea: " <> show addr
 
-    where prg1 = case optPrg1 of Just prg -> prg; Nothing -> error "CPU.Mem, no prg in bank 1"
+    where prg1 = case optPrg1 of
+              Just prg -> prg
+              Nothing ->
+                  --error "CPU.Mem, no prg in bank 1"
+                  prg2 -- HACK, for Ice
 
 dma :: Byte -> Effect ()
 dma b = do
@@ -76,11 +86,11 @@ dma b = do
         Write 0x2004 v --OAMDATA
 
 decode :: String -> Addr -> Decode
-decode tag a = if
+decode _tag a = if
     | a < 0x800 -> Ram $ fromIntegral $ unAddr a
 
     -- 3 mirrors -- wait to see if they are used...
-    -- | a < 0x1000 -> Ram $ a `minusAddr` 0x800
+    | a < 0x1000 -> Ram $ a `minusAddr` 0x800
 
     | a == 0x2000 -> PPU Regs.PPUCTRL
     | a == 0x2001 -> PPU Regs.PPUMASK
@@ -105,8 +115,8 @@ decode tag a = if
     --0x4020 .. 0x7FFF -- PRG Ram ??
     | a >= 0x8000 && a <= 0xBFFF -> Rom1 $ a `minusAddr` 0x8000
     | a >= 0xC000 && a <= 0xFFFF -> Rom2 $ a `minusAddr` 0xC000
-    | otherwise ->
-      error $ unwords ["CPU.Mem.decode ("<>tag<>") unsupported address:", show a]
+
+    | otherwise -> NoIdea
 
 data Decode
     = Ram Int
@@ -117,3 +127,4 @@ data Decode
     | Joy1
     | Joy2
     | Dma
+    | NoIdea

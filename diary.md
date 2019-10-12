@@ -138,3 +138,10 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 - Thinking about code restructure needed to allow PPU/CPU to communicate mid frame
     - CPU -> PPU : to update scrolling info
     - PPU -> CPU : to indicate when sprite0-hit occurred
+
+### Oct 12, 2019
+
+- trying to support NametableMirroring, but it's no right yet.
+- making some progress with Ice.nes..
+    - I can actually see something (after Enter is pressed)
+- but mostly just logging in a more convenient way, using Log.effect, which respect --debug

@@ -13,10 +13,10 @@ import Data.Bits
 
 import Honesty.Addr
 import Honesty.Byte
-import Honesty.Six502.Cycles
 import qualified Honesty.PPU.PMem as PMem
+import qualified Honesty.Log as Log
 
-import Control.Monad (ap,liftM,when)
+import Control.Monad (ap,liftM)
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
@@ -68,8 +68,8 @@ isEnabledNMI State{control} = testBit control 7
 
 data AddrLatch = Hi | Lo deriving (Show)
 
-inter :: Bool -> Cycles -> State -> Effect a -> PMem.Effect (State, a)
-inter debug cc = loop where
+inter :: State -> Effect a -> PMem.Effect (State, a)
+inter = loop where
 
   loop :: State -> Effect a -> PMem.Effect (State, a)
   loop state@State{status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
@@ -100,8 +100,8 @@ inter debug cc = loop where
         PMem.WriteOam oam_addr b
         return (state { oam_addr = oam_addr + 1 }, ())
 
-    Write PPUSCROLL _b -> do
-        when debug $ PMem.IO (print (cc,"write",PPUSCROLL,_b))
+    Write PPUSCROLL b -> do
+        PMem.Log $ Log.message $ "write: PPUSCROLL = " <> show b
         case addr_latch of
             Hi -> return (state { addr_latch = Lo }, ())
             Lo -> return (state { addr_latch = Hi }, ())
