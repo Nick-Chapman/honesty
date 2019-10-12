@@ -93,13 +93,17 @@ pictureWorld lastFrameCountRef World{frameCount,fps,buttons,
             , translate 280 0 $ choosePicture display (head chooseR)
             , showIf ds $ translate 560 0 $ picSprites bg sprites
             ]
-        , showIf df $ translate 0 (-290) $ scale 0.1 0.1 $ color cyan $ Text (show fps)
-        , showIf df $ translate 0 (-310) $ scale 0.1 0.1 $ color cyan $ Text (show droppedFrames)
-        , showIf df $ translate 0 (-330) $ scale 0.1 0.1 $ color cyan $ Text (show frameCount)
+        , showIf df $ translate 0 (-290) $ scale 0.1 0.1 $ color cyan $ picLabelled "frame" frameCount
+        , showIf df $ translate 0 (-310) $ scale 0.1 0.1 $ color cyan $ picLabelled "drop" droppedFrames
+        , showIf df $ translate 0 (-330) $ scale 0.1 0.1 $ color cyan $ picLabelled "fps" fps
         , showIf db $ translate 150 (-330) $ scale 0.3 0.3 $ color cyan $ Text (Controller.showPressed buttons)
         , showIf dr $ translate 500 (-310) $ scale 0.1 0.1 $ picControl control
         , showIf dr $ translate 500 (-330) $ scale 0.1 0.1 $ picMask mask
         ]
+
+picLabelled :: Show a => String -> a -> Picture
+picLabelled tag v =
+    pictures [Text tag, translate 500 0 $ Text (show v) ]
 
 choosePicture :: Display -> ChooseToDisplay -> Picture
 choosePicture Display{at,pf,spr,combined} = \case

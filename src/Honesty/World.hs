@@ -88,7 +88,7 @@ updateWorld world@World{frameCount,time,fps,buttons,frames,paused} =
 
 newtype Fps = Fps Float
 
-instance Show Fps where show (Fps f) = printf "%.01g fps" f
+instance Show Fps where show (Fps f) = printf "%.01g" f
 
 smoothFps :: Fps -> Fps -> Fps
 smoothFps (Fps prev) (Fps next) = Fps $ prev * decay + next * (1 - decay)
