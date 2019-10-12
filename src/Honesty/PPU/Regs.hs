@@ -14,10 +14,9 @@ import Data.Bits
 import Honesty.Addr
 import Honesty.Byte
 import Honesty.Six502.Cycles
-import qualified Honesty.CHR as CHR
 import qualified Honesty.PPU.PMem as PMem
 
-import Control.Monad (ap,liftM)
+import Control.Monad (ap,liftM,when)
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
@@ -31,6 +30,7 @@ data Name
     | PPUSCROLL
     | PPUADDR
     | PPUDATA
+    deriving (Show)
 
 data Effect a where
     Ret :: a -> Effect a
@@ -68,11 +68,13 @@ isEnabledNMI State{control} = testBit control 7
 
 data AddrLatch = Hi | Lo deriving (Show)
 
-inter :: Cycles -> CHR.ROM -> State -> Effect a -> PMem.Effect (State, a)
-inter cc chr state@State{status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
+inter :: Bool -> Cycles -> State -> Effect a -> PMem.Effect (State, a)
+inter debug cc = loop where
 
+  loop :: State -> Effect a -> PMem.Effect (State, a)
+  loop state@State{status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
     Ret x -> return (state,x)
-    Bind e f -> do (state',a) <- inter cc chr state e; inter cc chr state' (f a)
+    Bind e f -> do (state',a) <- loop state e; loop state' (f a)
 
     Read PPUCTRL -> error "Read PPUCTRL"
     Read PPUMASK -> error "Read PPUMASK"
@@ -96,13 +98,19 @@ inter cc chr state@State{status,addr_latch,addr_hi,addr_lo,oam_addr} = \case
 
     Write OAMDATA b -> do
         PMem.WriteOam oam_addr b
-        return (state { oam_addr = oam_addr + 1 }, ()) -- TODO: does this do required byte wrap?
+        return (state { oam_addr = oam_addr + 1 }, ())
 
-    Write PPUSCROLL _ -> do return (state, ()) -- TODO: dont ignore for scrolling
+    Write PPUSCROLL _b -> do
+        when debug $ PMem.IO (print (cc,"write",PPUSCROLL,_b))
+        case addr_latch of
+            Hi -> return (state { addr_latch = Lo }, ())
+            Lo -> return (state { addr_latch = Hi }, ())
+
     Write PPUADDR b -> do
         case addr_latch of
             Hi -> return (state { addr_hi = b, addr_latch = Lo }, ())
             Lo -> return (state { addr_lo = b, addr_latch = Hi }, ())
+
     Write PPUDATA b -> do
         let addr = addrOfHiLo addr_hi addr_lo
         PMem.Write addr b

@@ -10,5 +10,6 @@ printRun n path = do
     (rr,pc0) <- rr0pc0 path
     let ns = state0 pc0
     let step = Emu.neverStopping
-    let eff = Emu.interpret rr ns step
+    let debug = False
+    let eff = Emu.interpret debug rr ns step
     Sim.trace n rr eff

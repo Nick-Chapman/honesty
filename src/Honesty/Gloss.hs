@@ -18,17 +18,16 @@ import qualified Honesty.PPU.Graphics as Graphics
 
 data Size = Tiny | Normal | Full
 
-run :: String -> Size -> Int -> IO ()
-run path size fps = do
-    let debug = True
-    model <- world0 path
+run :: String -> Size -> Int -> Bool -> IO ()
+run path size fps trace = do
+    model <- world0 path trace
 
     lastFrameCountRef <- newIORef 0
 
     Gloss.playIO dis (Gloss.greyN 0.3) fps model
         (\  m -> do pic <- pictureWorld lastFrameCountRef m; return $ doPosition pic)
         (\e m -> handleEventWorld e m)
-        (\d m -> updateWorld debug d m)
+        (\_ m -> updateWorld m)
     where
 
         (sc,full) = case size of
@@ -52,7 +51,6 @@ run path size fps = do
 handleEventWorld :: Gloss.Event -> World -> IO World
 handleEventWorld event world@World{buttons,paused,chooseL,chooseR,
                                    debugSprites,debugFrames,debugButtons,debugRegs} = do
-    --print event
     return $ case event of
         EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
         EventKey (Char 'z') ud _ _ -> joy ud Controller.A

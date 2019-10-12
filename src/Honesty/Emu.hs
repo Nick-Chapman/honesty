@@ -57,8 +57,8 @@ data Effect a where
     IsNmiEnabled :: Effect Bool
     TriggerNMI :: Effect ()
 
-interpret :: Nes.RamRom -> Nes.State -> Effect () -> Simulation.Effect ()
-interpret rr@Nes.RamRom{ram,prg} state step = do (_state,()) <- loop state step; return () where
+interpret :: Bool -> Nes.RamRom -> Nes.State -> Effect () -> Simulation.Effect ()
+interpret debug rr@Nes.RamRom{ram} state step = do (_state,()) <- loop state step; return () where
 
     loop :: Nes.State -> Effect a -> Simulation.Effect (Nes.State, a)
     loop s@Nes.State{regs,pal,oam} = \case
@@ -75,11 +75,11 @@ interpret rr@Nes.RamRom{ram,prg} state step = do (_state,()) <- loop state step;
             return (s,buttons)
         RunCpuInstruction buttons -> do
             Simulation.Trace s
-            Simulation.IO $ NesRam.inter ram (Cpu.cpuInstruction rr prg buttons s)
+            Simulation.IO $ NesRam.inter ram (Cpu.cpuInstruction debug rr buttons s)
         IsNmiEnabled -> do
             let e = Regs.isEnabledNMI regs
             return (s,e)
         TriggerNMI -> do
             Simulation.Trace s
-            s <- Simulation.IO $ NesRam.inter ram $ Cpu.triggerNMI rr prg s
+            s <- Simulation.IO $ NesRam.inter ram $ Cpu.triggerNMI debug rr s
             return (s,())

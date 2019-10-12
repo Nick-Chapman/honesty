@@ -19,6 +19,7 @@ data Effect a where
     Bind :: Effect a -> (a -> Effect b) -> Effect b
     Read :: Int -> Effect Byte
     Write :: Int -> Byte -> Effect ()
+    IO :: IO a -> Effect a
 
 size :: Int
 size = 0x800 --2k
@@ -35,7 +36,6 @@ interIO m@MState{name,arr} = \case
     Ret x -> return x
     Bind e f -> do v <- interIO m e; interIO m (f v)
     Write a b -> do
-        --print ("WRITE",name,a,b)
         bounds <- getBounds arr
         if inRange bounds a
             then writeArray arr a b
@@ -43,7 +43,6 @@ interIO m@MState{name,arr} = \case
     Read a -> do
         bounds <- getBounds arr
         if inRange bounds a
-            then do b <- readArray arr a
-                    --print ("READ",name,a,b)
-                    return b
+            then readArray arr a
             else error $ "Ram2k(" <> name <> ").read: " <> show a
+    IO io -> io

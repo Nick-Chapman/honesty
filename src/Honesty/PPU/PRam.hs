@@ -22,6 +22,7 @@ data Effect a where
     InPalette :: Palette.Effect a -> Effect a
     InOAM :: OAM.Effect a -> Effect a
     Error :: String -> Effect a
+    IO :: IO a -> Effect a
 
 type State = (Palette.State, OAM.State)
 
@@ -33,3 +34,4 @@ inter cc s@(pal,oam) = \case
     InPalette eff -> let (pal',v) = Palette.inter pal eff in return ((pal',oam),v)
     InOAM eff -> let (oam',v) = OAM.inter oam eff in return ((pal,oam'),v)
     Error mes  -> error $ show cc <> ":" <> mes
+    IO e -> do v <- Ram2k.IO e; return (s,v)

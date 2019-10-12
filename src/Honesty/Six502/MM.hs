@@ -32,8 +32,8 @@ instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
 
-inter :: Cycles -> CHR.ROM -> Buttons -> Effect a -> StateT Nes.State NesRam.Effect a
-inter cc chr buttons = loop where
+inter :: Bool -> Cycles -> CHR.ROM -> Buttons -> Effect a -> StateT Nes.State NesRam.Effect a
+inter debug cc chr buttons = loop where
   loop :: Effect a -> StateT Nes.State NesRam.Effect a
   loop = \case
     Ret x -> return x
@@ -47,7 +47,7 @@ inter cc chr buttons = loop where
     Reg eff -> do
         StateT $ \ns@Nes.State{regs,pal,oam} -> NesRam.InVram $ do
             -- TODO: these 3 PPU interpreters should be merged and moved in to PPU subdir
-            ((pal',oam'),(regs',v)) <- PRam.inter cc (pal,oam) $ PMem.inter chr $ Regs.inter cc chr regs eff
+            ((pal',oam'),(regs',v)) <- PRam.inter cc (pal,oam) $ PMem.inter debug chr $ Regs.inter debug cc regs eff
             return (v, ns { regs = regs', pal = pal', oam = oam' })
 
     Ram eff -> lift $ NesRam.InWram eff

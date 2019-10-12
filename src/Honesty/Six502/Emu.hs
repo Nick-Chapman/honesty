@@ -19,38 +19,32 @@ import Honesty.Six502.Decode (decode1,opSize)
 import Honesty.Six502.Operations
 import qualified Honesty.Controller as Controller
 import qualified Honesty.NesRam as NesRam
-import qualified Honesty.PRG as PRG
 import qualified Honesty.Six502.MM as MM
 import qualified Honesty.Six502.Mem as Mem
 
 type Buttons = Set Controller.Button
 
 readFromAddr :: Nes.State -> Nes.RamRom -> Addr -> IO [Byte]
-readFromAddr ns@Nes.State{cc} Nes.RamRom{prg,chr,ram} pc = do
-    let opPrg1 = Nothing
+readFromAddr ns@Nes.State{cc} Nes.RamRom{optPrg1,prg2,chr,ram} pc = do
     let mem_eff = Mem.reads pc
-    let mm_eff = Mem.inter (opPrg1,prg) mem_eff
+    let mm_eff = Mem.inter (optPrg1,prg2) mem_eff
     let buttons = Set.empty
-    (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter cc chr buttons mm_eff) ns
+    (bytes,_) <- NesRam.inter ram $ runStateT (MM.inter False cc chr buttons mm_eff) ns
     return bytes
 
-cpuInstruction :: Nes.RamRom -> PRG.ROM -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
-cpuInstruction Nes.RamRom{chr} prg2 buttons ns@Nes.State{cpu,cc} = do
-    let opPrg1 = Nothing-- TODO
-    let mm_eff = Mem.inter (opPrg1,prg2) (six_stepInstruction cpu)
-    do
-        ((cpu',cycles),ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
-        let ns'' = ns' { cpu = cpu', cc = cc+cycles }
-        return (ns'',cycles)
+cpuInstruction :: Bool -> Nes.RamRom -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
+cpuInstruction debug Nes.RamRom{chr,optPrg1,prg2} buttons ns@Nes.State{cpu,cc} = do
+    let mm_eff = Mem.inter (optPrg1,prg2) (six_stepInstruction cpu)
+    ((cpu',cycles),ns') <- runStateT (MM.inter debug cc chr buttons mm_eff) ns
+    let ns'' = ns' { cpu = cpu', cc = cc+cycles }
+    return (ns'',cycles)
 
-triggerNMI :: Nes.RamRom -> PRG.ROM -> Nes.State -> NesRam.Effect Nes.State
-triggerNMI Nes.RamRom{chr} prg2 ns@Nes.State{cpu,cc} = do
-    let opPrg1 = Nothing-- TODO
-    let mm_eff = Mem.inter (opPrg1,prg2) (six_triggerNMI cpu)
-    let buttons = Set.empty -- ok?
-    do
-        (cpu',ns') <- runStateT (MM.inter cc chr buttons mm_eff) ns
-        return ns' { cpu = cpu' }
+triggerNMI :: Bool -> Nes.RamRom -> Nes.State -> NesRam.Effect Nes.State
+triggerNMI debug Nes.RamRom{chr,optPrg1,prg2} ns@Nes.State{cpu,cc} = do
+    let mm_eff = Mem.inter (optPrg1,prg2) (six_triggerNMI cpu)
+    let buttons = Set.empty
+    (cpu',ns') <- runStateT (MM.inter debug cc chr buttons mm_eff) ns
+    return ns' { cpu = cpu' }
 
 
 six_triggerNMI :: Cpu.State -> Mem.Effect Cpu.State

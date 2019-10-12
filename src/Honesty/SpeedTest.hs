@@ -13,12 +13,9 @@ import Honesty.World(World(..),world0,updateWorld)
 run :: String -> Maybe Int -> IO ()
 run path maxM = do
     time0 <- getCurrentTime
-    w0 <- world0 path
+    w0 <- world0 path False
     let quit :: Int -> Bool = case maxM of Nothing -> const False; Just n -> (>n)
-    testStepper time0 0 w0 time0 stepWorld forceWorld quit
-
-stepWorld :: World -> IO World
-stepWorld = updateWorld False 0
+    testStepper time0 0 w0 time0 updateWorld forceWorld quit
 
 forceWorld :: World -> Int
 forceWorld World{display=Display{combined}} = do

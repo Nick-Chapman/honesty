@@ -42,7 +42,8 @@ state0 pc0 = State
 
 data RamRom = RamRom
     { ram :: !NesRam.MState,
-      prg :: !PRG.ROM,
+      optPrg1 :: Maybe PRG.ROM,
+      prg2 :: !PRG.ROM,
       chr :: !CHR.ROM,
       pat1 :: !Graphics.PAT,
       pat2 :: !Graphics.PAT
@@ -51,21 +52,21 @@ data RamRom = RamRom
 rr0pc0 :: String -> IO (RamRom, Addr)
 rr0pc0 path = do
     nesfile <- loadNesFile path
-    let prg = prgOfNesFile nesfile
+    let (optPrg1,prg2) = prgOfNesFile nesfile
     let chr = chrOfNesFile nesfile
-    let pc0 = resetAddr path prg
+    let pc0 = resetAddr path prg2
     ram <- NesRam.newMState
     let (pat1,pat2) = patPairFromBS (CHR.bytes chr)
-    let rr = RamRom { ram, prg, chr, pat1, pat2 }
+    let rr = RamRom { ram, optPrg1, prg2, chr, pat1, pat2 }
     return (rr,pc0)
 
-prgOfNesFile :: NesFile -> PRG.ROM
+prgOfNesFile :: NesFile -> (Maybe PRG.ROM, PRG.ROM)
 prgOfNesFile NesFile{prgs} =
     case prgs of
-        [prg] -> prg
-        --[_prg1,prg2] -> prg2
+        [prg2] -> (Nothing, prg2)
+        [prg1,prg2] -> (Just prg1, prg2)
         _  ->
-            error "emu, unexpected number of prg"
+            error $ "emu, unexpected number of prg: " <> show (length prgs)
 
 chrOfNesFile :: NesFile -> CHR.ROM
 chrOfNesFile NesFile{chrs} =

@@ -31,6 +31,7 @@ data Conf = Conf
     , size :: Gloss.Size        -- only for Gloss
     , fps :: Int                -- only for Gloss
     , optMaxFrames :: Maybe Int -- only for SpeedTest
+    , debug :: Bool
     , path :: String
     }
 
@@ -40,6 +41,7 @@ defaultConf = Conf
     , size = Gloss.Normal
     , fps = 30                  -- try 45 on a faster machine
     , optMaxFrames = Nothing
+    , debug = False
     , path = "data/dk.nes"
     }
 
@@ -55,6 +57,7 @@ parseArgs args = loop args defaultConf
             "--full":rest -> loop rest $ conf { size = Gloss.Full }
             "--fps":n:rest -> loop rest $ conf { fps = read n }
             "--max-frames":n:rest -> loop rest $ conf { optMaxFrames = Just (read n) }
+            "--debug":rest -> loop rest $ conf { debug = True }
             path:rest -> loop rest $ conf { path }
 
 runConf :: Conf -> IO ()
@@ -62,7 +65,7 @@ runConf = \case
     Conf{mode=Disassemble6502,path} -> dis path
     Conf{mode=Emulate6502,path} -> emu path
     Conf{mode=SpeedTestNes,path,optMaxFrames} -> SpeedTest.run path optMaxFrames
-    Conf{mode=GlossNes,size,path,fps} -> Gloss.run path size fps
+    Conf{mode=GlossNes,size,path,fps,debug} -> Gloss.run path size fps debug
 
 dis :: String -> IO ()
 dis path = do

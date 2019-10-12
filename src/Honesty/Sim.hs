@@ -5,7 +5,7 @@ module Honesty.Sim(
     Frames(..),frames,
     ) where
 
-import Control.Monad (ap,liftM)
+import Control.Monad (ap,liftM,when)
 import Data.Set as Set
 
 import Honesty.Nes as Nes
@@ -43,8 +43,8 @@ trace n rr eff = do _ <- loop n eff; return () where
 
 newtype Frames a = Frames { unFrames :: Buttons -> IO (a,Frames a) }
 
-frames :: Nes.RamRom -> Buttons -> Effect () -> Frames Display
-frames _rr = loop $ \_ ()-> error "run out of frames" where
+frames :: Bool -> Nes.RamRom -> Buttons -> Effect () -> Frames Display
+frames trace _rr = loop $ \_ ()-> error "run out of frames" where
     loop :: (Buttons -> a -> Frames Display) -> Buttons -> Effect a -> Frames Display
     loop k buttons = \case
         Ret a -> k buttons a
@@ -52,7 +52,7 @@ frames _rr = loop $ \_ ()-> error "run out of frames" where
         Render display -> Frames $ \buttons -> return (display,k buttons ())
         Trace _ns -> do
             Frames $ \buttons -> do
-                --printNS _rr _ns
+                when trace $ printNS _rr _ns
                 unFrames (k buttons ()) buttons
 
         SampleButtons -> k buttons buttons

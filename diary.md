@@ -117,3 +117,24 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 - investigate why ice/ballon dont seem to do anything
 - fix long standing bugs in setVBlank.. was updating control instead of status register!
 - YES.. see title page for and game demo for balloon.nes !!
+
+### Oct 11, 2019
+
+- Fiddling around trying to see how scrolling should work. Added debug flag,
+- See if other games work at all, and if not, where do they get stuck?
+- DK and Balloon fight are the two working games so far.
+- Also now tried Tennis and Popyeye.. these both seem to work too!
+- Ice is said to use vertical scrolling (the easier kind) but it crashes.
+- SMB is failing because it has 2 roms (that should be easy to add - I had it before)
+- Gunsmoke - also has multiple roms.. 8. Another day!
+- Ice.nes is crashing because it tries to write to a high PPU Mem address E... (via 0x2006)
+    - is this a bug?
+    - or game logic going wrong because say sprite0-hit is not implemented?
+    - or do I just need mirroring for high (> 0x3fff) PPU Mem addresses?
+- Try mirroring.. now Ice crashes as it attempts to write to ROM.
+- After adding support for 2 ROMS, SMB also crashes at a ROM write.
+- I believe ROM writes are signals to the game cart,.. so lets just ignore them.
+- YES, see the SMB title screen! But ice is still blank.. is this a NT mirroring/select issues?
+- Thinking about code restructure needed to allow PPU/CPU to communicate mid frame
+    - CPU -> PPU : to update scrolling info
+    - PPU -> CPU : to indicate when sprite0-hit occurred
