@@ -4,18 +4,15 @@ module Honesty.PPU.Graphics(
     Screen(..), mkBS,
     screenToBitmapByteString,screenWidth,screenHeight,
     screenTiles,
-    screenPF,
     Palettes(..),Palette(..),
     screenAT,
     screenPalettes,
     Sprite(..), Priority(..), seeSprites,
-    screenSprites,
     screenCombined,
     ) where
 
 import Data.Array
 import Data.Bits
-import Data.Maybe (listToMaybe)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Builder as BSB
@@ -115,7 +112,6 @@ seeSprite pals (b0,b1,b2,b3) (PAT pt) = do
                     else (if tileBitB then CS1 else BG)
             return $ selectOptColour pal cSel
 
-    --let screen = Screen { height = 8, width = 8, cols }
     Sprite { ocs, x, y, priority }
 
 
@@ -144,45 +140,6 @@ screenTiles (PAT pt) = do
                     else (if tileBitB then CS1 else BG)
             return $ selectColour bg somePalette cSel
     Screen { height = 128, width = 128, bs = mkBS cols}
-
-
-_opt_screenBG :: Colour -> Palettes -> [Byte] -> PAT -> Screen
-_opt_screenBG bg pals kb (PAT pt) = do
-    let nt = listArray (0,959) (take 960 kb)
-    let at = listArray (0,63) (drop 960 kb)
-    let cols = do
-            y76543 <- [0..29::Int]
-            let y4 = y76543 `testBit` 1
-            let y765 = y76543 `div` 4
-            yMod8 <- [0..7::Int]
-            x765 <- [0..7]
-            let ati = 8 * y765 + x765
-            let atByte  = at ! ati
-            x43 <- [0..3::Int]
-            let x76543 = x765 * 4 + x43
-            let x4 = x43 `testBit` 1
-            let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 1 else 0) -- 0..3
-            let atBitA = atByte `testBit` (2*quad + 1)
-            let atBitB = atByte `testBit` (2*quad)
-            let pSel =
-                    if atBitA
-                    then (if atBitB then Pal3 else Pal2)
-                    else (if atBitB then Pal1 else Pal0)
-            let pal = selectPalette pals pSel
-            let nti = 32 * y76543 + x76543
-            let ti = fromIntegral $ unByte $ nt ! nti
-            let pti = 16*ti + yMod8
-            let tileByteA = pt ! (pti+8)
-            let tileByteB = pt ! pti
-            xMod8 <- [0..7::Int]
-            let tileBitA = tileByteA `testBit` (7 - xMod8)
-            let tileBitB = tileByteB `testBit` (7 - xMod8)
-            let cSel =
-                    if tileBitA
-                    then (if tileBitB then CS3 else CS2)
-                    else (if tileBitB then CS1 else BG)
-            return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, bs = mkBS cols }
 
 
 screenPalettes :: Colour -> Palettes -> [Screen]
@@ -233,70 +190,24 @@ screenAT bg pals atBytes = do
 
     Screen { height = 240, width = 256, bs = mkBS cols }
 
+screenCombined :: (Int,Int) -> Colour -> Palettes -> (Bool,[Byte],PAT) -> (Bool,([Byte],[Byte]),PAT) -> Screen
+screenCombined (_scroll_x,scroll_y) bg pals (spriteEnable,oamBytes,patS) (backgroundEnable,(kb1,kb2),patB) = do
 
-screenPF :: Colour -> Palettes -> [Byte] -> PAT -> Screen
-screenPF bg pals kb (PAT pt) = do
-    let nt = listArray (0,959) (take 960 kb)
-    let at = listArray (0,63) (drop 960 kb)
-    let cols = do
-            y <- [0..239]
-            x <- [0..255]
-            let nti = 32*(y`div`8) + x`div`8
-            let ti = fromIntegral $ unByte $ nt ! nti
-            let pti = 16*ti + y`mod`8
-            let tileByteA = pt ! (pti+8)
-            let tileByteB = pt ! pti
-            let tileBitA = tileByteA `testBit` (7 - x`mod`8)
-            let tileBitB = tileByteB `testBit` (7 - x`mod`8)
-            let cSel =
-                    if tileBitA
-                    then (if tileBitB then CS3 else CS2)
-                    else (if tileBitB then CS1 else BG)
-            let ati = 8*(y`div`32) + x`div`32
-            let atByte  = at ! ati
-            let x4 = x `testBit` 4
-            let y4 = y `testBit` 4
-            let quad = if y4 then (if x4 then 3 else 2) else (if x4 then 1 else 0) -- 0..3
-            let atBitA = atByte `testBit` (2*quad + 1)
-            let atBitB = atByte `testBit` (2*quad)
-            let pSel =
-                    if atBitA
-                    then (if atBitB then Pal3 else Pal2)
-                    else (if atBitB then Pal1 else Pal0)
-            let pal = selectPalette pals pSel
-            return $ selectColour bg pal cSel
-    Screen { height = 240, width = 256, bs = mkBS cols }
+    let nt1 = listArray (0,959) (take 960 kb1)
+    let at1 = listArray (0,63) (drop 960 kb1)
 
+    let nt2 = listArray (0,959) (take 960 kb2)
+    let at2 = listArray (0,63) (drop 960 kb2)
 
-
-screenSprites :: Colour -> Palettes -> [Byte] -> PAT -> Screen
-screenSprites bg pals oamBytes pat = do
-    let sprites = seeSprites pals oamBytes pat
-    let cols = do
-            y <- [0..239::Int]
-            x <- [0..255::Int]
-            let sOpt =
-                    listToMaybe $
-                    flip filter sprites $ \Sprite{x=xp,y=yp} ->
-                                              yp<=y && y<yp+8 && xp<=x && x<xp+8
-            case sOpt of
-                Nothing -> return bg
-                Just Sprite{x=xp,y=yp,ocs} -> do
-                    let yi = y - yp
-                    let xi = x - xp
-                    let i = 8 * yi + xi
-                    return $ case ocs !! i of Just col -> col; Nothing -> bg
-
-    Screen { height = 240, width = 256, bs = mkBS cols }
-
-
-screenCombined :: Colour -> Palettes -> (Bool,[Byte],PAT) -> (Bool,[Byte],PAT) -> Screen
-screenCombined bg pals (spriteEnable,oamBytes,patS) (backgroundEnable,kb,patB) = do
-    let nt = listArray (0,959) (take 960 kb)
-    let at = listArray (0,63) (drop 960 kb)
     let sprites = if spriteEnable then seeSprites pals oamBytes patS else []
     let bs = mkBS $ do
             y <- [0..239]
+
+            let y1 = y + scroll_y
+            let yBG = y1 `mod` 240
+            let nextNT = (y1 `div` 240) `mod` 2 == 1
+            let (at,nt) = if nextNT then (at2,nt2) else (at1,nt1)
+
             let spritesOnLine = take 8 $ flip filter sprites $ \Sprite{y=yp} -> yp<=y && y<yp+8
             x <- [0..255]
             let spritesAtPoint = flip filter spritesOnLine $ \Sprite{x=xp} -> xp<=x && x<xp+8
@@ -311,7 +222,7 @@ screenCombined bg pals (spriteEnable,oamBytes,patS) (backgroundEnable,kb,patB) =
                 Just col -> [col]
                 Nothing ->
                     if backgroundEnable
-                    then [screenPlayField bg nt at pals patB x y]
+                    then [screenPlayField bg nt at pals patB x yBG]
                     else [bg]
     Screen { height = 240, width = 256, bs }
 

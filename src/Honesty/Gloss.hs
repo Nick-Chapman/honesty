@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 
 import Honesty.PPU.Colour
-import Honesty.PPU.Regs(Control(..),Mask(..))
+import Honesty.PPU.Regs as Regs(State(State,scroll_x,scroll_y),Control(..),Mask(..))
 import Honesty.PPU.Graphics(Sprite(..),Priority(..),Screen(..),mkBS)
 import Honesty.PPU.Render(Display(..))
 import Honesty.World as World
@@ -77,7 +77,7 @@ handleEventWorld event world@World{buttons,paused,chooseL,chooseR,
 
 pictureWorld :: IORef Int -> World -> IO Gloss.Picture
 pictureWorld lastFrameCountRef World{frameCount,fps,buttons,
-                                     display=display@Display{bg,sprites,control,mask},
+                                     display=display@Display{bg,sprites,control,mask,regs},
                                      chooseL,chooseR,
                                      debugSprites=ds,
                                      debugFrames=df,
@@ -87,16 +87,19 @@ pictureWorld lastFrameCountRef World{frameCount,fps,buttons,
     lastFrameCount <- readIORef lastFrameCountRef
     writeIORef lastFrameCountRef frameCount
     let droppedFrames = frameCount - lastFrameCount
-    return $ pictures
+    let Regs.State{scroll_x,scroll_y} = regs
+    return $ color cyan $ pictures $
         [ scale 1 (-1) $ pictures
             [ choosePicture display (head chooseL)
             , translate 280 0 $ choosePicture display (head chooseR)
             , showIf ds $ translate 560 0 $ picSprites bg sprites
             ]
-        , showIf df $ translate 0 (-290) $ scale 0.1 0.1 $ color cyan $ picLabelled "frame" frameCount
-        , showIf df $ translate 0 (-310) $ scale 0.1 0.1 $ color cyan $ picLabelled "drop" droppedFrames
-        , showIf df $ translate 0 (-330) $ scale 0.1 0.1 $ color cyan $ picLabelled "fps" fps
-        , showIf db $ translate 150 (-330) $ scale 0.3 0.3 $ color cyan $ Text (Controller.showPressed buttons)
+        , showIf df $ translate 0 (-290) $ scale 0.1 0.1 $ picLabelled "frame" frameCount
+        , showIf df $ translate 0 (-310) $ scale 0.1 0.1 $ picLabelled "drop" droppedFrames
+        , showIf df $ translate 0 (-330) $ scale 0.1 0.1 $ picLabelled "fps" fps
+        , showIf db $ translate 150 (-330) $ scale 0.3 0.3 $ Text (Controller.showPressed buttons)
+
+        , showIf dr $ translate 500 (-290) $ scale 0.1 0.1 $ picLabelled "scroll" (scroll_x,scroll_y)
         , showIf dr $ translate 500 (-310) $ scale 0.1 0.1 $ picControl control
         , showIf dr $ translate 500 (-330) $ scale 0.1 0.1 $ picMask mask
         ]
@@ -106,12 +109,14 @@ picLabelled tag v =
     pictures [Text tag, translate 500 0 $ Text (show v) ]
 
 choosePicture :: Display -> ChooseToDisplay -> Picture
-choosePicture Display{at,pf,spr,combined} = \case
+choosePicture Display{pf,spr,combined} = \case
     ChooseNothing -> pictures []
-    ChooseAT -> pictureScreen at
-    ChoosePlayfield -> pictureScreen pf
-    ChooseOnlySprites -> pictureScreen spr
-    ChooseCombined -> pictureScreen combined
+    --ChooseAT1 -> pictureScreenTag "attributes" at1
+    --ChooseAT2 -> pictureScreenTag "attributes(2)" at2
+    ChoosePlayfield -> pictureScreenTag "playfield" pf
+    --ChoosePlayfield2 -> pictureScreenTag "playfield(2)" pf2
+    ChooseOnlySprites -> pictureScreenTag "sprites" spr
+    ChooseFullGame -> pictureScreenTag "game" combined
 
 showIf :: Bool -> Picture -> Picture
 showIf b p = if b then p else pictures []
@@ -159,6 +164,14 @@ picFlags flagChars flagBools =
     pictures $ map (\(i,(c,b)) ->
                             translate (120*i) 0 $ color (if b then cyan else blue) $ Text [c]) $
         zip [0..] (zip flagChars flagBools)
+
+pictureScreenTag :: String -> Graphics.Screen -> Gloss.Picture
+pictureScreenTag tag screen = pictures
+    [ pictureScreen screen
+    , translate 0 (fromIntegral h + 15) $ scale 0.1 (-0.1) $ Text tag
+    ]
+    where
+        h = Graphics.screenHeight screen
 
 pictureScreen :: Graphics.Screen -> Gloss.Picture
 pictureScreen screen = translate (fromIntegral w/2) (fromIntegral h/2) bitmap

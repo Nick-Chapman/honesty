@@ -25,10 +25,9 @@ type Buttons = Set Controller.Button
 
 data ChooseToDisplay
     = ChooseNothing
-    | ChooseAT
     | ChoosePlayfield
     | ChooseOnlySprites
-    | ChooseCombined
+    | ChooseFullGame
     deriving (Enum)
 
 data World = World
@@ -58,8 +57,8 @@ world0 path debug = do
     display <- NesRam.inter debug cc ram $ NesRam.InVram (PPU.render rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames trace rr buttons $ Emu.interpret debug rr ns neverStopping
-    let chooseL = cycle [ChooseNothing .. ChooseCombined]
-    let chooseR = drop 4 $ cycle [ChooseNothing .. ChooseCombined]
+    let chooseL = cycle [ChooseNothing .. ChooseFullGame]
+    let chooseR = ChooseFullGame : cycle [ChooseNothing .. ChooseFullGame]
     time <- getCurrentTime
     return $ World { frameCount = 0
                    , time

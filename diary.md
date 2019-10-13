@@ -145,3 +145,5 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 - making some progress with Ice.nes..
     - I can actually see something (after Enter is pressed)
 - but mostly just logging in a more convenient way, using Log.effect, which respect --debug
+- first steps with scrolling (just Y scrolling)
+- Ice kinda works, but it's not right :(

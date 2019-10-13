@@ -3,7 +3,7 @@ module Honesty.PPU.Regs(
     Name(..),
     Effect(..),
     inter,
-    State, state0,
+    State(..), state0,
     setVBlank, isEnabledNMI,
     Control(..), decodeControl,
     Mask(..), decodeMask,
@@ -46,6 +46,7 @@ data State = State
     , addr_hi :: !Byte
     , addr_lo :: !Byte
     , oam_addr :: !Byte
+    , scroll_x, scroll_y :: !Int
     } deriving Show
 
 state0 :: State
@@ -57,6 +58,8 @@ state0 = State
     , addr_hi= 0x0
     , addr_lo = 0x0
     , oam_addr = 0x0
+    , scroll_x = 0x0
+    , scroll_y = 0x0
     }
 
 setVBlank :: State -> Bool -> State
@@ -103,8 +106,8 @@ inter = loop where
     Write PPUSCROLL b -> do
         PMem.Log $ Log.message $ "write: PPUSCROLL = " <> show b
         case addr_latch of
-            Hi -> return (state { addr_latch = Lo }, ())
-            Lo -> return (state { addr_latch = Hi }, ())
+            Hi -> return (state { scroll_x = byteToUnsigned b, addr_latch = Lo }, ())
+            Lo -> return (state { scroll_y = byteToUnsigned b, addr_latch = Hi }, ())
 
     Write PPUADDR b -> do
         case addr_latch of

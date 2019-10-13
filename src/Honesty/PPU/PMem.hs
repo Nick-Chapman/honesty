@@ -73,20 +73,20 @@ decode aa = if
 
     -- Nametables 0,1,2,3 (in RAM, mapped via H/V mirroring into two 1k chunks)
 
-
+{-
     -- What I have here must be Vertical...
     | a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
     | a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
     | a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2800
     | a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
+-}
 
-{-
     -- What Try Horizontal... (for Ice)
     | a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
     | a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2400
     | a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2400
     | a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
--}
+
 
     -- palette mirrors
     | a == 0x3F10 -> PaletteRam 0

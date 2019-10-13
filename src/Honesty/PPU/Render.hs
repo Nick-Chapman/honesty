@@ -6,10 +6,10 @@ module Honesty.PPU.Render(
 
 import Control.Monad(when)
 
-import Honesty.Nes as Nes
+import Honesty.Nes as Nes hiding (regs)
 import Honesty.PPU.Colour as Colour
 import Honesty.PPU.Graphics
-import Honesty.PPU.Regs(Control(..),Mask(..))
+import Honesty.PPU.Regs as Regs(State(State,scroll_x,scroll_y),Control(..),Mask(..))
 import qualified Honesty.PPU.Graphics as Graphics
 import qualified Honesty.PPU.OAM as OAM
 import qualified Honesty.PPU.Palette as Palette
@@ -18,11 +18,11 @@ import qualified Honesty.Ram2k as Ram2k
 
 data Display = Display
     { bg :: Colour
-    , at :: Screen
     , pf :: Screen
     , spr :: Screen
     , combined :: Screen
     , sprites :: [Sprite]
+    , regs :: Regs.State
     , control :: Regs.Control
     , mask :: Regs.Mask
     }
@@ -30,13 +30,15 @@ data Display = Display
 render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
 render Nes.RamRom{pat1,pat2} regs pal oam = do
 
+    let Regs.State{scroll_x,scroll_y} = regs
+
     let control@Control
             { masterSlave
             , spriteHeight
             , backgroundTileSelect
             , spriteTileSelect
-            --, nameTableSelect1
-            --, nameTableSelect0
+            , nameTableSelect1
+            , nameTableSelect0
             } = Regs.decodeControl regs
 
     when (masterSlave) $ error "masterSlave/Master"
@@ -64,20 +66,37 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
     let (bg,palettes) = makePalettes pal
     let oamBytes = OAM.contents oam
 
-    kb <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
-    --kb <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
+    kb1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
+    kb2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
+
+
+    let kbPair = (kb1,kb2)
+    let _ = nameTableSelect1
+    let scroll_y_with_NT = scroll_y + if nameTableSelect0 then 240 else 0
+
+    let makeScreen se be =
+            Graphics.screenCombined
+            (scroll_x,scroll_y_with_NT)
+            bg palettes
+            (se,oamBytes,patS)
+            (be,kbPair,patB)
 
     let sprites = Graphics.seeSprites palettes oamBytes patS
 
-    let at = Graphics.screenAT bg palettes (drop 960 kb)
-    let pf = Graphics.screenPF bg palettes kb patB
-    let spr = Graphics.screenSprites bg palettes oamBytes patS
-    let combined =
-            Graphics.screenCombined bg palettes
-            (spriteEnable,oamBytes,patS)
-            (backgroundEnable,kb,patB)
+    --let at1 = Graphics.screenAT bg palettes (drop 960 kb1)
+    --let at2 = Graphics.screenAT bg palettes (drop 960 kb2)
 
-    return $ Display { bg, at, pf, spr, sprites, combined, control, mask }
+    let pf = makeScreen False True
+    let spr = makeScreen True False
+
+    let combined = makeScreen spriteEnable backgroundEnable
+
+    return $ Display { bg,
+                       pf, spr,
+                       combined,
+                       sprites,
+                       regs, control, mask
+                     }
 
 
 -- TODO: move this code into Palette module?
