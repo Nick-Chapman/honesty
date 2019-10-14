@@ -76,8 +76,8 @@ handleEventWorld event world@World{buttons,paused,chooseL,chooseR,
         release but = world { buttons = Set.delete but buttons }
 
 pictureWorld :: IORef Int -> World -> IO Gloss.Picture
-pictureWorld lastFrameCountRef World{frameCount,fps,buttons,
-                                     display=display@Display{bg,sprites,control,mask,regs},
+pictureWorld lastFrameCountRef World{fps,buttons,
+                                     display=display@Display{frameCount,bg,sprites,control,mask,regs},
                                      chooseL,chooseR,
                                      debugSprites=ds,
                                      debugFrames=df,

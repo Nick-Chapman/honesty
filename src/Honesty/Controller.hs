@@ -12,7 +12,6 @@ import Prelude hiding (Left,Right)
 import Data.Set(Set)
 
 import Honesty.Byte
---import Log(message)
 import qualified Honesty.Log as Log
 
 data State = Strobing | Sampled [(Button,Bool)] deriving (Show)
@@ -38,7 +37,7 @@ inter pressed state = \case
             Sampled bools -> case bools of
                 [] -> return (1, Sampled [])
                 (_but,down):bs' -> do
-                    --when down (message but)
+                    --when down $ Log.message $ show _but
                     return (bool2byte down, Sampled bs')
 
 bool2byte :: Bool -> Byte

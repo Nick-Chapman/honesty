@@ -34,8 +34,8 @@ newMState trace name = do
     arr <- newArray (0,size-1) 0
     return $ MState {trace, name,arr}
 
-interIO :: Bool -> Cycles -> MState -> Effect a -> IO a
-interIO debug cc MState{trace,name,arr} = Log.interIO debug cc . loop where
+interIO :: Bool -> Int -> Cycles -> MState -> Effect a -> IO a
+interIO debug fn cc MState{trace,name,arr} = Log.interIO debug fn cc . loop where
   loop :: Effect a -> Log.Effect a
   loop = \case
     Ret x -> return x

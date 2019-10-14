@@ -28,25 +28,26 @@ data Effect a where
     Reg :: Regs.Effect a -> Effect a
     Ram :: Ram2k.Effect a -> Effect a
     Log :: Log.Effect a -> Effect a
+    Delay :: Cycles -> Effect ()
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap
 instance Monad Effect where return = Ret; (>>=) = Bind
 
-inter :: Bool -> Cycles -> CHR.ROM -> Buttons -> Effect a -> StateT Nes.State NesRam.Effect a
-inter debug cc chr buttons = loop where
+inter :: Bool -> Int -> CHR.ROM -> Buttons -> Effect a -> StateT Nes.State NesRam.Effect a
+inter debug fn chr buttons = loop where
   loop :: Effect a -> StateT Nes.State NesRam.Effect a
   loop = \case
     Ret x -> return x
     Bind e f -> do v <- loop e; loop (f v)
 
     Con eff -> do
-        StateT $ \ns@Nes.State{con} -> NesRam.EmbedIO $ do
-            (v,con') <- Log.interIO debug cc $ Controller.inter buttons con eff
+        StateT $ \ns@Nes.State{cc,con} -> NesRam.EmbedIO $ do
+            (v,con') <- Log.interIO debug fn cc $ Controller.inter buttons con eff
             return (v, ns { con = con' })
 
     Reg eff -> do
-        StateT $ \ns@Nes.State{regs,pal,oam} -> NesRam.InVram $ do
+        StateT $ \ns@Nes.State{cc,regs,pal,oam} -> NesRam.InVram $ do
             -- TODO: these 3 PPU interpreters should be merged and moved in to PPU subdir
             ((pal',oam'),(regs',v)) <- PRam.inter cc (pal,oam) $ PMem.inter chr $ Regs.inter regs eff
             return (v, ns { regs = regs', pal = pal', oam = oam' })
@@ -54,7 +55,10 @@ inter debug cc chr buttons = loop where
     Ram eff -> lift $ NesRam.InWram eff
 
     Log eff -> do
-        StateT $ \ns -> NesRam.EmbedIO $ do
-            v <- Log.interIO debug cc eff
+        StateT $ \ns@Nes.State{cc} -> NesRam.EmbedIO $ do
+            v <- Log.interIO debug fn cc eff
             return (v, ns)
 
+    Delay cycles -> do
+        StateT $ \ns@Nes.State{cc} -> NesRam.EmbedIO $ do
+            return ((), ns { cc = cc + cycles })

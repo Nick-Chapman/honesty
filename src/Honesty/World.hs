@@ -31,8 +31,7 @@ data ChooseToDisplay
     deriving (Enum)
 
 data World = World
-    { frameCount :: !Int
-    , time :: UTCTime
+    { time :: UTCTime
     , fps :: Fps
     , display :: !Display
     , buttons :: !Buttons
@@ -53,15 +52,14 @@ world0 path debug = do
     (rr,pc0) <- rr0pc0 path
     let ns = state0 pc0
     let Nes.RamRom{ram} = rr
-    let Nes.State{regs,pal,oam,cc} = ns
-    display <- NesRam.inter debug cc ram $ NesRam.InVram (PPU.render rr regs pal oam)
+    let Nes.State{regs,pal,oam,fn,cc} = ns
+    display <- NesRam.inter debug fn cc ram $ NesRam.InVram (PPU.render fn rr regs pal oam)
     let buttons = Set.empty
     let frames = Sim.frames trace rr buttons $ Emu.interpret debug rr ns neverStopping
     let chooseL = cycle [ChooseNothing .. ChooseFullGame]
     let chooseR = ChooseFullGame : cycle [ChooseNothing .. ChooseFullGame]
     time <- getCurrentTime
-    return $ World { frameCount = 0
-                   , time
+    return $ World { time
                    , fps = Fps $ 0
                    , display , buttons, rr, frames
                    , paused = False
@@ -76,13 +74,13 @@ world0 path debug = do
     where cycle xs = ys where ys = xs <> ys
 
 updateWorld :: World -> IO World
-updateWorld world@World{frameCount,time,fps,buttons,frames,paused} =
+updateWorld world@World{time,fps,buttons,frames,paused} =
     if paused then return world else do
         (display,frames) <- Sim.unFrames frames buttons
         time' <- getCurrentTime
         let fpsNow = makeFps 1 time time'
         let fps' = smoothFps fps fpsNow
-        return $ world { frameCount = frameCount + 1, time = time', fps = fps', display, frames }
+        return $ world { time = time', fps = fps', display, frames }
 
 
 newtype Fps = Fps Float

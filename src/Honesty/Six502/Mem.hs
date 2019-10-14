@@ -35,7 +35,7 @@ reads addr = do
     return [byte0,byte1,byte2]
 
 inter :: (Maybe PRG.ROM,PRG.ROM) -> Effect a -> MM.Effect a
-inter (optPrg1,prg2) = loop  where
+inter (optPrg1,prg2) = loop where
   loop :: Effect a -> MM.Effect a
   loop = \case
     Ret x -> return x
@@ -68,7 +68,12 @@ inter (optPrg1,prg2) = loop  where
         Joy2 -> do
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
             return ()
-        Dma -> loop (dma v)
+        Dma -> do
+            MM.Log $ Log.message $ "before DMA ----------"
+            MM.Delay 517
+            v <- loop (dma v)
+            MM.Log $ Log.message $ "after DMA ----------"
+            return v
         NoIdea ->
             error $ "CPU.Mem, suprising write to NoIdea: " <> show addr
 

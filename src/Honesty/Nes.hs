@@ -24,6 +24,7 @@ data State = State
     { cpu :: !Cpu.State
     , con :: !Controller.State
     , regs :: !Regs.State
+    , fn :: !Int
     , cc :: !Cycles
     , pal :: !Palette.State
     , oam :: !OAM.State
@@ -35,6 +36,7 @@ state0 pc0 = State
     { cpu = Cpu.state0 pc0
     , con = Controller.state0
     , regs = Regs.state0
+    , fn = 0
     , cc = 7 -- for nestest.nes
     , pal = Palette.state0
     , oam = OAM.state0

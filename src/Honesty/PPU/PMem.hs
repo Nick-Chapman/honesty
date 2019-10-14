@@ -51,7 +51,9 @@ inter chr = loop where
             return ()
 
         PaletteRam a -> PRam.InPalette (Palette.Write a b)
-        Error s -> PRam.Error $ "(write)" <> s
+        Error s -> do
+            PRam.Log $ Log.message s
+            PRam.Error $ "(write)" <> s
 
     WriteOam a b ->
         PRam.InOAM (OAM.Write a b)

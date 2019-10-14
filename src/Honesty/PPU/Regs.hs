@@ -81,9 +81,13 @@ inter = loop where
 
     Read PPUCTRL -> error "Read PPUCTRL"
     Read PPUMASK -> error "Read PPUMASK"
+
     Read PPUSTATUS -> do
         let state' = state { addr_latch = Hi , status = clearBit status 7 }
-        return (state',status)
+        let b = status
+        PMem.Log $ Log.message $ "Read: PPUSTATUS = " <> show b
+        return (state',b)
+
     Read OAMADDR -> error "Read OAMADDR"
     Read OAMDATA -> error "Read OAMDATA"
     Read PPUSCROLL -> error "Read PPUSCROLL"
@@ -93,13 +97,22 @@ inter = loop where
         b <- PMem.Read addr
         return (bumpAddr state, b)
 
-    Write PPUCTRL b -> return (state { control = b }, ())
-    Write PPUMASK b -> return (state { mask = b }, ())
+    Write PPUCTRL b -> do
+        PMem.Log $ Log.message $ "write: PPUCTRL = " <> show b
+        return (state { control = b }, ())
+
+    Write PPUMASK b -> do
+        PMem.Log $ Log.message $ "write: PPUMASK = " <> show b
+        return (state { mask = b }, ())
+
     Write PPUSTATUS _ -> error "Write PPUSTATUS"
 
-    Write OAMADDR b -> return (state { oam_addr = b }, ())
+    Write OAMADDR b -> do
+        PMem.Log $ Log.message $ "write: OAMADDR = " <> show b
+        return (state { oam_addr = b }, ())
 
     Write OAMDATA b -> do
+        PMem.Log $ Log.message $ "write: OAMDATA(" <> show oam_addr <> ") = " <> show b
         PMem.WriteOam oam_addr b
         return (state { oam_addr = oam_addr + 1 }, ())
 
@@ -110,12 +123,14 @@ inter = loop where
             Lo -> return (state { scroll_y = byteToUnsigned b, addr_latch = Hi }, ())
 
     Write PPUADDR b -> do
+        PMem.Log $ Log.message $ "write: PPUADDR = " <> show b
         case addr_latch of
             Hi -> return (state { addr_hi = b, addr_latch = Lo }, ())
             Lo -> return (state { addr_lo = b, addr_latch = Hi }, ())
 
     Write PPUDATA b -> do
         let addr = addrOfHiLo addr_hi addr_lo
+        PMem.Log $ Log.message $ "write: PPUDATA(" <> show addr <> ") = " <> show b
         PMem.Write addr b
         return (bumpAddr state, ())
 

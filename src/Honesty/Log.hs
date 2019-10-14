@@ -22,11 +22,11 @@ data Effect a where
     Log :: String -> Effect ()
     IO :: IO a -> Effect a
 
-interIO :: Bool -> Cycles -> Effect a -> IO a
-interIO debug cc = loop where
+interIO :: Bool -> Int -> Cycles -> Effect a -> IO a
+interIO debug fn cc = loop where
     loop :: Effect a -> IO a
     loop = \case
         Ret x -> return x
         Bind e f -> do v <- loop e; loop (f v)
-        Log s -> when debug $ putStrLn $ show cc <> " : " <> s
+        Log s -> when debug $ putStrLn $ "frame = " <> show fn <> ", " <> show cc <> " : " <> s
         IO io -> io

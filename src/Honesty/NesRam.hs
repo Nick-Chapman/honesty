@@ -33,12 +33,12 @@ newMState = do
     wram <- Ram2k.newMState traceW "wram"
     return $ MState {vram,wram}
 
-inter :: Bool -> Cycles -> MState -> Effect a -> IO a
-inter debug cc MState{vram,wram} = loop where
+inter :: Bool -> Int -> Cycles -> MState -> Effect a -> IO a
+inter debug fn cc MState{vram,wram} = loop where
   loop :: Effect a -> IO a
   loop = \case
     Ret x -> return x
     Bind e f -> do v <- loop e; loop (f v)
-    InVram e -> Ram2k.interIO debug cc vram e
-    InWram e -> Ram2k.interIO debug cc wram e
+    InVram e -> Ram2k.interIO debug fn cc vram e
+    InWram e -> Ram2k.interIO debug fn cc wram e
     EmbedIO io -> io

@@ -17,7 +17,8 @@ import qualified Honesty.PPU.Regs as Regs
 import qualified Honesty.Ram2k as Ram2k
 
 data Display = Display
-    { bg :: Colour
+    { frameCount :: Int
+    , bg :: Colour
     , pf :: Screen
     , spr :: Screen
     , combined :: Screen
@@ -27,8 +28,8 @@ data Display = Display
     , mask :: Regs.Mask
     }
 
-render :: Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
-render Nes.RamRom{pat1,pat2} regs pal oam = do
+render :: Int -> Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
+render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
 
     let Regs.State{scroll_x,scroll_y} = regs
 
@@ -91,7 +92,8 @@ render Nes.RamRom{pat1,pat2} regs pal oam = do
 
     let combined = makeScreen spriteEnable backgroundEnable
 
-    return $ Display { bg,
+    return $ Display { frameCount,
+                       bg,
                        pf, spr,
                        combined,
                        sprites,
