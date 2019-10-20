@@ -25,25 +25,25 @@ import qualified Honesty.Six502.Mem as Mem
 type Buttons = Set Controller.Button
 
 readFromAddr :: Nes.State -> Nes.RamRom -> Addr -> IO [Byte]
-readFromAddr ns@Nes.State{cc} Nes.RamRom{optPrg1,prg2,chr,ram} pc = do
+readFromAddr ns@Nes.State{cc} Nes.RamRom{optPrg1,prg2,chr,ram,ntm} pc = do
     let mem_eff = Mem.reads pc
     let mm_eff = Mem.inter (optPrg1,prg2) mem_eff
     let buttons = Set.empty
-    (bytes,_) <- NesRam.inter False 0 cc ram $ runStateT (MM.inter False 0 chr buttons mm_eff) ns
+    (bytes,_) <- NesRam.inter False 0 cc ram $ runStateT (MM.inter False 0 ntm chr buttons mm_eff) ns
     return bytes
 
 cpuInstruction :: Bool -> Int -> Nes.RamRom -> Buttons -> Nes.State -> NesRam.Effect (Nes.State,Cycles)
-cpuInstruction debug fn Nes.RamRom{chr,optPrg1,prg2} buttons ns@Nes.State{cpu} = do
+cpuInstruction debug fn Nes.RamRom{chr,optPrg1,prg2,ntm} buttons ns@Nes.State{cpu} = do
     let mm_eff = Mem.inter (optPrg1,prg2) (six_stepInstruction cpu)
-    ((cpu',cycles),ns'@Nes.State{cc}) <- runStateT (MM.inter debug fn chr buttons mm_eff) ns
+    ((cpu',cycles),ns'@Nes.State{cc}) <- runStateT (MM.inter debug fn ntm chr buttons mm_eff) ns
     let ns'' = ns' { cpu = cpu', cc = cc+cycles }
     return (ns'',cycles)
 
 triggerNMI :: Bool -> Int -> Nes.RamRom -> Nes.State -> NesRam.Effect Nes.State
-triggerNMI debug fn Nes.RamRom{chr,optPrg1,prg2} ns@Nes.State{cpu} = do
+triggerNMI debug fn Nes.RamRom{chr,optPrg1,prg2,ntm} ns@Nes.State{cpu} = do
     let mm_eff = Mem.inter (optPrg1,prg2) (six_triggerNMI cpu)
     let buttons = Set.empty
-    (cpu',ns') <- runStateT (MM.inter debug fn chr buttons mm_eff) ns
+    (cpu',ns') <- runStateT (MM.inter debug fn ntm chr buttons mm_eff) ns
     return ns' { cpu = cpu' }
 
 

@@ -30,21 +30,21 @@ data Effect a where
     IO :: IO a -> Effect a
     Log :: Log.Effect a -> Effect a
 
-inter :: CHR.ROM -> Effect a -> PRam.Effect a
-inter chr = loop where
+inter :: NametableMirroring -> CHR.ROM -> Effect a -> PRam.Effect a
+inter ntm chr = loop where
 
   loop:: Effect a -> PRam.Effect a
   loop = \case
     Ret x -> return x
     Bind e f -> do v <- loop e; loop (f v)
 
-    Read addr -> case decode addr of
+    Read addr -> case decode ntm addr of
         Ram a -> PRam.InVRam (Ram2k.Read a)
         Rom a -> return $ CHR.read chr a
         PaletteRam _ -> PRam.Error $ "Suprising read from PaletteRam:" <> show addr
         Error s -> PRam.Error $ "(read)" <> s
 
-    Write addr b -> case decode addr of
+    Write addr b -> case decode ntm addr of
         Ram a -> PRam.InVRam (Ram2k.Write a b)
         Rom _ -> do
             PRam.Log $ Log.message $ "Suprising write to PPU Rom:" <> show addr
@@ -66,29 +66,24 @@ data NametableMirroring
     = NTM_Horizontal -- vertical arrangement, iNes, Flags6, bit0 = 0   (Ice)
     | NTM_Vertical   -- horizontal arrangement, iNes, Flags6, bit0 = 1 (SMB)
 
-decode :: Addr -> Decode
-decode aa = if
-    -- TOOD: take account of horizontal/vertical NT mirroring as selected by the game cart
-
+decode :: NametableMirroring -> Addr -> Decode
+decode ntm aa = if
     -- Pattern tables 0,1 (both in the CHR)
     | a < 0x2000 -> Rom $ fromIntegral $ unAddr a
 
     -- Nametables 0,1,2,3 (in RAM, mapped via H/V mirroring into two 1k chunks)
 
-{-
-    -- What I have here must be Vertical...
-    | a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
-    | a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
-    | a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2800
-    | a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
--}
-
     -- What Try Horizontal... (for Ice)
-    | a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
-    | a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2400
-    | a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2400
-    | a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
+    | vert && a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
+    | vert && a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2400
+    | vert && a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2400
+    | vert && a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
+    -- What I have here must be Vertical...
+    | not vert && a >= 0x2000 && a < 0x2400 ->  Ram $ a `minusAddr` 0x2000
+    | not vert && a >= 0x2400 && a < 0x2800 ->  Ram $ a `minusAddr` 0x2000
+    | not vert && a >= 0x2800 && a < 0x2C00 ->  Ram $ a `minusAddr` 0x2800
+    | not vert && a >= 0x2C00 && a < 0x3000 ->  Ram $ a `minusAddr` 0x2800
 
     -- palette mirrors
     | a == 0x3F10 -> PaletteRam 0
@@ -104,6 +99,9 @@ decode aa = if
     | otherwise ->  Error $ "PPU.Mem.decode, unknown address: " <> show a
 
     where a = Addr (unAddr aa .&. 0x3FFF) -- TODO: high address mirroring. necessary/correct?
+          vert = case ntm of
+              NTM_Vertical -> True
+              NTM_Horizontal -> False
 
 
 data Decode

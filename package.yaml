@@ -23,6 +23,7 @@ dependencies:
 - word8
 
 default-extensions:
+- DuplicateRecordFields
 - GADTs
 - GeneralizedNewtypeDeriving
 - LambdaCase

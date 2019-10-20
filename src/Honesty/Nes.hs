@@ -17,6 +17,7 @@ import qualified Honesty.PPU.Graphics as Graphics
 import qualified Honesty.PPU.OAM as OAM
 import qualified Honesty.PPU.Palette as Palette
 import qualified Honesty.PPU.Regs as Regs
+import qualified Honesty.PPU.PMem as PMem
 import qualified Honesty.PRG as PRG
 import qualified Honesty.Six502.Cpu as Cpu
 
@@ -48,19 +49,20 @@ data RamRom = RamRom
       prg2 :: !PRG.ROM,
       chr :: !CHR.ROM,
       pat1 :: !Graphics.PAT,
-      pat2 :: !Graphics.PAT
+      pat2 :: !Graphics.PAT,
+      ntm :: PMem.NametableMirroring
     }
 
 rr0pc0 :: String -> IO (RamRom, Addr)
 rr0pc0 path = do
-    nesfile <- loadNesFile path
-    --print nesfile
+    nesfile@NesFile{ntm} <- loadNesFile path
+    print nesfile
     let (optPrg1,prg2) = prgOfNesFile nesfile
     let chr = chrOfNesFile nesfile
     let pc0 = resetAddr path prg2
     ram <- NesRam.newMState
     let (pat1,pat2) = patPairFromBS (CHR.bytes chr)
-    let rr = RamRom { ram, optPrg1, prg2, chr, pat1, pat2 }
+    let rr = RamRom { ram, optPrg1, prg2, chr, pat1, pat2, ntm }
     return (rr,pc0)
 
 prgOfNesFile :: NesFile -> (Maybe PRG.ROM, PRG.ROM)

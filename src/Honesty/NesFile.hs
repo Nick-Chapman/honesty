@@ -4,11 +4,13 @@ module Honesty.NesFile(
     ) where
 
 import Control.Monad (when)
+import Data.Bits (testBit)
 import qualified Data.ByteString as BS (readFile,unpack)
 
 import Honesty.Byte
 import qualified Honesty.CHR as CHR
 import qualified Honesty.PRG as PRG
+import Honesty.PPU.PMem(NametableMirroring(..))
 
 headerSize :: Int
 headerSize = 16
@@ -26,6 +28,7 @@ data NesFile = NesFile
     { header :: [Byte]
     , prgs :: [PRG.ROM]
     , chrs :: [CHR.ROM]
+    , ntm :: NametableMirroring
     }
 
 instance Show NesFile where
@@ -40,7 +43,8 @@ loadNesFile path = do
     let header = take headerSize bs
     let x = byteToUnsigned (bs !! 4)
     let y = byteToUnsigned (bs !! 5)
+    let ntm = if byteToUnsigned (bs !! 6) `testBit` 0 then NTM_Horizontal else NTM_Vertical
     when (length bs /= headerSize + (x * prgSize) + (y * chrSize)) $ error "bad file size"
     let prgs = map (\i -> PRG.init $ take prgSize $ drop (headerSize + i * prgSize) bs) [0..x-1]
     let chrs = map (\i -> CHR.init $ take chrSize $ drop (headerSize + x * prgSize + i * 2 * patSize) bs) [0..y-1]
-    return $ NesFile header prgs chrs
+    return $ NesFile { header,  prgs,  chrs, ntm }
