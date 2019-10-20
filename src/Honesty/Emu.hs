@@ -28,17 +28,16 @@ neverStopping :: Effect ()
 neverStopping = forever stepOneFrame
     where
         stepOneFrame = do
+            e <- IsNmiEnabled
+            when e $ do
+                Log $ Log.message "---[NMI]-----------------------------------------------"
+                TriggerNMI
+            runCpu (cyclesInVBlank)
             SetVBlank False
             Log $ Log.message "===[render]==============================================="
             Render
             runCpu (cyclesPerFrame - cyclesInVBlank)
             SetVBlank True
-            e <- IsNmiEnabled
-            when e $ do
-                Log $ Log.message "---[NMI]-----------------------------------------------"
-                TriggerNMI
-
-            runCpu (cyclesInVBlank)
 
         cyclesPerFrame :: Cycles
         cyclesPerFrame = 29780

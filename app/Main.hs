@@ -11,7 +11,7 @@ import Honesty.Six502.Disassembler (displayOpLines)
 import Honesty.Six502.Operations (Op)
 import qualified Honesty.PRG as PRG
 import qualified Honesty.Gloss as Gloss(Size(..),run)
-import qualified Honesty.TraceCpu as TraceCpu(printRun)
+import qualified Honesty.TraceCpu as TraceCpu(printRun,printRunBLA)
 import qualified Honesty.SpeedTest as SpeedTest(run)
 
 main :: IO ()
@@ -23,6 +23,7 @@ main = do
 data Mode
     = Disassemble6502
     | Emulate6502
+    | Emulate6502_Blargg
     | SpeedTestNes
     | GlossNes
 
@@ -52,6 +53,7 @@ parseArgs args = loop args defaultConf
             [] -> conf
             "--dis":rest -> loop rest $ conf { mode = Disassemble6502 }
             "--emu":rest -> loop rest $ conf { mode = Emulate6502 }
+            "--bla":rest -> loop rest $ conf { mode = Emulate6502_Blargg }
             "--speed":rest -> loop rest $ conf { mode = SpeedTestNes }
             "--tiny":rest -> loop rest $ conf { size = Gloss.Tiny }
             "--full":rest -> loop rest $ conf { size = Gloss.Full }
@@ -64,6 +66,7 @@ runConf :: Conf -> IO ()
 runConf = \case
     Conf{mode=Disassemble6502,path} -> dis path
     Conf{mode=Emulate6502,path} -> emu path
+    Conf{mode=Emulate6502_Blargg,path} -> blaarg path
     Conf{mode=SpeedTestNes,path,optMaxFrames} -> SpeedTest.run path optMaxFrames
     Conf{mode=GlossNes,size,path,fps,debug} -> Gloss.run path size fps debug
 
@@ -98,3 +101,7 @@ emu path = do
         case path of
             "data/nestest.nes" -> 5828 -- until reach unimplemented DCP
             _ -> 0
+
+blaarg :: String -> IO ()
+blaarg path = do
+    TraceCpu.printRunBLA 0 path

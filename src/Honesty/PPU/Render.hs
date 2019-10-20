@@ -20,6 +20,7 @@ data Display = Display
     { frameCount :: Int
     , bg :: Colour
     , pf :: Screen
+    , pf2 :: Screen
     , spr :: Screen
     , combined :: Screen
     , sprites :: [Sprite]
@@ -70,14 +71,12 @@ render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
     kb1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
     kb2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-
-    let kbPair = (kb1,kb2)
     let _ = nameTableSelect1
     let scroll_y_with_NT = scroll_y + if nameTableSelect0 then 240 else 0
 
-    let makeScreen se be =
+    let makeScreen se be kbPair scroll =
             Graphics.screenCombined
-            (scroll_x,scroll_y_with_NT)
+            scroll
             bg palettes
             (se,oamBytes,patS)
             (be,kbPair,patB)
@@ -87,14 +86,20 @@ render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
     --let at1 = Graphics.screenAT bg palettes (drop 960 kb1)
     --let at2 = Graphics.screenAT bg palettes (drop 960 kb2)
 
-    let pf = makeScreen False True
-    let spr = makeScreen True False
+    let no_scroll = (0,0)
 
-    let combined = makeScreen spriteEnable backgroundEnable
+    let pf = makeScreen False True (kb1,kb2) no_scroll
+    let pf2 = makeScreen False True (kb2,kb1) no_scroll
+    let spr = makeScreen True False (kb1,kb2) no_scroll
+
+    let scroll = (scroll_x,scroll_y_with_NT)
+
+    let combined = makeScreen spriteEnable backgroundEnable (kb1,kb2) scroll
+
 
     return $ Display { frameCount,
                        bg,
-                       pf, spr,
+                       pf, pf2, spr,
                        combined,
                        sprites,
                        regs, control, mask

@@ -1,6 +1,7 @@
 
 module Honesty.Six502.Disassembler (
     displayOpLine,
+    displayOpLine_BLA,
     displayOpLines,
     ljust,
     ) where
@@ -28,6 +29,17 @@ displayOpLine at op = show at <> "  " <> case op of
         <> (if unofficial instruction then " *" else "  ")
         <> showInstruction instruction
         <> displayArg at (mode,rand)
+
+displayOpLine_BLA :: Addr -> Op -> String
+displayOpLine_BLA at op = show at <> "  " <> case op of
+    Unknown byte ->
+        ljust 8 (showOpBytes op)
+        <> "  ??? " <> show [Char.chr $ fromIntegral $ unByte byte]
+    Op instruction _mode _rand ->
+        ljust 8 (showOpBytes op)
+        <> (if unofficial instruction then " *" else "  ")
+        <> showInstruction instruction
+--        <> displayArg at (mode,rand)
 
 showOpBytes :: Op -> String
 showOpBytes op = unwords $ map show $ opBytes op

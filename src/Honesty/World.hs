@@ -26,6 +26,7 @@ type Buttons = Set Controller.Button
 data ChooseToDisplay
     = ChooseNothing
     | ChoosePlayfield
+    | ChoosePlayfield2
     | ChooseOnlySprites
     | ChooseFullGame
     deriving (Enum)
@@ -67,8 +68,8 @@ world0 path debug = do
                    , chooseR
                    , debugSprites = False
                    , debugFrames = True
-                   , debugButtons = True
-                   , debugRegs = True
+                   , debugButtons = False
+                   , debugRegs = False
                    }
 
     where cycle xs = ys where ys = xs <> ys

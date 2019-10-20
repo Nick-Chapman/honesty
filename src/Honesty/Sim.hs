@@ -1,7 +1,7 @@
 
 module Honesty.Sim(
     Effect(..),
-    trace,
+    trace, traceBLA,
     Frames(..),frames,
     ) where
 
@@ -10,7 +10,7 @@ import Data.Set as Set
 
 import Honesty.Nes as Nes
 import Honesty.PPU.Render(Display)
-import Honesty.Six502.Disassembler(ljust,displayOpLine)
+import Honesty.Six502.Disassembler(ljust,displayOpLine,displayOpLine_BLA)
 import qualified Honesty.Controller as Controller
 import qualified Honesty.Six502.Cpu as Six502.Cpu
 import qualified Honesty.Six502.Emu as Six502.Emu
@@ -41,6 +41,20 @@ trace n rr eff = do _ <- loop n eff; return () where
         SampleButtons -> return $ Just (n,Set.empty)
         IO io -> do v <- io; return $ Just (n,v)
 
+
+traceBLA :: Int -> Nes.RamRom -> Effect a -> IO ()
+traceBLA n rr eff = do _ <- loop n eff; return () where
+    loop :: Int -> Effect a -> IO (Maybe (Int,a))
+    loop n  = \case
+        Ret a -> return $ Just (n,a)
+        Bind e f -> loop n e >>= \case Nothing -> return Nothing; Just (n,v) -> loop n (f v)
+        Render _ -> return $ Just (n,())
+        Trace ns -> do printNS_bla rr ns; return $ if n==1 then Nothing else Just (n-1,())
+        SampleButtons -> return $ Just (n,Set.empty)
+        IO io -> do v <- io; return $ Just (n,v)
+
+
+
 newtype Frames a = Frames { unFrames :: Buttons -> IO (a,Frames a) }
 
 frames :: Bool -> Nes.RamRom -> Buttons -> Effect () -> Frames Display
@@ -65,4 +79,14 @@ printNS rr ns@Nes.State{cpu,cc} = do
     let op = Six502.Decode.decode1 bytes
     let col = 48
     let s = ljust col (displayOpLine pc op) <> show cpu  <> " " <> show cc
+    putStrLn s
+
+printNS_bla :: Nes.RamRom -> Nes.State -> IO ()
+printNS_bla rr ns@Nes.State{cpu} = do --,cc=Cycles{n}} = do
+    --let ppuCycle = ((n - 7) * 3) `mod` 341-- PPU cycles, matching hnes
+    let Six502.Cpu.State{Six502.Cpu.pc} = cpu
+    bytes <- Six502.Emu.readFromAddr ns rr pc
+    let op = Six502.Decode.decode1 bytes
+    let col = 48
+    let s = ljust col (displayOpLine_BLA pc op) <> show cpu --  <> " CYC: " <> show ppuCycle
     putStrLn s

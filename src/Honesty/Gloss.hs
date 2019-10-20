@@ -109,14 +109,14 @@ picLabelled tag v =
     pictures [Text tag, translate 500 0 $ Text (show v) ]
 
 choosePicture :: Display -> ChooseToDisplay -> Picture
-choosePicture Display{pf,spr,combined} = \case
+choosePicture Display{pf,pf2,spr,combined} = \case
     ChooseNothing -> pictures []
     --ChooseAT1 -> pictureScreenTag "attributes" at1
     --ChooseAT2 -> pictureScreenTag "attributes(2)" at2
     ChoosePlayfield -> pictureScreenTag "playfield" pf
-    --ChoosePlayfield2 -> pictureScreenTag "playfield(2)" pf2
+    ChoosePlayfield2 -> pictureScreenTag "playfield(2)" pf2
     ChooseOnlySprites -> pictureScreenTag "sprites" spr
-    ChooseFullGame -> pictureScreenTag "game" combined
+    ChooseFullGame -> pictureScreenTag "" combined
 
 showIf :: Bool -> Picture -> Picture
 showIf b p = if b then p else pictures []

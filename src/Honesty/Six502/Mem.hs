@@ -4,9 +4,11 @@ module Honesty.Six502.Mem(
     inter,
     ) where
 
+import qualified Data.Char as Char
 import Data.Bits(testBit)
 import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
+import Text.Printf (printf)
 
 import Honesty.Addr
 import Honesty.Byte
@@ -46,7 +48,7 @@ inter (optPrg1,prg2) = loop where
         Rom1 x -> return $ PRG.read prg1 x
         Rom2 x -> return $ PRG.read prg2 x
         PPU reg -> MM.Reg (Regs.Read reg)
-        IgnoreSound -> error $ "CPU.Mem, suprising read from sound reg"
+        IgnoreSound -> do warn "CPU.Mem, suprising read from sound reg"; return 0
         Joy1 -> MM.Con $ Controller.Read
         Joy2 -> do
             let b :: Byte = 0 -- no joystick 2
@@ -68,20 +70,28 @@ inter (optPrg1,prg2) = loop where
         Joy2 -> do
             --error $ "CPU.Mem, suprising write to Joy2 : " <> show addr
             return ()
+
         Dma -> do
             MM.Log $ Log.message $ "before DMA ----------"
             MM.Delay 517
             v <- loop (dma v)
             MM.Log $ Log.message $ "after DMA ----------"
             return v
-        NoIdea ->
-            error $ "CPU.Mem, suprising write to NoIdea: " <> show addr
+
+        NoIdea -> do
+            MM.Log $ Log.message $ "CPU.Mem, suprising write NoIdea: " <> show addr <> " = " <> show v
+                <> (printf " '%c'" (Char.chr $ fromIntegral $ unByte v))
+            --error $ "CPU.Mem, suprising write to NoIdea: " <> show addr
+            return ()
+
 
     where prg1 = case optPrg1 of
               Just prg -> prg
               Nothing ->
                   --error "CPU.Mem, no prg in bank 1"
                   prg2 -- HACK, for Ice
+
+          warn = MM.Log . Log.message
 
 dma :: Byte -> Effect ()
 dma b = do
@@ -121,7 +131,7 @@ decode _tag a = if
     | a >= 0x8000 && a <= 0xBFFF -> Rom1 $ a `minusAddr` 0x8000
     | a >= 0xC000 && a <= 0xFFFF -> Rom2 $ a `minusAddr` 0xC000
 
-    | otherwise -> NoIdea
+    | otherwise -> NoIdea -- 6004.. blargg tests
 
 data Decode
     = Ram Int

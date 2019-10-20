@@ -147,3 +147,15 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 - but mostly just logging in a more convenient way, using Log.effect, which respect --debug
 - first steps with scrolling (just Y scrolling)
 - Ice kinda works, but it's not right :(
+
+### Oct 18, 2009
+
+- Some some days off: was getting nowhere with debugging Ice.
+- Had a play with hnes. Ice works here, and I can get a log. But it's very had to compare.
+- Started to suspect my CPU..
+- Perhaps I can compare logs against hnes on a non-PPU test rom. The blargg tests!
+- So that's what I will plan for this morning's train ride.
+
+01-basics:
+- Discovered that my CPU doesn't implement CLI
+- bit of jiggling to line up traces... see divergence on BIT instruction..
