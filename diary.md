@@ -159,3 +159,13 @@ And with the improved speed, get a first glimpse of DK game screen (level-1).
 01-basics:
 - Discovered that my CPU doesn't implement CLI
 - bit of jiggling to line up traces... see divergence on BIT instruction..
+
+### Oct 20, 2009
+
+- actually the BIT instruction is fine
+- issue is just that the blaarg rom does write to the PPU, and so I get timing issuess vs hnes
+- but the blaarg also writes to memory location $6004... and I can see that it says test passed.. ok!
+- but why can't I see on the screem?
+- hmm, the screen goes black, so something is being written
+- hmm, check the other playfield (recently re-enabled as a debug view).. YES, see the test past written here
+- ok, so I think I need to check that I am respecting which NT is shown
