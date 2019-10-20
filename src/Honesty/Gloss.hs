@@ -52,7 +52,7 @@ handleEventWorld :: Gloss.Event -> World -> IO World
 handleEventWorld event world@World{buttons,paused,chooseL,chooseR,
                                    debugSprites,debugFrames,debugButtons,debugRegs} = do
     return $ case event of
-        EventKey (SpecialKey KeyEsc) Down _ _ -> error "quit"
+        EventKey (Char 'q') Down _ _ -> error "quit"
         EventKey (Char 'z') ud _ _ -> joy ud Controller.A
         EventKey (Char 'x') ud _ _ -> joy ud Controller.B
         EventKey (SpecialKey KeyTab) ud _ _ -> joy ud Controller.Select
