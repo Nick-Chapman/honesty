@@ -69,7 +69,7 @@ world0 path debug = do
                    , debugSprites = False
                    , debugFrames = True
                    , debugButtons = False
-                   , debugRegs = False
+                   , debugRegs = True
                    }
 
     where cycle xs = ys where ys = xs <> ys

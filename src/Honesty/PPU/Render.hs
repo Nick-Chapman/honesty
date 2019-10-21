@@ -15,6 +15,7 @@ import qualified Honesty.PPU.OAM as OAM
 import qualified Honesty.PPU.Palette as Palette
 import qualified Honesty.PPU.Regs as Regs
 import qualified Honesty.Ram2k as Ram2k
+import Honesty.PPU.PMem as PMem(NametableMirroring(..))
 
 data Display = Display
     { frameCount :: Int
@@ -30,7 +31,7 @@ data Display = Display
     }
 
 render :: Int -> Nes.RamRom -> Regs.State -> Palette.State -> OAM.State -> Ram2k.Effect Display
-render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
+render frameCount Nes.RamRom{pat1,pat2,ntm} regs pal oam = do
 
     let Regs.State{scroll_x,scroll_y} = regs
 
@@ -39,7 +40,7 @@ render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
             , spriteHeight
             , backgroundTileSelect
             , spriteTileSelect
-            , nameTableSelect1
+            , nameTableSelect1=_
             , nameTableSelect0
             } = Regs.decodeControl regs
 
@@ -71,7 +72,7 @@ render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
     kb1 <- mapM (\a -> Ram2k.Read a) [0..0x3ff]
     kb2 <- mapM (\a -> Ram2k.Read a) [0x400..0x7ff]
 
-    let _ = nameTableSelect1
+
     let scroll_y_with_NT = scroll_y + if nameTableSelect0 then 240 else 0
 
     let makeScreen se be kbPair scroll =
@@ -94,8 +95,12 @@ render frameCount Nes.RamRom{pat1,pat2} regs pal oam = do
 
     let scroll = (scroll_x,scroll_y_with_NT)
 
-    let combined = makeScreen spriteEnable backgroundEnable (kb1,kb2) scroll
+    let kbPair =
+            case ntm of
+                NTM_Vertical -> (kb1,kb2)
+                NTM_Horizontal -> (kb2,kb1)
 
+    let combined = makeScreen spriteEnable backgroundEnable kbPair scroll
 
     return $ Display { frameCount,
                        bg,

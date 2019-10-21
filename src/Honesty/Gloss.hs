@@ -116,7 +116,7 @@ choosePicture Display{pf,pf2,spr,combined} = \case
     ChoosePlayfield -> pictureScreenTag "playfield" pf
     ChoosePlayfield2 -> pictureScreenTag "playfield(2)" pf2
     ChooseOnlySprites -> pictureScreenTag "sprites" spr
-    ChooseFullGame -> pictureScreenTag "" combined
+    ChooseFullGame -> pictureScreenTag "game" combined
 
 showIf :: Bool -> Picture -> Picture
 showIf b p = if b then p else pictures []
@@ -145,7 +145,7 @@ picControl Control
     , nameTableSelect1=n1
     , nameTableSelect0=n0
     } = do
-    picFlags "VPHBSINN" [v,p,h,b,s,i,b,n1,n0]
+    picFlags "VPHBSINN" [v,p,h,b,s,i,n1,n0]
 
 picMask :: Mask -> Picture
 picMask Mask

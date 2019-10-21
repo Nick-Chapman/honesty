@@ -85,7 +85,7 @@ inter = loop where
     Read PPUSTATUS -> do
         let state' = state { addr_latch = Hi , status = clearBit status 7 }
         let b = status
-        PMem.Log $ Log.message $ "Read: PPUSTATUS = " <> show b
+        --PMem.Log $ Log.message $ "Read: PPUSTATUS = " <> show b
         return (state',b)
 
     Read OAMADDR -> error "Read OAMADDR"
@@ -112,7 +112,7 @@ inter = loop where
         return (state { oam_addr = b }, ())
 
     Write OAMDATA b -> do
-        PMem.Log $ Log.message $ "write: OAMDATA(" <> show oam_addr <> ") = " <> show b
+        --PMem.Log $ Log.message $ "write: OAMDATA(" <> show oam_addr <> ") = " <> show b
         PMem.WriteOam oam_addr b
         return (state { oam_addr = oam_addr + 1 }, ())
 
@@ -130,7 +130,7 @@ inter = loop where
 
     Write PPUDATA b -> do
         let addr = addrOfHiLo addr_hi addr_lo
-        PMem.Log $ Log.message $ "write: PPUDATA(" <> show addr <> ") = " <> show b
+        --PMem.Log $ Log.message $ "write: PPUDATA(" <> show addr <> ") = " <> show b
         PMem.Write addr b
         return (bumpAddr state, ())
 
