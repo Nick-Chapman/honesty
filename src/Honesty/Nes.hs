@@ -56,7 +56,7 @@ data RamRom = RamRom
 rr0pc0 :: String -> IO (RamRom, Addr)
 rr0pc0 path = do
     nesfile@NesFile{ntm} <- loadNesFile path
-    print nesfile
+    --print nesfile
     let (optPrg1,prg2) = prgOfNesFile nesfile
     let chr = chrOfNesFile nesfile
     let pc0 = resetAddr path prg2
