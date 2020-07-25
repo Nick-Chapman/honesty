@@ -1,5 +1,5 @@
-resolver: lts-14.3
+resolver: lts-14.27
 
 extra-deps:
 - stt-0.2.1
-- time-1.9.3
+- time-1.10

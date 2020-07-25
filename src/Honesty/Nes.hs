@@ -4,7 +4,7 @@ module Honesty.Nes(
     RamRom(..), rr0pc0,
     ) where
 
-import Data.Tuple.Extra((***))
+import Control.Arrow((***))
 
 import Honesty.Addr
 import Honesty.Byte
