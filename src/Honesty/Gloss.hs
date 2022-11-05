@@ -1,20 +1,19 @@
 
 module Honesty.Gloss(Size(..),run) where
 
-import Data.IORef
+import Data.IORef (IORef,readIORef,newIORef,writeIORef)
 import Graphics.Gloss (translate,scale,pictures,color,cyan,blue,Picture(..))
-import Graphics.Gloss.Data.Bitmap
+import Graphics.Gloss.Data.Bitmap (BitmapFormat(..),bitmapOfByteString,PixelFormat(PxRGBA),RowOrder(BottomToTop))
 import Graphics.Gloss.Interface.IO.Game(Event(..),Key(..),SpecialKey(..),KeyState(..))
-import qualified Data.Set as Set
+import Honesty.PPU.Colour (Colour)
+import Honesty.PPU.Graphics (Sprite(..),Priority(..),Screen(..),mkBS)
+import Honesty.PPU.Regs as Regs (State(State,scroll_x,scroll_y),Control(..),Mask(..))
+import Honesty.PPU.Render (Display(..))
+import Honesty.World as World (World(..),ChooseToDisplay(..),world0,updateWorld)
+import qualified Data.Set as Set (insert,delete)
 import qualified Graphics.Gloss.Interface.IO.Game as Gloss
-
-import Honesty.PPU.Colour
-import Honesty.PPU.Regs as Regs(State(State,scroll_x,scroll_y),Control(..),Mask(..))
-import Honesty.PPU.Graphics(Sprite(..),Priority(..),Screen(..),mkBS)
-import Honesty.PPU.Render(Display(..))
-import Honesty.World as World
-import qualified Honesty.Controller as Controller
-import qualified Honesty.PPU.Graphics as Graphics
+import qualified Honesty.Controller as Controller (Button(..),showPressed)
+import qualified Honesty.PPU.Graphics as Graphics (Screen,Sprite,screenWidth,screenHeight,screenToBitmapByteString)
 
 data Size = Tiny | Normal | Full
 

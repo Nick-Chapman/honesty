@@ -3,7 +3,7 @@ module Honesty.Six502.OpCode (
     table
     ) where
 
-import Honesty.Byte(Byte)
+import Honesty.Byte (Byte)
 import Honesty.Six502.Operations (Instruction(..),Mode(..))
 
 table :: [(Instruction,Mode,Byte)]

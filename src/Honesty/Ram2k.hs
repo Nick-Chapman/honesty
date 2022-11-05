@@ -4,13 +4,13 @@ module Honesty.Ram2k(
     MState, newMState, interIO,
     ) where
 
-import Control.Monad (ap,liftM,when)
-import Data.Array.IO
 import Prelude hiding (init,read)
 
-import Honesty.Byte
-import Honesty.Six502.Cycles
-import qualified Honesty.Log as Log
+import Control.Monad (ap,liftM,when)
+import Data.Array.IO (IOArray,newArray,getBounds,inRange,writeArray,readArray)
+import Honesty.Byte (Byte)
+import Honesty.Six502.Cycles (Cycles)
+import qualified Honesty.Log as Log (Effect(..),message,interIO)
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

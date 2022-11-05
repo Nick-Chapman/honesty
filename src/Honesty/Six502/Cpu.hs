@@ -3,8 +3,8 @@ module Honesty.Six502.Cpu(
     State(..), state0,
     ) where
 
-import Honesty.Addr
-import Honesty.Byte
+import Honesty.Addr (Addr)
+import Honesty.Byte (Byte)
 
 data State = State
     { pc :: !Addr

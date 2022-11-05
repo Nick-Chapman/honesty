@@ -7,9 +7,8 @@ module Honesty.Addr(
     ) where
 
 import Data.Word (Word16)
+import Honesty.Byte (Byte,byteToUnsigned,unByte,byteOfInt)
 import Text.Printf (printf)
-
-import Honesty.Byte
 
 newtype Addr = Addr { unAddr :: Word16 } deriving (Eq,Ord,Num)
 

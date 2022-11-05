@@ -6,8 +6,8 @@ module Honesty.Six502.Operations(
     Arg(..)
     ) where
 
-import Honesty.Addr(Addr)
-import Honesty.Byte(Byte)
+import Honesty.Addr (Addr)
+import Honesty.Byte (Byte)
 
 data Op = Unknown Byte | Op Instruction Mode Arg deriving (Show)
 

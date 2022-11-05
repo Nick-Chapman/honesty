@@ -6,10 +6,10 @@ module Honesty.NesRam(
     ) where
 
 import Prelude hiding (init,read)
-import Control.Monad (ap,liftM)
 
-import Honesty.Six502.Cycles
-import qualified Honesty.Ram2k as Ram2k
+import Control.Monad (ap,liftM)
+import Honesty.Six502.Cycles (Cycles)
+import qualified Honesty.Ram2k as Ram2k (MState,Effect,newMState,interIO)
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

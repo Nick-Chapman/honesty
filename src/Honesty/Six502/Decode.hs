@@ -10,10 +10,9 @@ module Honesty.Six502.Decode (
 import Control.Monad (join)
 import Data.Array ((!),listArray)
 import Data.Maybe (mapMaybe)
-
-import Honesty.Addr
-import Honesty.Byte
-import Honesty.Six502.Operations
+import Honesty.Addr (addrToHiLo,addrOfHiLo)
+import Honesty.Byte (Byte)
+import Honesty.Six502.Operations (Op(..),Instruction,Mode(..),Arg(..))
 import qualified Honesty.Six502.OpCode as OpCode(table)
 
 reEncode :: [Op] -> [Byte]

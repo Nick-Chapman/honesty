@@ -6,8 +6,7 @@ module Honesty.Log(
     ) where
 
 import Control.Monad (ap,liftM,when)
-
-import Honesty.Six502.Cycles
+import Honesty.Six502.Cycles (Cycles)
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

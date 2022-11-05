@@ -6,12 +6,11 @@ module Honesty.Six502.Disassembler (
     ljust,
     ) where
 
-import Data.Char as Char(chr)
-
-import Honesty.Addr
-import Honesty.Byte
+import Data.Char as Char (chr)
+import Honesty.Addr (Addr,addAddr)
+import Honesty.Byte (unByte,byteToSigned)
 import Honesty.Six502.Decode (opBytes,opSize)
-import Honesty.Six502.Operations
+import Honesty.Six502.Operations (Op(..),Instruction(..),Arg(..),Mode(..))
 
 displayOpLines :: Addr -> [Op] -> [String]
 displayOpLines a = \case

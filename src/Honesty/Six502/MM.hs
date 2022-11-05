@@ -5,19 +5,18 @@ module Honesty.Six502.MM( -- memory map
     ) where
 
 import Control.Monad (ap,liftM)
-import Control.Monad.State
-import Data.Set(Set)
-
-import Honesty.Nes as Nes
-import Honesty.Six502.Cycles
-import qualified Honesty.CHR as CHR
-import qualified Honesty.Controller as Controller
-import qualified Honesty.Log as Log
-import qualified Honesty.NesRam as NesRam
-import qualified Honesty.PPU.PMem as PMem
-import qualified Honesty.PPU.PRam as PRam
-import qualified Honesty.PPU.Regs as Regs
-import qualified Honesty.Ram2k as Ram2k
+import Control.Monad.State (StateT(..),lift)
+import Data.Set (Set)
+import Honesty.Nes as Nes (State(..))
+import Honesty.Six502.Cycles (Cycles)
+import qualified Honesty.CHR as CHR (ROM)
+import qualified Honesty.Controller as Controller (Effect,Button,inter)
+import qualified Honesty.Log as Log (Effect,interIO)
+import qualified Honesty.NesRam as NesRam (Effect(..))
+import qualified Honesty.PPU.PMem as PMem (NametableMirroring,inter)
+import qualified Honesty.PPU.PRam as PRam (inter)
+import qualified Honesty.PPU.Regs as Regs (Effect,inter)
+import qualified Honesty.Ram2k as Ram2k (Effect)
 
 type Buttons = Set Controller.Button
 

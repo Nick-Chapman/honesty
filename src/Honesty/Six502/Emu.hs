@@ -6,21 +6,21 @@ module Honesty.Six502.Emu(
     ) where
 
 import Control.Monad (ap,liftM)
-import Control.Monad.State(runStateT)
-import Data.Bits
-import Data.Set as Set
-
-import Honesty.Addr
-import Honesty.Byte
-import Honesty.Nes as Nes
-import Honesty.Six502.Cpu as Cpu
-import Honesty.Six502.Cycles
+import Control.Monad.State (runStateT)
+import Data.Bits (complement,shiftL,shiftR,testBit,setBit,(.&.),(.|.),clearBit,xor)
+import Data.Set (Set)
+import Data.Set as Set (empty)
+import Honesty.Addr (Addr,addrOfHiLo,addAddr,addrToHiLo,zeroPageAddr,page1Addr)
+import Honesty.Byte (Byte,adc,byteToSigned)
+import Honesty.Nes as Nes (State(..),RamRom(..))
+import Honesty.Six502.Cpu as Cpu (State(..))
+import Honesty.Six502.Cycles (Cycles)
 import Honesty.Six502.Decode (decode1,opSize)
-import Honesty.Six502.Operations
-import qualified Honesty.Controller as Controller
-import qualified Honesty.NesRam as NesRam
-import qualified Honesty.Six502.MM as MM
-import qualified Honesty.Six502.Mem as Mem
+import Honesty.Six502.Operations (Mode(..),Op(..),Instruction(..),Arg(..))
+import qualified Honesty.Controller as Controller (Button)
+import qualified Honesty.NesRam as NesRam (Effect,inter)
+import qualified Honesty.Six502.MM as MM (inter)
+import qualified Honesty.Six502.Mem as Mem (Effect(..),inter,reads)
 
 type Buttons = Set Controller.Button
 

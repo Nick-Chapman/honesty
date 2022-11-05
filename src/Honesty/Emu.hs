@@ -4,19 +4,18 @@ module Honesty.Emu(
     interpret,
     ) where
 
-import Control.Monad(ap,liftM,when)
-import Control.Monad(forever)
-import Data.Set as Set
-
-import Honesty.Nes as Nes
-import Honesty.Six502.Cycles(Cycles)
-import qualified Honesty.Controller as Controller
-import qualified Honesty.NesRam as NesRam
-import qualified Honesty.PPU.Regs as Regs
-import qualified Honesty.PPU.Render as PPU
-import qualified Honesty.Sim as Simulation
-import qualified Honesty.Six502.Emu as Cpu
-import qualified Honesty.Log as Log
+import Control.Monad (ap,liftM,when)
+import Control.Monad (forever)
+import Data.Set (Set)
+import Honesty.Nes as Nes (RamRom(..),State(..))
+import Honesty.Six502.Cycles (Cycles)
+import qualified Honesty.Controller as Controller (Button)
+import qualified Honesty.Log as Log (Effect,message,interIO)
+import qualified Honesty.NesRam as NesRam (Effect(..),inter)
+import qualified Honesty.PPU.Regs as Regs (setVBlank,isEnabledNMI)
+import qualified Honesty.PPU.Render as PPU (render)
+import qualified Honesty.Sim as Simulation (Effect(..))
+import qualified Honesty.Six502.Emu as Cpu (cpuInstruction,triggerNMI)
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

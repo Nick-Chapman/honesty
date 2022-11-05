@@ -7,12 +7,11 @@ module Honesty.Controller( -- keyboard-mapping is in Sim
     showPressed,
     ) where
 
-import Control.Monad
 import Prelude hiding (Left,Right)
-import Data.Set(Set)
 
-import Honesty.Byte
-import qualified Honesty.Log as Log
+import Data.Set (Set)
+import Honesty.Byte (Byte)
+import qualified Honesty.Log as Log (Effect)
 
 data State = Strobing | Sampled [(Button,Bool)] deriving (Show)
 

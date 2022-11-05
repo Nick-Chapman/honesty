@@ -4,11 +4,11 @@ module Honesty.Byte(
     byteOfInt, byteToUnsigned, byteToSigned, bytesToString, adc,
     ) where
 
-import Data.Bits
+import Data.Bits (Bits)
 import Data.Word8 (Word8)
-import GHC.Arr(Ix)
+import GHC.Arr (Ix)
 import Text.Printf (printf)
-import qualified Data.Char as Char
+import qualified Data.Char as Char (chr)
 
 newtype Byte = Byte { unByte :: Word8 } deriving (Eq,Ord,Enum,Num,Bits,Ix)
 

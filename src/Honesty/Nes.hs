@@ -5,21 +5,20 @@ module Honesty.Nes(
     ) where
 
 import Control.Arrow((***))
-
-import Honesty.Addr
-import Honesty.Byte
-import Honesty.NesFile
-import Honesty.Six502.Cycles
-import qualified Honesty.CHR as CHR
-import qualified Honesty.Controller as Controller
-import qualified Honesty.NesRam as NesRam
-import qualified Honesty.PPU.Graphics as Graphics
-import qualified Honesty.PPU.OAM as OAM
-import qualified Honesty.PPU.Palette as Palette
-import qualified Honesty.PPU.Regs as Regs
-import qualified Honesty.PPU.PMem as PMem
-import qualified Honesty.PRG as PRG
-import qualified Honesty.Six502.Cpu as Cpu
+import Honesty.Addr (Addr,addrOfHiLo)
+import Honesty.Byte (Byte)
+import Honesty.NesFile (NesFile(..),loadNesFile)
+import Honesty.Six502.Cycles (Cycles)
+import qualified Honesty.CHR as CHR (ROM,bytes)
+import qualified Honesty.Controller as Controller (State,state0)
+import qualified Honesty.NesRam as NesRam (MState,newMState)
+import qualified Honesty.PPU.Graphics as Graphics (PAT,patFromBS)
+import qualified Honesty.PPU.OAM as OAM (State,state0)
+import qualified Honesty.PPU.PMem as PMem (NametableMirroring)
+import qualified Honesty.PPU.Palette as Palette (State,state0)
+import qualified Honesty.PPU.Regs as Regs (State,state0)
+import qualified Honesty.PRG as PRG (ROM,read)
+import qualified Honesty.Six502.Cpu as Cpu (State,state0)
 
 data State = State
     { cpu :: !Cpu.State

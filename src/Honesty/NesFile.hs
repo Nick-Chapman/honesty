@@ -5,12 +5,11 @@ module Honesty.NesFile(
 
 import Control.Monad (when)
 import Data.Bits (testBit)
-import qualified Data.ByteString as BS (readFile,unpack)
-
-import Honesty.Byte
-import qualified Honesty.CHR as CHR
-import qualified Honesty.PRG as PRG
+import Honesty.Byte (Byte(..),bytesToString,byteToUnsigned)
 import Honesty.PPU.PMem(NametableMirroring(..))
+import qualified Data.ByteString as BS (readFile,unpack)
+import qualified Honesty.CHR as CHR (ROM,init)
+import qualified Honesty.PRG as PRG (ROM,init)
 
 headerSize :: Int
 headerSize = 16

@@ -4,20 +4,19 @@ module Honesty.Six502.Mem(
     inter,
     ) where
 
-import qualified Data.Char as Char
-import Data.Bits(testBit)
-import Prelude hiding(reads)
 import Control.Monad (ap,liftM)
+import Data.Bits (testBit)
+import Honesty.Addr (Addr,addAddr,addrOfHiLo,unAddr,minusAddr)
+import Honesty.Byte (Byte,unByte)
+import Prelude hiding(reads)
 import Text.Printf (printf)
-
-import Honesty.Addr
-import Honesty.Byte
-import qualified Honesty.Log as Log
-import qualified Honesty.Controller as Controller
-import qualified Honesty.PPU.Regs as Regs
-import qualified Honesty.PRG as PRG
-import qualified Honesty.Ram2k as Ram2k
-import qualified Honesty.Six502.MM as MM
+import qualified Data.Char as Char (chr)
+import qualified Honesty.Controller as Controller (Effect(..))
+import qualified Honesty.Log as Log (message)
+import qualified Honesty.PPU.Regs as Regs (Effect(..),Name(..))
+import qualified Honesty.PRG as PRG (ROM,read)
+import qualified Honesty.Ram2k as Ram2k (Effect(..))
+import qualified Honesty.Six502.MM as MM (Effect(..))
 
 instance Functor Effect where fmap = liftM
 instance Applicative Effect where pure = return; (<*>) = ap

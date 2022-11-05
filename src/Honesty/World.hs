@@ -6,20 +6,20 @@ module Honesty.World(
     updateWorld,
     ) where
 
-import Data.Fixed(Fixed(..),HasResolution,resolution)
+import Data.Fixed (Fixed(..),HasResolution,resolution)
+import Data.Set (Set)
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
-import Data.Set(Set)
-import Text.Printf (printf)
-import qualified Data.Set as Set
-
 import Honesty.Emu (neverStopping)
-import Honesty.Nes as Nes
-import Honesty.PPU.Render(Display)
-import qualified Honesty.Controller as Controller
-import qualified Honesty.Emu as Emu
-import qualified Honesty.NesRam as NesRam
-import qualified Honesty.PPU.Render as PPU
-import qualified Honesty.Sim as Sim
+import Honesty.Nes as Nes (rr0pc0,state0)
+import Honesty.PPU.Render (Display)
+import Text.Printf (printf)
+import qualified Data.Set as Set (empty)
+import qualified Honesty.Controller as Controller (Button)
+import qualified Honesty.Emu as Emu (interpret)
+import qualified Honesty.Nes as Nes (RamRom(..),State(..))
+import qualified Honesty.NesRam as NesRam (Effect(..),inter)
+import qualified Honesty.PPU.Render as PPU (render)
+import qualified Honesty.Sim as Sim (Frames,frames,unFrames)
 
 type Buttons = Set Controller.Button
 

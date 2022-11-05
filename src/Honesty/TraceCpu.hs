@@ -1,9 +1,9 @@
 
 module Honesty.TraceCpu(printRun,printRunBLA) where
 
-import Honesty.Nes as Nes
-import qualified Honesty.Emu as Emu
-import qualified Honesty.Sim as Sim
+import Honesty.Nes as Nes (rr0pc0,state0)
+import qualified Honesty.Emu as Emu (neverStopping,interpret)
+import qualified Honesty.Sim as Sim (trace,traceBLA)
 
 printRun :: Int -> String -> IO ()
 printRun n path = do

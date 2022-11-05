@@ -1,14 +1,13 @@
 
 module Honesty.SpeedTest(run) where
 
-import Data.Fixed(Fixed(..),HasResolution,resolution)
+import Data.Fixed (Fixed(..),HasResolution,resolution)
 import Data.Time (UTCTime,getCurrentTime,diffUTCTime,nominalDiffTimeToSeconds)
+import Honesty.PPU.Graphics (screenToBitmapByteString)
+import Honesty.PPU.Render (Display(..))
+import Honesty.World (World(..),world0,updateWorld)
 import Text.Printf (printf)
-import qualified Data.ByteString as BS
-
-import Honesty.PPU.Graphics(screenToBitmapByteString)
-import Honesty.PPU.Render(Display(..))
-import Honesty.World(World(..),world0,updateWorld)
+import qualified Data.ByteString as BS (foldl')
 
 run :: String -> Maybe Int -> IO ()
 run path maxM = do

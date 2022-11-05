@@ -4,12 +4,12 @@ module Main (main) where
 import Control.Monad (when)
 import System.Environment (getArgs)
 
-import Honesty.Addr
-import Honesty.NesFile
+import Honesty.Addr (Addr)
+import Honesty.NesFile (NesFile(NesFile,prgs),loadNesFile)
 import Honesty.Six502.Decode (decode,reEncode)
 import Honesty.Six502.Disassembler (displayOpLines)
 import Honesty.Six502.Operations (Op)
-import qualified Honesty.PRG as PRG
+import qualified Honesty.PRG as PRG (ROM,bytes)
 import qualified Honesty.Gloss as Gloss(Size(..),run)
 import qualified Honesty.TraceCpu as TraceCpu(printRun,printRunBLA)
 import qualified Honesty.SpeedTest as SpeedTest(run)

@@ -5,10 +5,10 @@ module Honesty.CHR(
     bytes,
     ) where
 
-import Data.Array(Array,(!),listArray)
 import Prelude hiding (init,read)
 
-import Honesty.Byte
+import Data.Array (Array,(!),listArray)
+import Honesty.Byte (Byte)
 
 data ROM = ROM { bytes :: [Byte], bytesA :: Array Int Byte }
 

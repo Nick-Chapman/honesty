@@ -6,15 +6,15 @@ module Honesty.Sim(
     ) where
 
 import Control.Monad (ap,liftM,when)
-import Data.Set as Set
-
-import Honesty.Nes as Nes
-import Honesty.PPU.Render(Display)
-import Honesty.Six502.Disassembler(ljust,displayOpLine,displayOpLine_BLA)
-import qualified Honesty.Controller as Controller
-import qualified Honesty.Six502.Cpu as Six502.Cpu
-import qualified Honesty.Six502.Emu as Six502.Emu
-import qualified Honesty.Six502.Decode as Six502.Decode
+import Data.Set (Set)
+import Honesty.Nes as Nes (State(..),RamRom)
+import Honesty.PPU.Render (Display)
+import Honesty.Six502.Disassembler (ljust,displayOpLine,displayOpLine_BLA)
+import qualified Data.Set as Set (empty)
+import qualified Honesty.Controller as Controller (Button)
+import qualified Honesty.Six502.Cpu as Six502.Cpu (State(..))
+import qualified Honesty.Six502.Decode as Six502.Decode (decode1)
+import qualified Honesty.Six502.Emu as Six502.Emu (readFromAddr)
 
 type Buttons = Set Controller.Button
 
