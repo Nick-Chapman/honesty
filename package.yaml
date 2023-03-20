@@ -3,7 +3,7 @@ version:             0.1.0.0
 description:         NES Emulator
 author:              Nick Chapman
 maintainer:          nic@amadido.co.uk
-github:              https://github.com/Nick-Chapman/honesty.git
+github:              Nick-Chapman/honesty.git
 
 extra-source-files:
 - README.md
